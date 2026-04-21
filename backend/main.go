@@ -230,17 +230,6 @@ func main() {
 
 	// Bookmark alias for frontend compatibility
 	api.Get("/bookmarks/check/:articleId", handlers.CheckBookmark)
-	
-	// Fix old URLs in DB (One-time cleanup)
-	go func() {
-		time.Sleep(10 * time.Second)
-		fmt.Println("Cleaning up old HTTP URLs in database...")
-		// Use raw SQL for safer execution
-		database.DB.Exec("UPDATE articles SET cover_image = REGEXP_REPLACE(cover_image, '^https?://[^/]+', '') WHERE cover_image LIKE 'http%'")
-		database.DB.Exec("UPDATE site_settings SET logo_url = REGEXP_REPLACE(logo_url, '^https?://[^/]+', '') WHERE logo_url LIKE 'http%'")
-		database.DB.Exec("UPDATE site_settings SET favicon_url = REGEXP_REPLACE(favicon_url, '^https?://[^/]+', '') WHERE favicon_url LIKE 'http%'")
-		fmt.Println("Database URL cleanup process initiated.")
-	}()
 
 	// Access Logs
 	api.Post("/log-attempt", handlers.LogAccessAttempt)
