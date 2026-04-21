@@ -17,6 +17,8 @@ import CategoryPage from "./pages/CategoryPage.tsx";
 import PageView from "./pages/PageView.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import About from "./pages/About.tsx";
+import SearchPage from "./pages/SearchPage.tsx";
+import CategoriesPage from "./pages/CategoriesPage.tsx";
 import Courses from "./pages/Courses.tsx";
 import CourseDetail from "./pages/CourseDetail.tsx";
 import LessonView from "./pages/LessonView.tsx";
@@ -83,6 +85,8 @@ const App = () => (
             <Route path="/lms" element={<Courses />} />
             <Route path="/lms/course/:slug" element={<CourseDetail />} />
             <Route path="/lms/lesson/:slug" element={<LessonView />} />
+            <Route path="/search" element={<SearchPage />} />
+            <Route path="/categories" element={<CategoriesPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

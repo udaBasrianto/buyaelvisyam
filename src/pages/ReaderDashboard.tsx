@@ -16,6 +16,8 @@ import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { PostCardV2 } from "@/components/PostCardV2";
+import { Navbar } from "@/components/Navbar";
+import { BottomNav } from "@/components/BottomNav";
 
 interface Comment {
   id: string;
@@ -177,17 +179,9 @@ export default function ReaderDashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-40 bg-card/95 backdrop-blur-md border-b">
-        <div className="container mx-auto px-4 h-14 flex items-center gap-3">
-          <Link to="/" className="text-muted-foreground hover:text-primary">
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-          <LayoutDashboard className="h-5 w-5 text-primary" />
-          <h1 className="text-lg font-bold text-foreground">Dashboard Pembaca</h1>
-        </div>
-      </header>
+      <Navbar />
 
-      <main className="container mx-auto px-4 py-6 pb-24 max-w-3xl">
+      <main className="container mx-auto px-4 py-6 pb-24 max-w-3xl bottom-nav-safe">
         <Tabs defaultValue="overview" className="space-y-6">
           <TabsList className="grid grid-cols-5 w-full bg-muted/30 p-1 rounded-2xl border border-border/50">
             <TabsTrigger value="overview" className="rounded-xl font-bold gap-2 text-[10px] sm:text-xs"><LayoutDashboard className="h-3 w-3" /> Overview</TabsTrigger>
@@ -379,6 +373,7 @@ export default function ReaderDashboard() {
            <DialogFooter><Button onClick={handleTopUp} disabled={uploading || !proofUrl} className="w-full h-12 rounded-xl font-black uppercase text-xs tracking-widest shadow-xl shadow-primary/10">{uploading ? "Sedang Mengunggah..." : "Kirim Permintaan"}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
+      <BottomNav />
     </div>
   );
 }

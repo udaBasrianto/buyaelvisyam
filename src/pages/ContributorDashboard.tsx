@@ -20,6 +20,8 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
+import { Navbar } from "@/components/Navbar";
+import { BottomNav } from "@/components/BottomNav";
 
 interface Article {
   id: string;
@@ -198,18 +200,8 @@ export default function ContributorDashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-40 bg-card/95 backdrop-blur-md border-b">
-        <div className="container mx-auto px-4 h-14 flex items-center gap-3">
-          <Link to="/" className="text-muted-foreground hover:text-primary">
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-          <LayoutDashboard className="h-5 w-5 text-primary" />
-          <h1 className="text-lg font-bold text-foreground">Dashboard Kontributor</h1>
-        </div>
-      </header>
-
-      <main className="container mx-auto px-4 py-6 pb-24 max-w-5xl">
+      <Navbar />
+      <main className="container mx-auto px-4 py-6 pb-24 max-w-5xl bottom-nav-safe">
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           {[
@@ -345,6 +337,7 @@ export default function ContributorDashboard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <BottomNav />
     </div>
   );
 }
