@@ -3,7 +3,6 @@ package handlers
 import (
 	"fmt"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
