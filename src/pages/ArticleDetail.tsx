@@ -52,12 +52,13 @@ export default function ArticleDetail() {
   const DEFAULT_FONT = 18;
 
   useEffect(() => {
-    if (user && id) checkBookmarkStatus();
-  }, [id, user]);
+    if (user && article) checkBookmarkStatus();
+  }, [article, user]);
 
   const checkBookmarkStatus = async () => {
+    if (!article) return;
     try {
-      const { data } = await api.get(`/bookmarks/check/${id}`);
+      const { data } = await api.get(`/bookmarks/check/${article.id}`);
       setIsBookmarked(data.is_bookmarked);
     } catch (err) {}
   };
@@ -68,7 +69,7 @@ export default function ArticleDetail() {
       return;
     }
     try {
-      const { data } = await api.post(`/bookmarks/toggle/${id}`);
+      const { data } = await api.post(`/bookmarks/toggle/${article?.id}`);
       setIsBookmarked(data.status === "added");
       toast({ title: data.message });
     } catch (err) {
