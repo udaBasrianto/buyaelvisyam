@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:4000/api',
+  baseURL: 'https://buyaelvisyam.id/api',
 });
 
 // Add a request interceptor to add the JWT token to the headers
