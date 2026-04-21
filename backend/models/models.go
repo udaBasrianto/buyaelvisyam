@@ -8,7 +8,7 @@ import (
 )
 
 type Profile struct {
-	ID                uuid.UUID  `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()" json:"id"`
+	ID                uuid.UUID  `gorm:"type:uuid;primaryKey" json:"id"`
 	UserID            uuid.UUID  `gorm:"type:uuid;unique;not null" json:"user_id"`
 	Email             string     `gorm:"unique;not null" json:"email"`
 	Password          string     `json:"-"`
@@ -23,13 +23,13 @@ type Profile struct {
 }
 
 type UserRole struct {
-	ID     uuid.UUID `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()" json:"id"`
+	ID     uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
 	UserID uuid.UUID `gorm:"type:uuid;not null" json:"user_id"`
 	Role   string    `gorm:"not null;default:'pembaca'" json:"role"`
 }
 
 type Category struct {
-	ID           uuid.UUID `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()" json:"id"`
+	ID           uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
 	Name         string    `gorm:"not null" json:"name"`
 	Slug         string    `gorm:"unique;not null" json:"slug"`
 	Color        string    `gorm:"default:'bg-primary/10 text-primary'" json:"color"`
@@ -41,7 +41,7 @@ type Category struct {
 }
 
 type Article struct {
-	ID         uuid.UUID      `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()" json:"id"`
+	ID         uuid.UUID      `gorm:"type:uuid;primaryKey" json:"id"`
 	Title      string         `gorm:"not null" json:"title"`
 	Slug       string         `gorm:"unique;not null" json:"slug"`
 	Content    string         `json:"content"`
@@ -61,7 +61,7 @@ type Article struct {
 }
 
 type Page struct {
-	ID        uuid.UUID `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()" json:"id"`
+	ID        uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
 	Title     string    `gorm:"not null" json:"title"`
 	Slug      string    `gorm:"unique;not null" json:"slug"`
 	Content   string    `json:"content"`
@@ -75,7 +75,7 @@ type Page struct {
 }
 
 type SiteSettings struct {
-	ID              uuid.UUID `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()" json:"id"`
+	ID              uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
 	SiteName        string    `gorm:"default:'BlogUstad'" json:"site_name"`
 	Tagline             string    `json:"tagline"`
 	SiteDescription     string    `json:"site_description"`
@@ -112,7 +112,7 @@ type SiteSettings struct {
 }
 
 type AccessLog struct {
-	ID        uuid.UUID `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()" json:"id"`
+	ID        uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
 	IP        string    `json:"ip"`
 	Path      string    `json:"path"`
 	UserAgent string    `json:"user_agent"`
@@ -122,7 +122,7 @@ type AccessLog struct {
 }
 
 type FeatureItem struct {
-	ID        uuid.UUID `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()" json:"id"`
+	ID        uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
 	Icon      string    `gorm:"not null" json:"icon"`
 	Label     string    `gorm:"not null" json:"label"`
 	Link      string    `json:"link"`
@@ -132,7 +132,7 @@ type FeatureItem struct {
 }
 
 type Comment struct {
-	ID        uuid.UUID `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()" json:"id"`
+	ID        uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
 	ArticleID uuid.UUID `gorm:"type:uuid;not null" json:"article_id"`
 	UserID    uuid.UUID `gorm:"type:uuid;not null" json:"user_id"`
 	Content   string    `gorm:"not null" json:"content"`
@@ -145,7 +145,7 @@ type Comment struct {
 }
 
 type Transaction struct {
-	ID        uuid.UUID `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()" json:"id"`
+	ID        uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
 	UserID    uuid.UUID `gorm:"type:uuid;not null" json:"user_id"`
 	Amount    float64   `json:"amount"`
 	Type      string    `json:"type"` // topup, payment
@@ -156,7 +156,7 @@ type Transaction struct {
 }
 
 type Visit struct {
-	ID        uuid.UUID  `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()" json:"id"`
+	ID        uuid.UUID  `gorm:"type:uuid;primaryKey" json:"id"`
 	UserID    *uuid.UUID `gorm:"type:uuid" json:"user_id"`
 	IP        string     `json:"ip"`
 	Path      string     `json:"path"`
@@ -165,7 +165,7 @@ type Visit struct {
 }
 
 type Widget struct {
-	ID        uuid.UUID `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()" json:"id"`
+	ID        uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
 	Title     string    `gorm:"not null" json:"title"`
 	Type      string    `gorm:"default:'html'" json:"type"` // html, image, categories, latest_posts
 	Content   string    `json:"content"`                    // HTML code or text
@@ -178,7 +178,7 @@ type Widget struct {
 }
 
 type QuizQuestion struct {
-	ID            uuid.UUID `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()" json:"id"`
+	ID            uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
 	ArticleID     uuid.UUID `gorm:"type:uuid;index" json:"article_id"`
 	Question      string    `gorm:"not null" json:"question"`
 	OptionA       string    `json:"option_a"`
@@ -192,7 +192,7 @@ type QuizQuestion struct {
 
 // LMS Models
 type Course struct {
-	ID          uuid.UUID `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()" json:"id"`
+	ID          uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
 	Title       string    `gorm:"not null" json:"title"`
 	Slug        string    `gorm:"unique;not null" json:"slug"`
 	Description string    `json:"description"`
@@ -207,7 +207,7 @@ type Course struct {
 }
 
 type CourseModule struct {
-	ID        uuid.UUID `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()" json:"id"`
+	ID        uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
 	CourseID  uuid.UUID `gorm:"type:uuid;not null" json:"course_id"`
 	Title     string    `gorm:"not null" json:"title"`
 	SortOrder int       `gorm:"default:0" json:"sort_order"`
@@ -215,7 +215,7 @@ type CourseModule struct {
 }
 
 type Lesson struct {
-	ID          uuid.UUID `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()" json:"id"`
+	ID          uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
 	ModuleID    uuid.UUID `gorm:"type:uuid;not null" json:"module_id"`
 	Title       string    `gorm:"not null" json:"title"`
 	Slug        string    `gorm:"unique;not null" json:"slug"`
@@ -228,7 +228,7 @@ type Lesson struct {
 }
 
 type Enrollment struct {
-	ID        uuid.UUID `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()" json:"id"`
+	ID        uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
 	UserID    uuid.UUID `gorm:"type:uuid;not null" json:"user_id"`
 	CourseID  uuid.UUID `gorm:"type:uuid;not null" json:"course_id"`
 	Status    string    `gorm:"default:'pending'" json:"status"` // pending, active
@@ -248,7 +248,7 @@ type NavItem struct {
 }
 
 type Bookmark struct {
-	ID        uuid.UUID `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()" json:"id"`
+	ID        uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
 	UserID    uuid.UUID `gorm:"type:uuid;not null;index:idx_user_article" json:"user_id"`
 	ArticleID uuid.UUID `gorm:"type:uuid;not null;index:idx_user_article" json:"article_id"`
 	CreatedAt time.Time `json:"created_at"`
