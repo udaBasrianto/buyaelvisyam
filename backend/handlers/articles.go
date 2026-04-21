@@ -26,11 +26,15 @@ func GetArticles(c *fiber.Ctx) error {
 	
 	query.Find(&articles)
 
-	// Fetch author names
+	// Fetch author names and comment counts
 	for i := range articles {
 		var p models.Profile
 		db.Where("user_id = ?", articles[i].AuthorID).First(&p)
 		articles[i].AuthorName = p.DisplayName
+
+		var count int64
+		db.Model(&models.Comment{}).Where("article_id = ?", articles[i].ID).Count(&count)
+		articles[i].CommentCount = count
 	}
 
 	return c.JSON(articles)
@@ -57,6 +61,10 @@ func GetArticle(c *fiber.Ctx) error {
 	var p models.Profile
 	db.Where("user_id = ?", article.AuthorID).First(&p)
 	article.AuthorName = p.DisplayName
+
+	var count int64
+	db.Model(&models.Comment{}).Where("article_id = ?", article.ID).Count(&count)
+	article.CommentCount = count
 
 	return c.JSON(article)
 }

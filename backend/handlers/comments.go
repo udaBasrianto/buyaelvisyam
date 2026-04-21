@@ -46,6 +46,12 @@ func GetComments(c *fiber.Ctx) error {
 			comments[i].DisplayName = "Anonim"
 			comments[i].Initials = "AN"
 		}
+
+		// Fetch article title
+		var art models.Article
+		if err := db.Select("title").Where("id = ?", comments[i].ArticleID).First(&art).Error; err == nil {
+			comments[i].ArticleTitle = art.Title
+		}
 	}
 
 	return c.JSON(comments)

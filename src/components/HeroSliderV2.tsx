@@ -68,7 +68,41 @@ export function HeroSliderV2({ slides }: HeroSliderV2Props) {
       onMouseLeave={() => setIsPaused(false)}
     >
       {/* Main Slide */}
-      <div className="lg:col-span-3 relative rounded-[2.5rem] overflow-hidden group shadow-2xl border-4 border-transparent hover:border-primary/20 transition-all duration-500">
+       {/* Main Slide with NatGeo Border Trace */}
+      <div className="lg:col-span-3 relative rounded-[2.5rem] overflow-hidden group shadow-2xl transition-all duration-500">
+        {/* The Border Trace SVG Overlay */}
+        <div className="absolute inset-0 z-20 pointer-events-none">
+          <svg className="w-full h-full" overflow="visible">
+            <rect
+              x="2"
+              y="2"
+              width="calc(100% - 4px)"
+              height="calc(100% - 4px)"
+              rx="40"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="4"
+              className="text-white/10"
+            />
+            <motion.rect
+              x="2"
+              y="2"
+              width="calc(100% - 4px)"
+              height="calc(100% - 4px)"
+              rx="40"
+              fill="none"
+              stroke="hsl(var(--primary))"
+              strokeWidth="4"
+              pathLength="100"
+              strokeDasharray="100"
+              initial={{ strokeDashoffset: 100 }}
+              animate={{ strokeDashoffset: 100 - progress }}
+              transition={{ duration: 0.1, ease: "linear" }}
+              strokeLinecap="round"
+            />
+          </svg>
+        </div>
+
         <AnimatePresence mode="wait" custom={direction}>
           <motion.div
             key={current}
@@ -134,32 +168,9 @@ export function HeroSliderV2({ slides }: HeroSliderV2Props) {
           </motion.div>
         </AnimatePresence>
 
-        {/* Global Circular Progress Indicator */}
+        {/* Global Pause Indicator Overlay */}
         <div className="absolute top-8 right-8 z-20 hidden md:block">
-           <div className="relative h-16 w-16 flex items-center justify-center bg-black/20 backdrop-blur-xl rounded-full border border-white/10 shadow-2xl">
-              <svg className="h-14 w-14 -rotate-90">
-                 <circle
-                   cx="28"
-                   cy="28"
-                   r="24"
-                   fill="transparent"
-                   stroke="currentColor"
-                   strokeWidth="3"
-                   className="text-white/10"
-                 />
-                 <motion.circle
-                   cx="28"
-                   cy="28"
-                   r="24"
-                   fill="transparent"
-                   stroke="currentColor"
-                   strokeWidth="3"
-                   strokeDasharray="150.7"
-                   strokeDashoffset={150.7 - (150.7 * progress) / 100}
-                   className="text-primary"
-                   strokeLinecap="round"
-                 />
-              </svg>
+           <div className="relative h-12 w-12 flex items-center justify-center bg-black/20 backdrop-blur-xl rounded-full border border-white/10 shadow-2xl">
               <div className="absolute inset-0 flex items-center justify-center">
                  {isPaused ? <Play className="h-5 w-5 text-white fill-white" /> : <Pause className="h-5 w-5 text-white fill-white" />}
               </div>

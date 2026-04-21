@@ -47,10 +47,11 @@ function getCategoryStyle(name: string, index: number) {
   };
 }
 
-interface Category {
+  interface Category {
   name: string;
   slug: string;
   postCount: number;
+  commentCount: number;
   color: string;
 }
 
@@ -68,8 +69,11 @@ export function CategorySectionV2() {
 
         if (cats && cats.length > 0) {
           const counts: Record<string, number> = {};
+          const commentCounts: Record<string, number> = {};
+          
           (articles || []).forEach((a: any) => {
             counts[a.category] = (counts[a.category] || 0) + 1;
+            commentCounts[a.category] = (commentCounts[a.category] || 0) + (a.comment_count || 0);
           });
           
           setCategories(
@@ -78,11 +82,12 @@ export function CategorySectionV2() {
               slug: c.slug,
               color: c.color,
               postCount: counts[c.name] || 0,
+              commentCount: commentCounts[c.name] || 0,
             })),
           );
         }
       } catch (err) {
-        console.error("Failed to fetch category section", err);
+        console.error("Failed to fetch category section", err)
       } finally {
         setLoading(false);
       }
@@ -136,7 +141,9 @@ export function CategorySectionV2() {
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">{cat.name}</h3>
-                    <p className="text-[10px] text-muted-foreground font-bold uppercase">{cat.postCount} Artikel</p>
+                    <p className="text-[10px] text-muted-foreground font-black uppercase tracking-tight">
+                      {cat.postCount} Post • {cat.commentCount} Komentar
+                    </p>
                   </div>
                 </div>
                 

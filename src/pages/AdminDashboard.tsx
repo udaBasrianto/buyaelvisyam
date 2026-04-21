@@ -11,8 +11,10 @@ import { SiteSettingsManager } from "@/components/admin/SiteSettingsManager";
 import { WidgetsManager } from "@/components/admin/WidgetsManager";
 import { AnalyticsDashboard } from "@/components/admin/AnalyticsDashboard";
 import { LmsManager } from "@/components/admin/LmsManager";
+import { WalletManager } from "@/components/admin/WalletManager";
 import { NavigationManager } from "@/components/admin/NavigationManager";
 import { AccessLogsManager } from "@/components/admin/AccessLogsManager";
+import { CommentsManager } from "@/components/admin/CommentsManager";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -79,12 +81,17 @@ export default function AdminDashboard() {
         return <WhatsAppSettingsManager />;
       case "lms":
         return <LmsManager />;
-      case "navigation":
+      case 'comments':
+        return <CommentsManager />;
+      case 'wallet':
+        return <WalletManager />;
+      case 'navigation':
         return <NavigationManager />;
       case "access_logs":
         return <AccessLogsManager />;
       case "users":
         return <UsersManager />;
+        return <CommentsManager />;
       default:
         return <AnalyticsDashboard />;
     }
@@ -104,6 +111,7 @@ export default function AdminDashboard() {
       case "navigation": return "Manajemen Menu";
       case "access_logs": return "Log Keamanan Akses";
       case "users": return "Manajemen Pengguna";
+      case "comments": return "Manajemen Komentar";
       default: return "Admin Panel";
     }
   };

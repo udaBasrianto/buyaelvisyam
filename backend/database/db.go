@@ -49,6 +49,8 @@ func ConnectDB() {
 		&models.Lesson{},
 		&models.NavItem{},
 		&models.AccessLog{},
+		&models.Enrollment{},
+		&models.Transaction{},
 	)
 
 	DB = db

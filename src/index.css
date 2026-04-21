@@ -39,9 +39,9 @@
     /* Custom tokens */
     --gradient-islamic: linear-gradient(135deg, hsl(158 64% 32%), hsl(170 60% 28%));
     --gradient-gold: linear-gradient(135deg, hsl(45 80% 55%), hsl(38 70% 50%));
-    --gradient-hero: linear-gradient(180deg, hsla(158, 64%, 32%, 0.85), hsla(160, 30%, 10%, 0.95));
-    --shadow-card: 0 4px 20px -4px hsla(158, 64%, 32%, 0.1);
-    --shadow-elevated: 0 8px 30px -8px hsla(158, 64%, 32%, 0.15);
+    --gradient-hero: linear-gradient(180deg, hsl(158 64% 32% / 0.85), hsl(160 30% 10% / 0.95));
+    --shadow-card: 0 4px 20px -4px hsl(158 64% 32% / 0.1);
+    --shadow-elevated: 0 8px 30px -8px hsl(158 64% 32% / 0.15);
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -204,13 +204,13 @@
 
 @keyframes prayer-pulse {
   0% {
-    box-shadow: 0 0 0 0 hsla(var(--primary), 0.4);
+    box-shadow: 0 0 0 0 hsl(var(--primary) / 0.4);
   }
   70% {
-    box-shadow: 0 0 0 10px hsla(var(--primary), 0);
+    box-shadow: 0 0 0 10px hsl(var(--primary) / 0);
   }
   100% {
-    box-shadow: 0 0 0 0 hsla(var(--primary), 0);
+    box-shadow: 0 0 0 0 hsl(var(--primary) / 0);
   }
 }
 

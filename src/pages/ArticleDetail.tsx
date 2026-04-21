@@ -1,6 +1,6 @@
 import { useParams, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Eye, Calendar, User, Share2, BookmarkPlus, AArrowDown, AArrowUp, RotateCcw, Clock } from "lucide-react";
+import { ArrowLeft, Eye, Calendar, User, Share2, BookmarkPlus, AArrowDown, AArrowUp, RotateCcw, Clock, MessageCircle } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { BottomNav } from "@/components/BottomNav";
 import { PostCard } from "@/components/PostCard";
@@ -29,6 +29,7 @@ interface DbArticle {
   created_at: string;
   author_id: string;
   author: string;
+  comment_count: number;
 }
 
 export default function ArticleDetail() {
@@ -186,6 +187,7 @@ export default function ArticleDetail() {
               <span className="flex items-center gap-1.5"><Calendar className="h-4 w-4 text-primary" />{formattedDate}</span>
               <span className="flex items-center gap-1.5"><Eye className="h-4 w-4 text-primary" />{article.views} views</span>
               <span className="flex items-center gap-1.5"><Clock className="h-4 w-4 text-primary" />{readingMinutes} menit baca</span>
+              <span className="flex items-center gap-1.5"><MessageCircle className="h-4 w-4 text-primary" />{article.comment_count} komentar</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1 mr-1 rounded-full border border-border bg-card px-1 py-0.5">
@@ -269,5 +271,6 @@ function toPostCard(p: any): Post {
     author: p.author || "Ustadz",
     date: new Date(p.created_at).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric'}),
     views: p.views || 0,
+    commentCount: p.comment_count || 0,
   };
 }

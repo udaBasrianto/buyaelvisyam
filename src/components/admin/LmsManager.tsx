@@ -1,11 +1,15 @@
 import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, Book, Video, FileText, ChevronRight, Save, ImagePlus, X } from "lucide-react";
+import { 
+  Plus, Edit, Trash2, Book, Video, FileText, ChevronRight, 
+  Save, ImagePlus, X, Users, CreditCard, CheckCircle, XCircle, Search, Clock
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import api from "@/lib/api";
 
@@ -20,6 +24,16 @@ type Course = {
   category: string;
   price: number;
   is_published: boolean;
+};
+
+type Enrollment = {
+  id: string;
+  user_email: string;
+  display_name: string;
+  course_title: string;
+  course_price: number;
+  status: string;
+  created_at: string;
 };
 
 type Module = {
@@ -40,7 +54,9 @@ type Lesson = {
 };
 
 export function LmsManager() {
+  const [activeTab, setActiveTab] = useState<"courses" | "enrollments">("courses");
   const [courses, setCourses] = useState<Course[]>([]);
+  const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Course | null>(null);
@@ -74,6 +90,27 @@ export function LmsManager() {
     setLoading(false);
   };
 
+  const fetchEnrollments = async () => {
+    setLoading(true);
+    try {
+      const { data } = await api.get("/admin/enrollments");
+      if (data) setEnrollments(data);
+    } catch (err) {
+      toast({ title: "Gagal memuat pendaftaran", variant: "destructive" });
+    }
+    setLoading(false);
+  };
+
+  const updateEnrollment = async (id: string, status: string) => {
+    try {
+      await api.put(`/admin/enrollments/${id}`, { status });
+      toast({ title: `Pendaftaran ${status === 'active' ? 'disetujui' : 'dibatalkan'}` });
+      fetchEnrollments();
+    } catch (err) {
+      toast({ title: "Gagal memperbarui status", variant: "destructive" });
+    }
+  };
+
   const fetchContent = async (courseId: string) => {
     try {
       const { data: mods } = await api.get(`/courses/${courseId}/modules`);
@@ -90,7 +127,10 @@ export function LmsManager() {
     }
   };
 
-  useEffect(() => { fetchCourses(); }, []);
+  useEffect(() => { 
+    if (activeTab === "courses") fetchCourses();
+    else fetchEnrollments();
+  }, [activeTab]);
 
   const handleSave = async () => {
     try {
@@ -224,49 +264,141 @@ export function LmsManager() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h3 className="text-lg font-black uppercase tracking-tight">Akademi LMS</h3>
           <p className="text-xs text-muted-foreground">Kelola kursus online dan materi edukasi Anda.</p>
         </div>
-        <Button onClick={() => { setEditing(null); setForm({ title: "", slug: "", description: "", thumbnail: "", instructor: "Ustadz", level: "Pemula", category: "Umum", price: 0, is_published: true }); setOpen(true); }} className="gap-2">
-          <Plus className="h-4 w-4" /> Tambah Kursus
-        </Button>
+        <div className="flex bg-muted/50 p-1 rounded-2xl border border-border/50">
+           <button 
+             onClick={() => setActiveTab("courses")}
+             className={`px-6 py-2 rounded-xl text-xs font-black uppercase transition-all ${activeTab === "courses" ? "bg-background shadow-sm text-primary" : "text-muted-foreground hover:text-foreground"}`}
+           >
+              Katalog
+           </button>
+           <button 
+             onClick={() => setActiveTab("enrollments")}
+             className={`px-6 py-2 rounded-xl text-xs font-black uppercase transition-all ${activeTab === "enrollments" ? "bg-background shadow-sm text-primary" : "text-muted-foreground hover:text-foreground"}`}
+           >
+              Pendaftaran
+           </button>
+        </div>
       </div>
 
-      {loading ? (
-        <div className="text-center py-12 text-muted-foreground">Memuat...</div>
+      {activeTab === "courses" ? (
+        <div className="space-y-6">
+          <div className="flex justify-end">
+            <Button onClick={() => { setEditing(null); setForm({ title: "", slug: "", description: "", thumbnail: "", instructor: "Ustadz", level: "Pemula", category: "Umum", price: 0, is_published: true }); setOpen(true); }} className="gap-2 rounded-xl">
+              <Plus className="h-4 w-4" /> Tambah Kursus
+            </Button>
+          </div>
+
+          {loading ? (
+            <div className="text-center py-12 text-muted-foreground">Memuat...</div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+               {courses.map(c => (
+                 <div key={c.id} className="bg-card border border-border/50 rounded-3xl overflow-hidden flex flex-col group hover:border-primary/30 transition-all shadow-sm hover:shadow-xl">
+                   <div className="aspect-video relative overflow-hidden bg-muted">
+                     {c.thumbnail && <img src={c.thumbnail} className="w-full h-full object-cover" />}
+                     <div className="absolute top-3 right-3 flex gap-2">
+                        <span className={`px-2 py-1 rounded-md text-[10px] font-black uppercase ${c.is_published ? "bg-emerald-500 text-white" : "bg-amber-500 text-white"}`}>
+                          {c.is_published ? "Live" : "Draft"}
+                        </span>
+                        {c.price > 0 && <span className="px-2 py-1 bg-primary text-white rounded-md text-[10px] font-black uppercase">Berbayar</span>}
+                     </div>
+                   </div>
+                   <div className="p-5 flex-1 flex flex-col">
+                     <h4 className="font-bold text-sm mb-1 line-clamp-1">{c.title}</h4>
+                     <p className="text-xs text-muted-foreground mb-4 line-clamp-2">{c.description}</p>
+                     <div className="mt-auto pt-4 border-t flex items-center justify-between">
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" onClick={() => openEdit(c)}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-destructive" onClick={() => deleteCourse(c.id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <Button onClick={() => { setView({ type: "content", courseId: c.id }); fetchContent(c.id); }} variant="outline" size="sm" className="text-[10px] h-8 font-black uppercase tracking-widest gap-1 rounded-lg">
+                           Materi <ChevronRight className="h-3 w-3" />
+                        </Button>
+                     </div>
+                   </div>
+                 </div>
+               ))}
+            </div>
+          )}
+        </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-           {courses.map(c => (
-             <div key={c.id} className="bg-card border border-border/50 rounded-3xl overflow-hidden flex flex-col group hover:border-primary/30 transition-all shadow-sm hover:shadow-xl">
-               <div className="aspect-video relative overflow-hidden bg-muted">
-                 {c.thumbnail && <img src={c.thumbnail} className="w-full h-full object-cover" />}
-                 <div className="absolute top-3 right-3">
-                    <span className={`px-2 py-1 rounded-md text-[10px] font-black uppercase ${c.is_published ? "bg-emerald-500 text-white" : "bg-amber-500 text-white"}`}>
-                      {c.is_published ? "Live" : "Draft"}
-                    </span>
-                 </div>
-               </div>
-               <div className="p-5 flex-1 flex flex-col">
-                 <h4 className="font-bold text-sm mb-1 line-clamp-1">{c.title}</h4>
-                 <p className="text-xs text-muted-foreground mb-4 line-clamp-2">{c.description}</p>
-                 <div className="mt-auto pt-4 border-t flex items-center justify-between">
-                    <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(c)}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => deleteCourse(c.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <Button onClick={() => { setView({ type: "content", courseId: c.id }); fetchContent(c.id); }} variant="outline" size="sm" className="text-[10px] h-8 font-black uppercase tracking-widest gap-1">
-                       Materi <ChevronRight className="h-3 w-3" />
-                    </Button>
-                 </div>
-               </div>
-             </div>
-           ))}
+        <div className="bg-card border border-border/50 rounded-[2rem] overflow-hidden shadow-sm">
+           <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                 <thead>
+                    <tr className="bg-muted/50 border-b border-border/50">
+                       <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Siswa</th>
+                       <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Kursus</th>
+                       <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Harga</th>
+                       <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Status</th>
+                       <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-right">Aksi</th>
+                    </tr>
+                 </thead>
+                 <tbody className="divide-y divide-border/30">
+                    {loading ? (
+                      <tr><td colSpan={5} className="px-6 py-12 text-center text-sm text-muted-foreground">Memuat data pendaftaran...</td></tr>
+                    ) : enrollments.length === 0 ? (
+                      <tr><td colSpan={5} className="px-6 py-12 text-center text-sm text-muted-foreground">Belum ada pendaftaran.</td></tr>
+                    ) : (
+                      enrollments.map((en) => (
+                        <tr key={en.id} className="hover:bg-muted/30 transition-colors group">
+                           <td className="px-6 py-4">
+                              <div className="flex flex-col">
+                                 <span className="text-sm font-bold text-foreground">{en.display_name}</span>
+                                 <span className="text-[10px] text-muted-foreground">{en.user_email}</span>
+                              </div>
+                           </td>
+                           <td className="px-6 py-4">
+                              <span className="text-sm font-medium">{en.course_title}</span>
+                           </td>
+                           <td className="px-6 py-4">
+                              <span className="text-sm font-black text-primary">
+                                 {en.course_price === 0 ? "GRATIS" : `Rp ${en.course_price.toLocaleString("id-ID")}`}
+                              </span>
+                           </td>
+                           <td className="px-6 py-4">
+                              {en.status === "active" ? (
+                                <Badge className="bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/10 border-emerald-500/20 px-2 rounded-lg font-black text-[10px]">AKTIF</Badge>
+                              ) : (
+                                <Badge className="bg-amber-500/10 text-amber-600 hover:bg-amber-500/10 border-amber-500/20 px-2 rounded-lg font-black text-[10px]">PENDING</Badge>
+                              )}
+                           </td>
+                           <td className="px-6 py-4 text-right">
+                              <div className="flex justify-end gap-2">
+                                 {en.status === "pending" && (
+                                   <Button 
+                                     size="sm" 
+                                     onClick={() => updateEnrollment(en.id, "active")}
+                                     className="h-8 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-[10px] font-black uppercase px-4"
+                                   >
+                                      Aktifkan
+                                   </Button>
+                                 )}
+                                 <Button 
+                                   variant="ghost" 
+                                   size="icon" 
+                                   onClick={() => { if(confirm("Hapus pendaftaran ini?")) updateEnrollment(en.id, "cancelled") }}
+                                   className="h-8 w-8 rounded-xl text-destructive"
+                                 >
+                                    <Trash2 className="h-4 w-4" />
+                                 </Button>
+                              </div>
+                           </td>
+                        </tr>
+                      ))
+                    )}
+                 </tbody>
+              </table>
+           </div>
         </div>
       )}
 

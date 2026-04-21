@@ -10,7 +10,8 @@ import {
   MessageCircle,
   GraduationCap,
   Menu,
-  ShieldAlert
+  ShieldAlert,
+  Wallet
 } from "lucide-react";
 import {
   Sidebar,
@@ -41,6 +42,7 @@ export function AdminSidebar({ activeTab, setActiveTab }: AdminSidebarProps) {
     { id: "articles", label: "Artikel", icon: FileText },
     { id: "categories", label: "Kategori", icon: FolderOpen },
     { id: "lms", label: "Akademi LMS", icon: GraduationCap },
+    { id: "wallet", label: "Keuangan", icon: Wallet },
     { id: "navigation", label: "Menu Navigasi", icon: Menu },
     { id: "access_logs", label: "Security Logs", icon: ShieldAlert },
     { id: "widgets", label: "Widget Sidebar", icon: FileCode },
@@ -48,6 +50,7 @@ export function AdminSidebar({ activeTab, setActiveTab }: AdminSidebarProps) {
     { id: "features", label: "Feature Bar", icon: Sparkles },
     { id: "settings", label: "Pengaturan", icon: Settings },
     { id: "whatsapp", label: "WhatsApp Bot", icon: MessageCircle },
+    { id: "comments", label: "Komentar", icon: MessageCircle },
     { id: "users", label: "Pengguna", icon: Users },
   ];
 

@@ -18,6 +18,7 @@ type Profile struct {
 	WhatsAppVerified  bool       `gorm:"default:false" json:"whatsapp_verified"`
 	CreatedAt         time.Time  `json:"created_at"`
 	UpdatedAt         time.Time  `json:"updated_at"`
+	Balance           float64    `gorm:"default:0" json:"balance"`
 	Role              string     `gorm:"-" json:"role"` // Helper field for response
 }
 
@@ -55,7 +56,8 @@ type Article struct {
 	WPID       int            `json:"wp_id"` // Store original WordPress ID to prevent duplicates
 	CreatedAt  time.Time      `json:"created_at"`
 	UpdatedAt  time.Time      `json:"updated_at"`
-	AuthorName string         `gorm:"-" json:"author"` // For response
+	AuthorName string         `gorm:"-" json:"author"`        // For response
+	CommentCount int64        `gorm:"-" json:"comment_count"` // For response
 }
 
 type Page struct {
@@ -133,10 +135,23 @@ type Comment struct {
 	ArticleID uuid.UUID `gorm:"type:uuid;not null" json:"article_id"`
 	UserID    uuid.UUID `gorm:"type:uuid;not null" json:"user_id"`
 	Content   string    `gorm:"not null" json:"content"`
+	ParentID  *uuid.UUID `gorm:"type:uuid" json:"parent_id"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 	DisplayName string  `gorm:"-" json:"display_name"`
 	Initials    string  `gorm:"-" json:"initials"`
+	ArticleTitle string `gorm:"-" json:"article_title"`
+}
+
+type Transaction struct {
+	ID        uuid.UUID `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()" json:"id"`
+	UserID    uuid.UUID `gorm:"type:uuid;not null" json:"user_id"`
+	Amount    float64   `json:"amount"`
+	Type      string    `json:"type"` // topup, payment
+	Status    string    `gorm:"default:'pending'" json:"status"` // pending, success, failed
+	Reference string    `json:"reference"` // description or course title
+	ProofURL  string    `json:"proof_url"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type Visit struct {
@@ -209,6 +224,14 @@ type Lesson struct {
 	SortOrder   int       `gorm:"default:0" json:"sort_order"`
 	IsFree      bool      `gorm:"default:false" json:"is_free"`
 	CreatedAt   time.Time `json:"created_at"`
+}
+
+type Enrollment struct {
+	ID        uuid.UUID `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()" json:"id"`
+	UserID    uuid.UUID `gorm:"type:uuid;not null" json:"user_id"`
+	CourseID  uuid.UUID `gorm:"type:uuid;not null" json:"course_id"`
+	Status    string    `gorm:"default:'pending'" json:"status"` // pending, active
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type NavItem struct {

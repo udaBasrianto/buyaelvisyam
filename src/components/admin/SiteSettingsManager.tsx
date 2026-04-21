@@ -19,7 +19,11 @@ interface Settings {
   footer_text: string;
   homepage_version: string;
   slider_style: string;
+  scroll_to_top_version: string;
   admin_token?: string;
+  admin_slug?: string;
+  hero_title?: string;
+  recent_title?: string;
   newsletter_title?: string;
   newsletter_description?: string;
   newsletter_button_text?: string;
@@ -28,6 +32,16 @@ interface Settings {
   about_hero_image?: string;
   about_vision_image_1?: string;
   about_vision_image_2?: string;
+  about_value_1_title?: string;
+  about_value_1_desc?: string;
+  about_value_2_title?: string;
+  about_value_2_desc?: string;
+  about_value_3_title?: string;
+  about_value_3_desc?: string;
+  about_contact_email?: string;
+  about_contact_phone?: string;
+  about_footer_quote?: string;
+  about_footer_author?: string;
 }
 
 export function SiteSettingsManager() {
@@ -146,6 +160,17 @@ export function SiteSettingsManager() {
         about_hero_image: settings.about_hero_image || "",
         about_vision_image_1: settings.about_vision_image_1 || "",
         about_vision_image_2: settings.about_vision_image_2 || "",
+        // Tetap sertakan field about lainnya agar tidak terhapus di backend
+        about_value_1_title: settings.about_value_1_title || "",
+        about_value_1_desc: settings.about_value_1_desc || "",
+        about_value_2_title: settings.about_value_2_title || "",
+        about_value_2_desc: settings.about_value_2_desc || "",
+        about_value_3_title: settings.about_value_3_title || "",
+        about_value_3_desc: settings.about_value_3_desc || "",
+        about_contact_email: settings.about_contact_email || "",
+        about_contact_phone: settings.about_contact_phone || "",
+        about_footer_quote: settings.about_footer_quote || "",
+        about_footer_author: settings.about_footer_author || "",
       });
       toast({ title: "Tersimpan", description: "Pengaturan situs diperbarui" });
     } catch (error: any) {

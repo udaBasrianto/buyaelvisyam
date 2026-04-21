@@ -1,4 +1,4 @@
-import { Eye, Clock, User, Share2 } from "lucide-react";
+import { Eye, Clock, User, Share2, MessageCircle } from "lucide-react";
 import type { Post } from "@/data/mockData";
 import { useToast } from "@/hooks/use-toast";
 
@@ -73,6 +73,9 @@ export function PostCardV2({ post }: PostCardV2Props) {
                   <Clock className="h-3 w-3" /> {post.readingMinutes} Min Read
                 </span>
               )}
+              <span className="flex items-center gap-1">
+                <MessageCircle className="h-3 w-3" /> {post.commentCount || 0}
+              </span>
            </div>
            <button 
              onClick={handleShare}

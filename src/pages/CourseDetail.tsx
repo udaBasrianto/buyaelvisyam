@@ -3,9 +3,18 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { BottomNav } from "@/components/BottomNav";
 import { SEO } from "@/components/SEO";
-import { Play, Lock, BookOpen, Clock, ChevronRight, ArrowLeft, Star, Users } from "lucide-react";
+import { Play, Lock, BookOpen, Clock, ChevronRight, ArrowLeft, Star, Users, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import api from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 type Course = {
   id: string;
@@ -36,10 +45,46 @@ type Lesson = {
 export default function CourseDetail() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [course, setCourse] = useState<Course | null>(null);
   const [modules, setModules] = useState<Module[]>([]);
   const [lessons, setLessons] = useState<Record<string, Lesson[]>>({});
   const [loading, setLoading] = useState(true);
+  const [enrollmentStatus, setEnrollmentStatus] = useState<string | null>(null); // null, pending, active
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [enrolling, setEnrolling] = useState(false);
+  const [userBalance, setUserBalance] = useState(0);
+
+  const fetchEnrollmentStatus = async (courseId: string) => {
+    if (!user) return;
+    try {
+      const { data } = await api.get(`/courses/${courseId}/enrollment-status`);
+      if (data.enrolled) {
+        setEnrollmentStatus(data.status);
+      }
+      
+      const { data: walletData } = await api.get("/wallet");
+      setUserBalance(walletData.balance);
+    } catch (err) {
+      console.error("Scale enrollment check failed", err);
+    }
+  };
+
+  const handlePayWithWallet = async () => {
+    if (!course) return;
+    setEnrolling(true);
+    try {
+      await api.post(`/courses/${course.id}/pay-wallet`);
+      toast({ title: "Berhasil!", description: "Kursus telah aktif menggunakan saldo Anda." });
+      setEnrollmentStatus("active");
+      setShowPaymentModal(false);
+    } catch (err: any) {
+      toast({ title: "Gagal", description: err.response?.data?.error || "Terjadi kesalahan", variant: "destructive" });
+    } finally {
+      setEnrolling(false);
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -48,6 +93,8 @@ export default function CourseDetail() {
         if (!c) return;
         setCourse(c);
         
+        fetchEnrollmentStatus(c.id);
+
         const { data: mods } = await api.get(`/courses/${c.id}/modules`);
         setModules(mods);
         
@@ -63,7 +110,37 @@ export default function CourseDetail() {
       setLoading(false);
     };
     fetchData();
-  }, [slug]);
+  }, [slug, user]);
+
+  const handleEnroll = async () => {
+    if (!user) {
+      toast({ title: "Login Diperlukan", description: "Silakan login untuk mendaftar kursus." });
+      navigate("/auth");
+      return;
+    }
+
+    if (!course) return;
+
+    setEnrolling(true);
+    try {
+      const { data } = await api.post(`/courses/${course.id}/enroll`);
+      setEnrollmentStatus(data.status);
+      
+      if (data.status === "pending") {
+        setShowPaymentModal(true);
+      } else {
+        toast({ title: "Berhasil Terdaftar!", description: "Selamat belajar di kursus ini." });
+      }
+    } catch (err: any) {
+      toast({ 
+        title: "Gagal Mendaftar", 
+        description: err.response?.data?.error || "Terjadi kesalahan.",
+        variant: "destructive"
+      });
+    } finally {
+      setEnrolling(false);
+    }
+  };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center">Memuat kursus...</div>;
   if (!course) return <div className="min-h-screen flex items-center justify-center">Kursus tidak ditemukan</div>;
@@ -162,22 +239,119 @@ export default function CourseDetail() {
                    <img src={course.thumbnail} className="w-full h-full object-cover" />
                 </div>
                 <div className="space-y-4 relative z-10">
-                   <div className="flex items-center justify-between">
-                      <p className="text-sm font-bold text-muted-foreground">Harga Kursus</p>
-                      <p className="text-2xl font-black text-primary">
-                         {course.price === 0 ? "GRATIS" : `Rp ${course.price.toLocaleString("id-ID")}`}
-                      </p>
-                   </div>
-                   <Button className="w-full h-14 rounded-2xl font-black uppercase tracking-widest text-base shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90">
-                      Mulai Belajar Sekarang
-                   </Button>
-                   <p className="text-[10px] text-center text-muted-foreground px-4 leading-normal font-medium">
-                      Akses seumur hidup • Video kualitas HD • Sertifikat setelah selesai (Segera hadir)
-                   </p>
-                </div>
-             </div>
-          </div>
+                    <div className="flex items-center justify-between">
+                       <p className="text-sm font-bold text-muted-foreground">Harga Kursus</p>
+                       <p className="text-2xl font-black text-primary">
+                          {course.price === 0 ? "GRATIS" : `Rp ${course.price.toLocaleString("id-ID")}`}
+                       </p>
+                    </div>
+
+                    {!enrollmentStatus ? (
+                      <Button 
+                        onClick={handleEnroll}
+                        disabled={enrolling}
+                        className="w-full h-14 rounded-2xl font-black uppercase tracking-widest text-base shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90"
+                      >
+                         {enrolling ? "Memproses..." : course.price === 0 ? "Daftar Gratis" : "Beli Kursus Sekarang"}
+                      </Button>
+                    ) : enrollmentStatus === "pending" ? (
+                      <Button 
+                        onClick={() => setShowPaymentModal(true)}
+                        className="w-full h-14 rounded-2xl font-black uppercase tracking-widest text-base shadow-lg shadow-amber-200 bg-amber-500 hover:bg-amber-600"
+                      >
+                         Menunggu Pembayaran
+                      </Button>
+                    ) : (
+                      <Button 
+                        onClick={() => {
+                          const firstLesson = Object.values(lessons).flat()[0];
+                          if (firstLesson) navigate(`/lms/lesson/${firstLesson.slug}`);
+                        }}
+                        className="w-full h-14 rounded-2xl font-black uppercase tracking-widest text-base shadow-lg shadow-emerald-200 bg-emerald-500 hover:bg-emerald-600"
+                      >
+                         Mulai Belajar
+                      </Button>
+                    )}
+
+                    <p className="text-[10px] text-center text-muted-foreground px-4 leading-normal font-medium">
+                       Akses seumur hidup • Video kualitas HD • Sertifikat setelah selesai (Segera hadir)
+                    </p>
+                 </div>
+              </div>
+           </div>
         </div>
+
+        {/* Payment Modal */}
+        <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
+          <DialogContent className="rounded-[2.5rem] p-8 max-w-md border-amber-100">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-black uppercase tracking-tight flex items-center gap-3">
+                 <div className="h-10 w-10 rounded-2xl bg-amber-100 flex items-center justify-center">
+                    <Clock className="h-5 w-5 text-amber-600" />
+                 </div>
+                 Instruksi Pembayaran
+              </DialogTitle>
+            </DialogHeader>
+            <div className="py-6 space-y-6">
+               <div className="p-4 bg-muted/50 rounded-2xl border border-border text-center">
+                  <p className="text-xs font-bold text-muted-foreground uppercase mb-1">Total Pembayaran</p>
+                  <p className="text-2xl font-black text-primary">Rp {course.price.toLocaleString("id-ID")}</p>
+               </div>
+               <div className="space-y-4">
+                  <div className="flex items-center justify-between p-3 border-b">
+                     <span className="text-sm font-bold">Transfer Bank</span>
+                     <span className="text-sm font-black">BSI (Bank Syariah Indonesia)</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 border-b">
+                     <span className="text-sm font-bold">Nomor Rekening</span>
+                     <span className="text-sm font-black text-primary select-all">7123456789</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3">
+                     <span className="text-sm font-bold">Atas Nama</span>
+                     <span className="text-sm font-black">Yayasan Blogs Ustad</span>
+                  </div>
+               </div>
+               <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 space-y-2">
+                  <p className="text-xs font-bold text-amber-700">TIPS:</p>
+                  <p className="text-[11px] text-amber-800 leading-relaxed">
+                     Setelah transfer, silakan kirim bukti pembayaran ke WhatsApp Admin untuk aktivasi instan. <b>Gunakan kode unik (jika ada) atau berikan berita acara sesuai nama akun Anda.</b>
+                  </p>
+               </div>
+            </div>
+            <DialogFooter className="flex-col gap-3">
+               <div className="w-full p-4 bg-primary/5 rounded-2xl border border-primary/10 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                     <Wallet className="h-5 w-5 text-primary" />
+                     <div>
+                        <p className="text-[10px] font-black uppercase text-muted-foreground mr-auto">Saldo Saya</p>
+                        <p className="text-sm font-black">Rp {userBalance.toLocaleString("id-ID")}</p>
+                     </div>
+                  </div>
+                  {userBalance >= course.price ? (
+                    <Button 
+                      onClick={handlePayWithWallet}
+                      disabled={enrolling}
+                      size="sm" 
+                      className="bg-primary hover:bg-primary/90 text-[10px] font-black uppercase px-4 rounded-xl"
+                    >
+                       Bayar Pakai Saldo
+                    </Button>
+                  ) : (
+                    <span className="text-[9px] font-black uppercase text-amber-600 bg-amber-100 px-2 py-1 rounded">Saldo Kurang</span>
+                  )}
+               </div>
+
+               <Button 
+                 onClick={() => {
+                   window.open(`https://wa.me/628123456789?text=Assalamu'alaikum Admin, saya ingin konfirmasi pembayaran kursus *${course.title}* atas nama ${user?.display_name || user?.email}`, "_blank");
+                 }} 
+                 className="w-full h-12 rounded-xl font-black uppercase text-xs tracking-widest bg-emerald-500 hover:bg-emerald-600 shadow-emerald-200"
+               >
+                  Konfirmasi via WhatsApp (Transfer Bank)
+               </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </main>
 
       <BottomNav />

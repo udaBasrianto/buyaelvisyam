@@ -17,6 +17,7 @@ export interface Post {
   date: string;
   views: number;
   readingMinutes?: number;
+  commentCount?: number;
 }
 
 export interface Category {

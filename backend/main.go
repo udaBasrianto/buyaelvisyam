@@ -90,6 +90,7 @@ func main() {
 
 	// Middleware
 	app.Use(logger.New())
+	app.Static("/uploads", "./uploads")
 	app.Use(cors.New(cors.Config{
 		AllowOrigins: "*",
 		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
@@ -97,6 +98,7 @@ func main() {
 
 	// Routes
 	api := app.Group("/api")
+	api.Post("/upload", handlers.UploadImage)
 
 	// Auth
 	auth := api.Group("/auth")
@@ -183,9 +185,23 @@ func main() {
 	api.Delete("/courses/:id", middleware.Protected(), handlers.DeleteCourse)
 	api.Get("/courses/:courseId/modules", handlers.GetModules)
 	api.Post("/modules", middleware.Protected(), handlers.CreateModule)
-	api.Get("/lessons/:moduleId", handlers.GetLessons)
-	api.Get("/courses/lesson/:slug", handlers.GetLessonBySlug)
+	api.Get("/modules/:moduleId/lessons", handlers.GetLessons)
+	api.Get("/courses/lesson/:slug", middleware.Protected(), handlers.GetLessonBySlug)
 	api.Post("/lessons", middleware.Protected(), handlers.CreateLesson)
+	
+	// Enrollment
+	api.Post("/courses/:id/enroll", middleware.Protected(), handlers.EnrollCourse)
+	api.Get("/courses/:id/enrollment-status", middleware.Protected(), handlers.GetCheckEnrollment)
+	api.Get("/admin/enrollments", middleware.Protected(), handlers.GetAllEnrollments)
+	api.Put("/admin/enrollments/:id", middleware.Protected(), handlers.UpdateEnrollmentStatus)
+	
+	// Wallet & Transactions
+	api.Get("/wallet", middleware.Protected(), handlers.GetWalletInfo)
+	api.Post("/wallet/topup", middleware.Protected(), handlers.RequestTopUp)
+	api.Post("/courses/:id/pay-wallet", middleware.Protected(), handlers.PayWithWallet)
+	api.Get("/admin/wallet/stats", middleware.Protected(), handlers.GetAdminWalletStats)
+	api.Put("/admin/wallet/approve/:id", middleware.Protected(), handlers.ApproveTopUp)
+	api.Put("/admin/wallet/reject/:id", middleware.Protected(), handlers.RejectTopUp)
 
 	// Navigation
 	api.Get("/navigation", handlers.GetNavItems)

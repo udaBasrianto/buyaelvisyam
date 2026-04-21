@@ -47,6 +47,7 @@ export function IndexV2() {
             }),
             views: a.views,
             readingMinutes: Math.max(1, Math.ceil(words / 200)),
+            commentCount: a.comment_count || 0,
           };
         };
 

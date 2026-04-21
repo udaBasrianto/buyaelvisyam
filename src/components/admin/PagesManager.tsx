@@ -67,12 +67,10 @@ export function PagesManager() {
   const openNew = () => { setForm(empty); setOpen(true); };
   const openEdit = (p: Page) => {
     setForm({
+      ...empty,
       id: p.id, title: p.title, slug: p.slug, content: p.content,
       excerpt: p.excerpt ?? "", status: p.status,
       show_in_nav: p.show_in_nav, nav_order: p.nav_order,
-      about_hero_image: "",
-      about_vision_image_1: "",
-      about_vision_image_2: "",
     });
     // If it's about page, fetch current images from settings
     if (p.slug === "tentang" || p.slug === "tentang-kami") {
