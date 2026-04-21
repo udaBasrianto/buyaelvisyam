@@ -1,3 +1,4 @@
+import React from "react";
 import { Eye, Clock, Share2 } from "lucide-react";
 import type { Post } from "@/data/mockData";
 import { useToast } from "@/hooks/use-toast";

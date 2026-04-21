@@ -11,6 +11,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { SEO } from "@/components/SEO";
 import { ArticleQuiz } from "@/components/ArticleQuiz";
 import { latestPosts, type Post } from "@/data/mockData";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
 
@@ -246,9 +247,9 @@ export default function ArticleDetail() {
               onClick={handleBookmark}
               className={`rounded-xl px-4 font-bold uppercase text-[10px] tracking-widest gap-2 shadow-sm transition-all ${isBookmarked ? 'bg-primary text-white border-primary shadow-primary/20' : 'hover:bg-primary/5 hover:text-primary border-border/50'}`}
             >
-               <Bookmark className={`h-3 w-3 ${isBookmarked ? 'fill-current' : ''}`} /> 
-               {isBookmarked ? 'Tersimpan' : 'Muriat'}
-            </Button>
+                <Bookmark className={`h-3 w-3 ${isBookmarked ? 'fill-current' : ''}`} /> 
+                {isBookmarked ? 'Tersimpan' : 'Simpan'}
+             </Button>
             </div>
           </div>
 
