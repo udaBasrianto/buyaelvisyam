@@ -44,7 +44,7 @@ export default function Auth() {
     try {
       // Clean phone number (remove +, spaces, etc)
       const cleanPhone = phoneNumber.replace(/\+/g, "").replace(/\s/g, "");
-      await api.post("/whatsapp/request-token", { 
+      await api.post("/auth/whatsapp/request-token", { 
         phone_number: cleanPhone,
         display_name: displayName 
       });
@@ -66,32 +66,21 @@ export default function Auth() {
     setLoading(true);
     try {
       const cleanPhone = phoneNumber.replace(/\+/g, "").replace(/\s/g, "");
-      const { data } = await api.post("/whatsapp/verify-token", {
+      const { data } = await api.post("/auth/whatsapp/verify-token", {
         phone_number: cleanPhone,
         token: otp,
         display_name: displayName
       });
       
-      // Since backend verify-token doesn't return JWT for registration yet (it returns user object),
-      // we might need to handle login right after. 
-      // But looking at handlers/whatsapp.go, it returns "Account created successfully".
-      // Let's assume user needs to login or we can auto-login if token is provided.
+      toast({ title: "Akun Berhasil Dibuat", description: "Selamat datang di BlogUstad!" });
       
-      toast({ title: "Akun Berhasil Dibuat", description: "Silakan masuk dengan nomor WhatsApp Anda" });
-      
-      // Auto-login attempt
+      // Auto-login after registration
       try {
-        const loginRes = await api.post("/whatsapp/login", { phone_number: cleanPhone });
-        // This will send another OTP for login... let's just redirect to login tab for now
-        // Or if the initial verify returns a token, use it.
-        if (data.token) {
-           signInWithWhatsApp(data.token, data.user);
-           navigate("/");
-        } else {
-           setStep(1);
-           setOtp("");
-           // Switch to login or show success
-        }
+        const loginRes = await api.post("/auth/whatsapp/login/request", { phone_number: cleanPhone });
+        // It will send another OTP for security on first login, or we can just redirect to login tab
+        setStep(1);
+        setOtp("");
+        toast({ title: "Pendaftaran Selesai", description: "Silakan masuk dengan kartu akses WhatsApp Anda" });
       } catch (tokenError) {
         setStep(1);
       }
