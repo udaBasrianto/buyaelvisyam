@@ -139,10 +139,10 @@ func Register(c *fiber.Ctx) error {
 func Me(c *fiber.Ctx) error {
 	user := c.Locals("user").(*jwt.Token)
 	claims := user.Claims.(jwt.MapClaims)
-	email := claims["email"].(string)
+	userIDStr := claims["user_id"].(string)
 
 	var profile models.Profile
-	database.DB.Where("email = ?", email).First(&profile)
+	database.DB.Where("user_id = ?", userIDStr).First(&profile)
 
 	var userRole models.UserRole
 	database.DB.Where("user_id = ?", profile.UserID).First(&userRole)
@@ -153,5 +153,50 @@ func Me(c *fiber.Ctx) error {
 		"display_name": profile.DisplayName,
 		"role":         userRole.Role,
 		"avatar_url":   profile.AvatarURL,
+		"whatsapp":     profile.WhatsAppNumber,
 	})
+}
+
+func UpdateProfile(c *fiber.Ctx) error {
+	user := c.Locals("user").(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+	userIDStr := claims["user_id"].(string)
+
+	type UpdateInput struct {
+		DisplayName string `json:"display_name"`
+		Email       string `json:"email"`
+		AvatarURL   string `json:"avatar_url"`
+		Password    string `json:"password"`
+	}
+
+	var input UpdateInput
+	if err := c.BodyParser(&input); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid input"})
+	}
+
+	db := database.DB
+	var profile models.Profile
+	if err := db.Where("user_id = ?", userIDStr).First(&profile).Error; err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Profile not found"})
+	}
+
+	if input.DisplayName != "" {
+		profile.DisplayName = input.DisplayName
+	}
+	if input.Email != "" {
+		profile.Email = input.Email
+	}
+	if input.AvatarURL != "" {
+		profile.AvatarURL = input.AvatarURL
+	}
+	if input.Password != "" {
+		hashedPassword, _ := HashPassword(input.Password)
+		profile.Password = hashedPassword
+	}
+
+	if err := db.Save(&profile).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update profile"})
+	}
+
+	return c.JSON(fiber.Map{"message": "Profil berhasil diperbarui"})
 }

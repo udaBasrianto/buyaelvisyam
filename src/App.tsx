@@ -22,6 +22,7 @@ import CategoriesPage from "./pages/CategoriesPage.tsx";
 import Courses from "./pages/Courses.tsx";
 import CourseDetail from "./pages/CourseDetail.tsx";
 import LessonView from "./pages/LessonView.tsx";
+import Profile from "./pages/Profile.tsx";
 import { ScrollToTop } from "./components/ScrollToTop";
 import { ThemeInitializer } from "./components/ThemeInitializer";
 
@@ -74,6 +75,11 @@ const App = () => (
             <Route path="/dashboard" element={
               <ProtectedRoute>
                 <ReaderDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/profile" element={
+              <ProtectedRoute>
+                <Profile />
               </ProtectedRoute>
             } />
             <Route path="/kategori/:slug" element={<CategoryPage />} />

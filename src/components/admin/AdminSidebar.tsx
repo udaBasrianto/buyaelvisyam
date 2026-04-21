@@ -106,6 +106,15 @@ export function AdminSidebar({ activeTab, setActiveTab }: AdminSidebarProps) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
+              onClick={() => window.location.href = "/profile"}
+              className="mb-1"
+            >
+              <User className="h-4 w-4" />
+              <span>Profil Saya</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
               onClick={() => signOut()}
               className="text-destructive hover:text-destructive hover:bg-destructive/10"
             >

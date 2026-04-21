@@ -106,6 +106,7 @@ func main() {
 	auth.Post("/register", handlers.Register)
 	auth.Post("/login", handlers.Login)
 	auth.Get("/me", middleware.Protected(), handlers.Me)
+	auth.Put("/profile", middleware.Protected(), handlers.UpdateProfile)
 	
 	// WhatsApp Auth (for pembaca registration & login)
 	auth.Post("/whatsapp/request-token", handlers.RequestWhatsAppToken)

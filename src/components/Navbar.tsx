@@ -156,20 +156,28 @@ export function Navbar() {
             </div>
 
             {/* Role-based shortcuts */}
-            {user && role === "admin" && (
-              <Button variant="ghost" size="icon" className="hidden md:flex text-foreground/70 hover:text-primary" onClick={() => navigate("/admin")} title="Admin Panel">
-                <Shield className="h-5 w-5" />
-              </Button>
-            )}
-            {user && role === "kontributor" && (
-              <Button variant="ghost" size="icon" className="hidden md:flex text-foreground/70 hover:text-primary" onClick={() => navigate("/kontributor")} title="Dashboard">
-                <PenTool className="h-5 w-5" />
-              </Button>
-            )}
-            {user && role === "pembaca" && (
-              <Button variant="ghost" size="icon" className="hidden md:flex text-foreground/70 hover:text-primary" onClick={() => navigate("/dashboard")} title="Profil">
-                <User className="h-5 w-5" />
-              </Button>
+            {user && (
+              <div className="flex items-center gap-1">
+                {role === "admin" && (
+                  <Button variant="ghost" size="icon" className="hidden md:flex text-foreground/70 hover:text-primary" onClick={() => navigate("/admin")} title="Admin Panel">
+                    <ShieldCheck className="h-5 w-5" />
+                  </Button>
+                )}
+                {role === "kontributor" && (
+                  <Button variant="ghost" size="icon" className="hidden md:flex text-foreground/70 hover:text-primary" onClick={() => navigate("/kontributor")} title="Dashboard Kontributor">
+                    <Edit className="h-5 w-5" />
+                  </Button>
+                )}
+                {role === "pembaca" && (
+                  <Button variant="ghost" size="icon" className="hidden md:flex text-foreground/70 hover:text-primary" onClick={() => navigate("/dashboard")} title="Dashboard Saya">
+                    <LayoutDashboard className="h-5 w-5" />
+                  </Button>
+                )}
+                
+                <Button variant="ghost" size="icon" className="hidden md:flex text-foreground/70 hover:text-primary" onClick={() => navigate("/profile")} title="Pengaturan Profil">
+                  <User className="h-5 w-5" />
+                </Button>
+              </div>
             )}
 
             {user ? (

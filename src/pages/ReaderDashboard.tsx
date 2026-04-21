@@ -201,7 +201,7 @@ export default function ReaderDashboard() {
                   <h2 className="text-2xl font-black text-foreground mb-1">{profile.display_name || "Pembaca"}</h2>
                   <p className="text-sm text-muted-foreground font-medium">{user?.email}</p>
                 </div>
-                <Button variant="outline" className="rounded-xl" onClick={() => (document.querySelector('[value="profil"]') as HTMLElement)?.click()}>
+                <Button variant="outline" className="rounded-xl" onClick={() => navigate("/profile")}>
                    Edit Profil
                 </Button>
              </div>
