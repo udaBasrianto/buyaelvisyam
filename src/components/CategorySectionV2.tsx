@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import api from "@/lib/api";
 import { 
@@ -58,6 +58,35 @@ function getCategoryStyle(name: string, index: number) {
 export function CategorySectionV2() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeftState, setScrollLeftState] = useState(0);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button !== 0) return; // Standard left click
+    setIsDragging(true);
+    if (scrollRef.current) {
+      setStartX(e.pageX - scrollRef.current.offsetLeft);
+      setScrollLeftState(scrollRef.current.scrollLeft);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging || !scrollRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - scrollRef.current.offsetLeft;
+    const walk = (x - startX) * 2; // Scroll speed
+    scrollRef.current.scrollLeft = scrollLeftState - walk;
+  };
 
   useEffect(() => {
     const fetch = async () => {
@@ -109,10 +138,17 @@ export function CategorySectionV2() {
         </Link>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div 
+        ref={scrollRef}
+        onMouseDown={handleMouseDown}
+        onMouseLeave={handleMouseLeave}
+        onMouseUp={handleMouseUp}
+        onMouseMove={handleMouseMove}
+        className={`flex overflow-x-auto pb-4 gap-4 no-scrollbar -mx-4 px-4 md:mx-0 md:px-0 md:grid md:grid-cols-3 lg:grid-cols-6 md:overflow-visible transition-all duration-300 ${isDragging ? 'cursor-grabbing scale-[0.995]' : 'cursor-grab'}`}
+      >
         {loading ? (
           Array(6).fill(0).map((_, i) => (
-            <div key={i} className="h-32 rounded-2xl bg-muted animate-pulse" />
+            <div key={i} className="h-32 w-40 shrink-0 md:w-auto rounded-2xl bg-muted animate-pulse" />
           ))
         ) : (
           categories
@@ -128,7 +164,7 @@ export function CategorySectionV2() {
               <Link
                 key={cat.slug}
                 to={`/kategori/${cat.slug}`}
-                className="group relative h-32 rounded-2xl overflow-hidden bg-card border border-border/50 hover:border-primary/30 transition-all duration-300"
+                className="group relative h-32 w-40 shrink-0 md:w-auto rounded-2xl overflow-hidden bg-card border border-border/50 hover:border-primary/30 transition-all duration-300"
               >
                 {/* Pattern background - same as main icon */}
                 <div className="absolute top-2 right-2 opacity-5 scale-150 rotate-12 group-hover:scale-[2] transition-transform duration-500">

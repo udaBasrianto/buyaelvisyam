@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Save, ImagePlus, X, Palette } from "lucide-react";
 import { THEME_PALETTES } from "@/constants/themes";
 import { Button } from "@/components/ui/button";
+import { FeaturesManager } from "./FeaturesManager";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -52,6 +53,7 @@ export function SiteSettingsManager() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadingFavicon, setUploadingFavicon] = useState(false);
+  const [activeTab, setActiveTab] = useState<'general' | 'features'>('general');
   const fileRef = useRef<HTMLInputElement>(null);
   const faviconFileRef = useRef<HTMLInputElement>(null);
 
@@ -182,7 +184,28 @@ export function SiteSettingsManager() {
   if (loading || !settings) return <div className="text-center py-8 text-muted-foreground">Memuat...</div>;
 
   return (
-    <div className="bg-card rounded-xl card-shadow p-6 w-full space-y-4">
+    <div className="space-y-6">
+      <div className="flex bg-muted p-1 rounded-xl w-full max-w-md mx-auto">
+        <button 
+          onClick={() => setActiveTab('general')}
+          className={`flex-1 py-1.5 px-4 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all ${activeTab === 'general' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+        >
+          Konfigurasi Umum
+        </button>
+        <button 
+          onClick={() => setActiveTab('features')}
+          className={`flex-1 py-1.5 px-4 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all ${activeTab === 'features' ? 'bg-background shadow-sm text-primary' : 'text-primary hover:text-foreground'}`}
+        >
+          Fitur Beranda
+        </button>
+      </div>
+
+      {activeTab === 'features' ? (
+        <div className="bg-card rounded-xl card-shadow p-6">
+           <FeaturesManager />
+        </div>
+      ) : (
+        <div className="bg-card rounded-xl card-shadow p-6 w-full space-y-4">
       <div>
         <Label>Nama Situs</Label>
         <Input value={settings.site_name} onChange={(e) => setSettings({ ...settings, site_name: e.target.value })} />
@@ -427,6 +450,8 @@ export function SiteSettingsManager() {
       <Button onClick={handleSave} disabled={saving} className="gap-1.5 w-full">
         <Save className="h-4 w-4" /> {saving ? "Menyimpan..." : "Simpan Pengaturan"}
       </Button>
+    </div>
+      )}
     </div>
   );
 }

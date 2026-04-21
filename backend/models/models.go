@@ -126,6 +126,7 @@ type FeatureItem struct {
 	Icon      string    `gorm:"not null" json:"icon"`
 	Label     string    `gorm:"not null" json:"label"`
 	Link      string    `json:"link"`
+	Color     string    `gorm:"default:'emerald'" json:"color"`
 	SortOrder int       `gorm:"default:0" json:"sort_order"`
 	IsActive  bool      `gorm:"default:true" json:"is_active"`
 }
