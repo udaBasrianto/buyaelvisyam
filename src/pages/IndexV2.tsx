@@ -91,7 +91,7 @@ export function IndexV2() {
   const editorsChoice = featuredPosts.length > 0 ? featuredPosts : (hasDbPosts ? dbPosts.slice(0, 6) : heroSlides);
 
   return (
-    <div className="min-h-screen bg-background selection:bg-primary selection:text-primary-foreground">
+    <div className="min-h-screen bg-background selection:bg-primary selection:text-primary-foreground max-w-full overflow-x-hidden">
       <SEO title={settings.site_name} description={settings.tagline} />
       <Navbar />
 

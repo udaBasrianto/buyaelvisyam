@@ -155,7 +155,7 @@ export default function ArticleDetail() {
   const readingMinutes = Math.max(1, Math.ceil(wordCount / 200));
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background max-w-full overflow-x-hidden">
       <SEO 
         title={article.title} 
         description={article.excerpt || plainText.substring(0, 160)} 
@@ -178,7 +178,7 @@ export default function ArticleDetail() {
       </script>
       <ReadingProgress />
       <Navbar />
-      <main className="bottom-nav-safe">
+      <main className="bottom-nav-safe pb-20">
         <div className="container mx-auto px-4 mt-6">
           <div className="relative w-full aspect-[16/9] md:aspect-[21/9] rounded-2xl overflow-hidden">
             <img 
@@ -272,7 +272,7 @@ export default function ArticleDetail() {
             <div className="min-w-0">
               <article
                 style={{ fontSize: `${fontSize}px` }}
-                className="prose prose-lg max-w-none mx-auto lg:mx-0 py-8"
+                className="prose prose-lg max-w-none mx-auto lg:mx-0 py-8 overflow-x-auto"
                 dangerouslySetInnerHTML={{ __html: article.content }}
               />
 
