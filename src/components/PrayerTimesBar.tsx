@@ -137,7 +137,7 @@ export function PrayerTimesBar() {
   ];
 
   return (
-    <div className="bg-white dark:bg-card py-5 border-b border-border/50 sticky top-16 z-40 shadow-sm backdrop-blur-md bg-opacity-80">
+    <div className="bg-white dark:bg-card py-2 md:py-5 border-b border-border/50 sticky top-16 z-40 shadow-sm backdrop-blur-md bg-opacity-80">
       <div className="container mx-auto px-4 flex flex-wrap items-center justify-between gap-4">
         {/* Location Info */}
         <div className="flex items-center gap-4">

@@ -89,7 +89,7 @@ export function IndexV2() {
 
       <main className="bottom-nav-safe pb-16">
         {/* Modern Hero */}
-        <div className="container mx-auto px-4 py-6">
+        <div className="container mx-auto px-4 py-4 md:py-6">
           {settings.slider_style === "v3" ? (
             <HeroSliderV3 slides={heroData} />
           ) : (
@@ -97,7 +97,9 @@ export function IndexV2() {
           )}
         </div>
 
-        <PrayerTimesBar />
+        <div className="mt-2 md:mt-0">
+          <PrayerTimesBar />
+        </div>
 
         {/* Categories Sektor */}
         <div className="container mx-auto px-4">
@@ -143,7 +145,7 @@ export function IndexV2() {
         </div>
 
         {/* Feature bar (Condensed) */}
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 py-4 md:py-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-6 rounded-3xl bg-primary/5 border border-primary/10">
              <div className="flex flex-col items-center gap-2 text-center">
                 <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">

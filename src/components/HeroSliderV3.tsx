@@ -62,10 +62,10 @@ export function HeroSliderV3({ slides }: HeroSliderV3Props) {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.8 }}
-          className="grid grid-cols-1 lg:grid-cols-12 grid-rows-2 gap-4 h-[600px] lg:h-[550px]"
+          className="flex flex-col lg:grid lg:grid-cols-12 lg:grid-rows-2 gap-4 h-[500px] md:h-[600px] lg:h-[550px]"
         >
           {/* Main Big Feature */}
-          <div className="lg:col-span-8 lg:row-span-2 relative rounded-[2.5rem] overflow-hidden group shadow-2xl">
+          <div className="lg:col-span-8 lg:row-span-2 relative rounded-[2.5rem] overflow-hidden group shadow-2xl h-full">
             <Link to={`/artikel/${main.slug || main.id}`} className="block h-full relative">
               <img
                 src={main.image || STOCK_IMAGES[0]}
@@ -99,7 +99,7 @@ export function HeroSliderV3({ slides }: HeroSliderV3Props) {
                 </div>
               </div>
 
-              <div className="absolute inset-x-0 bottom-0 p-8 md:p-12">
+              <div className="absolute inset-x-0 bottom-0 p-6 md:p-12">
                 <motion.span
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}

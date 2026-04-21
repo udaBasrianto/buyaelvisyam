@@ -63,7 +63,7 @@ export function HeroSliderV2({ slides }: HeroSliderV2Props) {
 
   return (
     <div 
-      className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-full min-h-[450px] lg:min-h-[550px] relative"
+      className="flex flex-col lg:grid lg:grid-cols-4 gap-4 h-full min-h-[500px] lg:min-h-[550px] relative"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
