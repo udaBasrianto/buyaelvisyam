@@ -145,11 +145,15 @@ func RequestWhatsAppToken(c *fiber.Ctx) error {
 // SendWhatsAppMessage sends verification token via WhatsApp
 func SendWhatsAppMessage(phoneNumber string, token string) error {
 	ws := service.GetWhatsAppService()
-	message := fmt.Sprintf("Kode verifikasi BlogUstad Anda: %s. Berlaku %d menit.", token, whatsappConfig.TokenExpiry)
 	
-	// Ensure phone number has @s.whatsapp.net if needed, but SendMessage handles it usually
-	// or we just pass the number and let SendMessage handle the suffix.
-	// The service expects just the number.
+	// Get site name from settings for dynamic message
+	var settings models.SiteSettings
+	siteName := "BlogUstad"
+	if err := database.DB.First(&settings).Error; err == nil && settings.SiteName != "" {
+		siteName = settings.SiteName
+	}
+
+	message := fmt.Sprintf("Kode verifikasi %s Anda: %s. Berlaku %d menit.", siteName, token, whatsappConfig.TokenExpiry)
 	
 	err := ws.SendMessage(phoneNumber, message)
 	if err != nil {
