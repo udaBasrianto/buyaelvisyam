@@ -27,13 +27,8 @@ func UploadImage(c *fiber.Ctx) error {
 		return c.Status(500).JSON(fiber.Map{"error": "Failed to save image"})
 	}
 
-	// Assuming backend runs on localhost:4000, we should return a relative or absolute URL
-	// For production, this should be configurable. For now:
-	host := c.BaseURL()
-	// But in fiber BaseURL might be backend's host
-	host = strings.Replace(host, "http://127.0.0.1", "http://localhost", 1)
-	
-	publicURL := fmt.Sprintf("%s/uploads/%s", host, filename)
+	// Use a relative path so the frontend/browser determines protocol (http vs https)
+	publicURL := fmt.Sprintf("/uploads/%s", filename)
 
 	return c.JSON(fiber.Map{
 		"url": publicURL,
