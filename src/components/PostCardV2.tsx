@@ -1,6 +1,9 @@
-import { Eye, Clock, User, Share2, MessageCircle } from "lucide-react";
+import { Eye, Clock, User, Share2, MessageCircle, Bookmark } from "lucide-react";
 import type { Post } from "@/data/mockData";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import api from "@/lib/api";
+import React, { useState, useEffect } from "react";
 
 const DEFAULT_POST_IMAGE = "https://images.unsplash.com/photo-1564769625392-651b89c75a23?q=80&w=2070&auto=format&fit=crop";
 
@@ -9,7 +12,36 @@ interface PostCardV2Props {
 }
 
 export function PostCardV2({ post }: PostCardV2Props) {
+  const { user } = useAuth();
   const { toast } = useToast();
+  const [isBookmarked, setIsBookmarked] = useState(false);
+
+  useEffect(() => {
+    if (user) checkStatus();
+  }, [post.id, user]);
+
+  const checkStatus = async () => {
+    try {
+      const resp = await api.get(`/bookmarks/check/${post.id}`);
+      setIsBookmarked(resp.data.is_bookmarked);
+    } catch (err) {}
+  };
+
+  const handleBookmark = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) {
+      toast({ title: "Login diperlukan", description: "Silakan login untuk menyimpan kajian." });
+      return;
+    }
+    try {
+      const resp = await api.post(`/bookmarks/toggle/${post.id}`);
+      setIsBookmarked(resp.data.status === "added");
+      toast({ title: resp.data.message });
+    } catch (err) {
+      toast({ title: "Gagal menyimpan bookmark", variant: "destructive" });
+    }
+  };
 
   const handleShare = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -45,6 +77,14 @@ export function PostCardV2({ post }: PostCardV2Props) {
           <span className="px-3 py-1 rounded-md bg-white/90 backdrop-blur-sm text-primary text-[10px] font-bold uppercase tracking-wider">
             {post.category}
           </span>
+        </div>
+        <div className="absolute top-4 right-4">
+           <button 
+             onClick={handleBookmark}
+             className={`p-2 rounded-lg backdrop-blur-md transition-all duration-300 hover:scale-110 shadow-lg ${isBookmarked ? 'bg-primary text-white shadow-primary/20' : 'bg-white/90 text-primary hover:bg-primary hover:text-white'}`}
+           >
+              <Bookmark className={`h-4 w-4 ${isBookmarked ? 'fill-current' : ''}`} />
+           </button>
         </div>
       </div>
 

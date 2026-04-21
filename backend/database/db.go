@@ -51,6 +51,7 @@ func ConnectDB() {
 		&models.AccessLog{},
 		&models.Enrollment{},
 		&models.Transaction{},
+		&models.Bookmark{},
 	)
 
 	DB = db

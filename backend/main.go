@@ -140,6 +140,22 @@ func main() {
 
 	// Settings
 	api.Get("/settings", handlers.GetSiteSettings)
+
+	// Blog API for Mobile/Android
+	blog := api.Group("/blog")
+	blog.Get("/latest", handlers.GetLatestArticles)
+	blog.Get("/popular", handlers.GetPopularArticles)
+	blog.Get("/search", handlers.SearchArticles)
+	blog.Get("/category/:slug", handlers.GetArticlesByCategory)
+	
+	// Leaderboard
+	api.Get("/leaderboard", handlers.GetLeaderboard)
+	
+	// Bookmarks
+	api.Post("/bookmarks/toggle/:articleId", middleware.Protected(), handlers.ToggleBookmark)
+	api.Get("/bookmarks", middleware.Protected(), handlers.GetUserBookmarks)
+	api.Get("/bookmarks/check/:articleId", handlers.CheckBookmark)
+	
 	api.Put("/settings", middleware.Protected(), handlers.UpdateSiteSettings)
 
 	// Features

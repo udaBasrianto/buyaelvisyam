@@ -1,6 +1,7 @@
 import { useParams, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Eye, Calendar, User, Share2, BookmarkPlus, AArrowDown, AArrowUp, RotateCcw, Clock, MessageCircle } from "lucide-react";
+import { ArrowLeft, Eye, Calendar, User, Share2, BookmarkPlus, Bookmark, AArrowDown, AArrowUp, RotateCcw, Clock, MessageCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/Navbar";
 import { BottomNav } from "@/components/BottomNav";
 import { PostCard } from "@/components/PostCard";
@@ -34,7 +35,10 @@ interface DbArticle {
 
 export default function ArticleDetail() {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [article, setArticle] = useState<DbArticle | null>(null);
+  const [isBookmarked, setIsBookmarked] = useState(false);
   const [loading, setLoading] = useState(true);
   const [related, setRelated] = useState<(DbArticle | Post)[]>([]);
   const [fontSize, setFontSize] = useState<number>(() => {
@@ -46,7 +50,30 @@ export default function ArticleDetail() {
   const MAX_FONT = 26;
   const DEFAULT_FONT = 18;
 
-  const { toast } = useToast();
+  useEffect(() => {
+    if (user && id) checkBookmarkStatus();
+  }, [id, user]);
+
+  const checkBookmarkStatus = async () => {
+    try {
+      const { data } = await api.get(`/bookmarks/check/${id}`);
+      setIsBookmarked(data.is_bookmarked);
+    } catch (err) {}
+  };
+
+  const handleBookmark = async () => {
+    if (!user) {
+      toast({ title: "Login diperlukan", description: "Silakan login untuk menyimpan kajian." });
+      return;
+    }
+    try {
+      const { data } = await api.post(`/bookmarks/toggle/${id}`);
+      setIsBookmarked(data.status === "added");
+      toast({ title: data.message });
+    } catch (err) {
+      toast({ title: "Gagal memproses bookmark", variant: "destructive" });
+    }
+  };
 
   const handleShare = async () => {
     const url = window.location.href;
@@ -213,9 +240,15 @@ export default function ArticleDetail() {
               <button onClick={handleShare} className="p-2 rounded-full hover:bg-accent transition text-muted-foreground hover:text-primary" title="Bagikan Artikel">
                 <Share2 className="h-4 w-4" />
               </button>
-              <button className="p-2 rounded-full hover:bg-accent transition text-muted-foreground hover:text-primary">
-                <BookmarkPlus className="h-4 w-4" />
-              </button>
+              <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleBookmark}
+              className={`rounded-xl px-4 font-bold uppercase text-[10px] tracking-widest gap-2 shadow-sm transition-all ${isBookmarked ? 'bg-primary text-white border-primary shadow-primary/20' : 'hover:bg-primary/5 hover:text-primary border-border/50'}`}
+            >
+               <Bookmark className={`h-3 w-3 ${isBookmarked ? 'fill-current' : ''}`} /> 
+               {isBookmarked ? 'Tersimpan' : 'Muriat'}
+            </Button>
             </div>
           </div>
 

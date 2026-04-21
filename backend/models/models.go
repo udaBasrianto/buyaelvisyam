@@ -245,3 +245,10 @@ type NavItem struct {
 	CreatedAt  time.Time  `json:"created_at"`
 	UpdatedAt  time.Time  `json:"updated_at"`
 }
+
+type Bookmark struct {
+	ID        uuid.UUID `gorm:"type:uuid;primaryKey;default:uuid_generate_v4()" json:"id"`
+	UserID    uuid.UUID `gorm:"type:uuid;not null;index:idx_user_article" json:"user_id"`
+	ArticleID uuid.UUID `gorm:"type:uuid;not null;index:idx_user_article" json:"article_id"`
+	CreatedAt time.Time `json:"created_at"`
+}

@@ -12,6 +12,7 @@ import { WidgetsManager } from "@/components/admin/WidgetsManager";
 import { AnalyticsDashboard } from "@/components/admin/AnalyticsDashboard";
 import { LmsManager } from "@/components/admin/LmsManager";
 import { WalletManager } from "@/components/admin/WalletManager";
+import LeaderboardManager from "@/components/admin/LeaderboardManager";
 import { NavigationManager } from "@/components/admin/NavigationManager";
 import { AccessLogsManager } from "@/components/admin/AccessLogsManager";
 import { CommentsManager } from "@/components/admin/CommentsManager";
@@ -85,13 +86,14 @@ export default function AdminDashboard() {
         return <CommentsManager />;
       case 'wallet':
         return <WalletManager />;
+      case "leaderboard":
+        return <LeaderboardManager />;
       case 'navigation':
         return <NavigationManager />;
       case "access_logs":
         return <AccessLogsManager />;
       case "users":
         return <UsersManager />;
-        return <CommentsManager />;
       default:
         return <AnalyticsDashboard />;
     }

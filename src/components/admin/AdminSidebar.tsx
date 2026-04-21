@@ -11,7 +11,8 @@ import {
   GraduationCap,
   Menu,
   ShieldAlert,
-  Wallet
+  Wallet,
+  Trophy
 } from "lucide-react";
 import {
   Sidebar,
@@ -43,6 +44,7 @@ export function AdminSidebar({ activeTab, setActiveTab }: AdminSidebarProps) {
     { id: "categories", label: "Kategori", icon: FolderOpen },
     { id: "lms", label: "Akademi LMS", icon: GraduationCap },
     { id: "wallet", label: "Keuangan", icon: Wallet },
+    { id: "leaderboard", label: "Peringkat", icon: Trophy },
     { id: "navigation", label: "Menu Navigasi", icon: Menu },
     { id: "access_logs", label: "Security Logs", icon: ShieldAlert },
     { id: "widgets", label: "Widget Sidebar", icon: FileCode },
