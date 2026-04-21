@@ -5,7 +5,104 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"
+	"gorm.io/gorm"
 )
+
+// BeforeCreate hooks to generate UUIDs
+func (m *Profile) BeforeCreate(tx *gorm.DB) error {
+	if m.ID == uuid.Nil { m.ID = uuid.New() }
+	return nil
+}
+
+func (m *UserRole) BeforeCreate(tx *gorm.DB) error {
+	if m.ID == uuid.Nil { m.ID = uuid.New() }
+	return nil
+}
+
+func (m *Category) BeforeCreate(tx *gorm.DB) error {
+	if m.ID == uuid.Nil { m.ID = uuid.New() }
+	return nil
+}
+
+func (m *Article) BeforeCreate(tx *gorm.DB) error {
+	if m.ID == uuid.Nil { m.ID = uuid.New() }
+	return nil
+}
+
+func (m *Page) BeforeCreate(tx *gorm.DB) error {
+	if m.ID == uuid.Nil { m.ID = uuid.New() }
+	return nil
+}
+
+func (m *SiteSettings) BeforeCreate(tx *gorm.DB) error {
+	if m.ID == uuid.Nil { m.ID = uuid.New() }
+	return nil
+}
+
+func (m *AccessLog) BeforeCreate(tx *gorm.DB) error {
+	if m.ID == uuid.Nil { m.ID = uuid.New() }
+	return nil
+}
+
+func (m *FeatureItem) BeforeCreate(tx *gorm.DB) error {
+	if m.ID == uuid.Nil { m.ID = uuid.New() }
+	return nil
+}
+
+func (m *Comment) BeforeCreate(tx *gorm.DB) error {
+	if m.ID == uuid.Nil { m.ID = uuid.New() }
+	return nil
+}
+
+func (m *Transaction) BeforeCreate(tx *gorm.DB) error {
+	if m.ID == uuid.Nil { m.ID = uuid.New() }
+	return nil
+}
+
+func (m *Visit) BeforeCreate(tx *gorm.DB) error {
+	if m.ID == uuid.Nil { m.ID = uuid.New() }
+	return nil
+}
+
+func (m *Widget) BeforeCreate(tx *gorm.DB) error {
+	if m.ID == uuid.Nil { m.ID = uuid.New() }
+	return nil
+}
+
+func (m *QuizQuestion) BeforeCreate(tx *gorm.DB) error {
+	if m.ID == uuid.Nil { m.ID = uuid.New() }
+	return nil
+}
+
+func (m *Course) BeforeCreate(tx *gorm.DB) error {
+	if m.ID == uuid.Nil { m.ID = uuid.New() }
+	return nil
+}
+
+func (m *CourseModule) BeforeCreate(tx *gorm.DB) error {
+	if m.ID == uuid.Nil { m.ID = uuid.New() }
+	return nil
+}
+
+func (m *Lesson) BeforeCreate(tx *gorm.DB) error {
+	if m.ID == uuid.Nil { m.ID = uuid.New() }
+	return nil
+}
+
+func (m *Enrollment) BeforeCreate(tx *gorm.DB) error {
+	if m.ID == uuid.Nil { m.ID = uuid.New() }
+	return nil
+}
+
+func (m *NavItem) BeforeCreate(tx *gorm.DB) error {
+	if m.ID == uuid.Nil { m.ID = uuid.New() }
+	return nil
+}
+
+func (m *Bookmark) BeforeCreate(tx *gorm.DB) error {
+	if m.ID == uuid.Nil { m.ID = uuid.New() }
+	return nil
+}
 
 type Profile struct {
 	ID                uuid.UUID  `gorm:"type:uuid;primaryKey" json:"id"`

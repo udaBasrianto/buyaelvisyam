@@ -28,7 +28,7 @@ func ConnectDB() {
 
 	fmt.Println("Database connection established")
 
-	db.Exec(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`)
+	// db.Exec(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`)
 
 	// Auto migration (GORM will create/update tables automatically)
 	// Note: We still provide database.sql for initial setup if needed
