@@ -233,14 +233,13 @@ func main() {
 	
 	// Fix old URLs in DB (One-time cleanup)
 	go func() {
-		time.Sleep(5 * time.Second)
+		time.Sleep(10 * time.Second)
 		fmt.Println("Cleaning up old HTTP URLs in database...")
-		// Fix Articles Cover Images
-		database.DB.Model(&models.Article{}).Where("cover_image LIKE ?", "http%").Update("cover_image", gorm.Expr("REGEXP_REPLACE(cover_image, '^https?://[^/]+', '', 'g')"))
-		// Fix Site Settings Logo/Favicon
-		database.DB.Model(&models.SiteSettings{}).Where("logo_url LIKE ?", "http%").Update("logo_url", gorm.Expr("REGEXP_REPLACE(logo_url, '^https?://[^/]+', '', 'g')"))
-		database.DB.Model(&models.SiteSettings{}).Where("favicon_url LIKE ?", "http%").Update("favicon_url", gorm.Expr("REGEXP_REPLACE(favicon_url, '^https?://[^/]+', '', 'g')"))
-		fmt.Println("Database URL cleanup finished.")
+		// Use raw SQL for safer execution
+		database.DB.Exec("UPDATE articles SET cover_image = REGEXP_REPLACE(cover_image, '^https?://[^/]+', '') WHERE cover_image LIKE 'http%'")
+		database.DB.Exec("UPDATE site_settings SET logo_url = REGEXP_REPLACE(logo_url, '^https?://[^/]+', '') WHERE logo_url LIKE 'http%'")
+		database.DB.Exec("UPDATE site_settings SET favicon_url = REGEXP_REPLACE(favicon_url, '^https?://[^/]+', '') WHERE favicon_url LIKE 'http%'")
+		fmt.Println("Database URL cleanup process initiated.")
 	}()
 
 	// Access Logs
