@@ -87,7 +87,7 @@ export default function Profile() {
         ...(formData.password ? { password: formData.password } : {})
       };
 
-      await api.put("/auth/profile", payload);
+      await api.post("/auth/profile", payload);
       toast({ title: "Profil berhasil diperbarui!" });
       setFormData(prev => ({ ...prev, password: "", confirm_password: "" }));
     } catch (err: any) {
