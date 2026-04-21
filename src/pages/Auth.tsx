@@ -19,7 +19,6 @@ export default function Auth() {
   );
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [adminToken, setAdminToken] = useState("");
   const [loading, setLoading] = useState(false);
   const { signIn, signUp, signInWithWhatsApp } = useAuth();
   const { toast } = useToast();
@@ -30,7 +29,7 @@ export default function Auth() {
     setLoading(true);
 
     if (mode === "admin_login") {
-      const { error } = await signIn(email, password, adminToken);
+      const { error } = await signIn(email, password, "");
       if (error) {
         toast({ title: "Gagal masuk", description: error, variant: "destructive" });
       } else {
@@ -59,7 +58,7 @@ export default function Auth() {
 
         {/* Forms */}
         {mode === "admin_login" ? (
-          <form onSubmit={handleSubmit} className="bg-card border rounded-xl p-6 space-y-4 shadow-lg">
+          <form onSubmit={handleSubmit} className="bg-card border rounded-xl p-6 space-y-4 shadow-lg animate-in fade-in zoom-in duration-300">
             <div className="relative">
               <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
@@ -67,7 +66,7 @@ export default function Auth() {
                 placeholder="Email Admin"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="pl-10"
+                className="pl-10 h-11 rounded-xl"
                 required
               />
             </div>
@@ -79,25 +78,13 @@ export default function Auth() {
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="pl-10"
+                className="pl-10 h-11 rounded-xl"
                 required
                 minLength={6}
               />
             </div>
 
-            <div className="relative">
-              <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="password"
-                placeholder="Token Keamanan Admin"
-                value={adminToken}
-                onChange={(e) => setAdminToken(e.target.value)}
-                className="pl-10"
-                required
-              />
-            </div>
-
-            <Button type="submit" className="w-full islamic-gradient" disabled={loading}>
+            <Button type="submit" className="w-full h-11 rounded-xl islamic-gradient font-bold shadow-lg shadow-primary/20" disabled={loading}>
               {loading ? "Memproses..." : <><LogIn className="h-4 w-4 mr-2" /> Masuk Admin</>}
             </Button>
 
