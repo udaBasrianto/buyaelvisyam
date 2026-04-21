@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -18,9 +18,15 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [loginMethod, setLoginMethod] = useState<"email" | "whatsapp">("email");
   const [loginStep, setLoginStep] = useState(1); // 1: Input number, 2: OTP
+  const [settings, setSettings] = useState<any>(null);
   const { signIn, signInWithWhatsApp } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // Fetch site settings for dynamic logo/text
+    api.get("/settings").then(res => setSettings(res.data)).catch(() => {});
+  }, []);
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -143,13 +149,27 @@ export default function Auth() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12">
       <div className="w-full max-w-md">
-        {/* Header */}
+        {/* Header Dinamis */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-600 text-white text-3xl font-bold mb-4 shadow-lg shadow-blue-200">
-            ☪
+          <div className="inline-flex items-center justify-center mb-4 overflow-hidden">
+            {settings?.logo_url ? (
+              <img 
+                src={settings.logo_url} 
+                alt={settings.site_name} 
+                className="h-16 w-auto object-contain drop-shadow-md"
+              />
+            ) : (
+              <div className="w-16 h-16 rounded-2xl bg-blue-600 text-white text-3xl font-bold flex items-center justify-center shadow-lg shadow-blue-200">
+                ☪
+              </div>
+            )}
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">BlogUstad</h1>
-          <p className="text-gray-500">Platform Literasi & Edukasi Islami</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            {settings?.site_name || "BlogUstad"}
+          </h1>
+          <p className="text-gray-500 italic">
+            {settings?.description || "Platform Literasi & Edukasi Islami"}
+          </p>
         </div>
 
         <Tabs defaultValue="login" className="w-full">
