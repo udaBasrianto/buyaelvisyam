@@ -12,7 +12,8 @@ import {
   Menu,
   ShieldAlert,
   Wallet,
-  Trophy
+  Trophy,
+  User
 } from "lucide-react";
 import {
   Sidebar,
