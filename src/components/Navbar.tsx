@@ -21,7 +21,6 @@ export function Navbar() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [categories, setCategories] = useState<any[]>([]);
   const [dbNavItems, setDbNavItems] = useState<any[]>([]);
-  const [navPages, setNavPages] = useState<any[]>([]);
   const { user, role, signOut } = useAuth();
   const navigate = useNavigate();
   const { settings } = useSiteSettings();
@@ -32,24 +31,16 @@ export function Navbar() {
       if (data && data.length > 0) setDbNavItems(data);
     }).catch(() => {});
     
-    // Fetch dynamic pages marked for nav
-    api.get("/pages?show_in_nav=true&status=published").then(({ data }) => {
-      if (data) setNavPages(data);
-    }).catch(() => {});
-    
     const timer = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // Combine database nav items and dynamic pages
-  const rawNavItems = [
-    ...(dbNavItems.length > 0 
-      ? dbNavItems.filter(i => i.is_active).map(i => ({ id: i.id, label: i.label, href: i.url, isExternal: i.is_external, parent_id: i.parent_id }))
-      : baseNavItems.map(i => ({ ...i, id: i.label, isExternal: false, parent_id: null }))),
-    ...navPages.map(p => ({ id: p.id, label: p.title, href: `/p/${p.slug}`, isExternal: false, parent_id: null }))
-  ];
+  // Navigation Manager is the single source of truth for menu items
+  const rawNavItems = dbNavItems.length > 0 
+    ? dbNavItems.filter(i => i.is_active).map(i => ({ id: i.id, label: i.label, href: i.url, isExternal: i.is_external, parent_id: i.parent_id }))
+    : baseNavItems.map(i => ({ ...i, id: i.label, isExternal: false, parent_id: null }));
 
   // Nest children under parents
   const navItems = rawNavItems.filter(item => !item.parent_id).map(parent => ({
