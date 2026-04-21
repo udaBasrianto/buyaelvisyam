@@ -99,6 +99,7 @@ func main() {
 	// Routes
 	api := app.Group("/api")
 	api.Post("/upload", handlers.UploadImage)
+	api.Get("/ping", func(c *fiber.Ctx) error { return c.SendString("pong") })
 
 	// Auth
 	auth := api.Group("/auth")
@@ -153,9 +154,9 @@ func main() {
 	api.Get("/leaderboard", handlers.GetLeaderboard)
 	
 	// Bookmarks
-	api.Post("/bookmarks/toggle/:articleId", middleware.Protected(), handlers.ToggleBookmark)
-	api.Get("/bookmarks", middleware.Protected(), handlers.GetUserBookmarks)
-	api.Get("/bookmarks/check/:articleId", handlers.CheckBookmark)
+	api.Post("/koleksi/toggle/:articleId", middleware.Protected(), handlers.ToggleBookmark)
+	api.Get("/koleksi", middleware.Protected(), handlers.GetUserBookmarks)
+	api.Get("/koleksi/check/:articleId", handlers.CheckBookmark)
 	
 	api.Put("/settings", middleware.Protected(), handlers.UpdateSiteSettings)
 
