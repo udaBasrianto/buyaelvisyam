@@ -52,6 +52,8 @@ func ConnectDB() {
 		&models.Enrollment{},
 		&models.Transaction{},
 		&models.Bookmark{},
+		&models.WhatsAppToken{},
+		&models.WhatsAppSession{},
 	)
 
 	DB = db
