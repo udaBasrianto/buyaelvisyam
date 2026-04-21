@@ -8,10 +8,26 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
-# dist (allowed for deployment)
-
+dist
 dist-ssr
 *.local
+
+# Environment variables
+.env
+.env.*
+
+# Binaries and executables
+*.exe
+*.exe~
+backend/backend
+backend/server
+backend/backend_new
+
+# Database files
+*.sql
+buya_backup.sql
+buya_data.sql
+buya_insert.sql
 
 # Editor directories and files
 .vscode/*
@@ -23,3 +39,4 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+

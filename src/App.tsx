@@ -54,7 +54,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             
-            {/* Dynamic Admin Login Route */}
+            {/* Login Route */}
             <Route path="/auth" element={<Auth />} />
             <Route path="/admin" element={
               <ProtectedRoute requiredRole="admin">
@@ -111,7 +111,7 @@ function SecretRouteHandler() {
 
     // Log unauthorized attempt if it looks like a login attempt 
     // or just any unknown slug that could be a guess
-    const sensitivePaths = ["auth", "login", "admin", "wp-admin", "masuk"];
+    const sensitivePaths = ["auth", "login", "admin", "wp-admin", "masuk", "yaakhi"];
     if (sensitivePaths.includes(slug || "")) {
        api.post("/log-attempt", { path: `/${slug}`, status: "blocked" });
        navigate("/", { replace: true });
