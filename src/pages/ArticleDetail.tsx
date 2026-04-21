@@ -196,13 +196,18 @@ export default function ArticleDetail() {
               </Link>
             </div>
             <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-12">
-              <div className="flex gap-2 mb-3">
-                <span className="tag-badge islamic-gradient text-primary-foreground text-xs">#{article.category}</span>
+              <div className="flex flex-wrap gap-2 mb-4">
+                <Link 
+                  to={`/kategori/${article.category.toLowerCase().replace(/\s+/g, "-")}`}
+                  className="tag-badge islamic-gradient text-primary-foreground text-[10px] font-bold uppercase tracking-wider hover:scale-105 transition-transform"
+                >
+                  #{article.category}
+                </Link>
                 {tags.map((tag) => (
-                  <span key={tag} className="tag-badge gold-gradient text-primary-foreground text-xs">#{tag}</span>
+                  <span key={tag} className="tag-badge gold-gradient text-primary-foreground text-[10px] font-bold uppercase tracking-wider">#{tag}</span>
                 ))}
               </div>
-              <h1 className="text-xl md:text-3xl lg:text-4xl font-bold text-primary-foreground leading-tight max-w-3xl">
+              <h1 className="text-xl md:text-3xl lg:text-4xl font-bold text-primary-foreground leading-tight max-w-3xl drop-shadow-sm">
                 {article.title}
               </h1>
             </div>
@@ -213,10 +218,19 @@ export default function ArticleDetail() {
           <div className="flex flex-wrap items-center justify-between gap-4 py-4 border-b border-border">
             <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
               <span className="flex items-center gap-1.5"><User className="h-4 w-4 text-primary" />{article.author || "Ustadz"}</span>
+              <Link 
+                to={`/kategori/${article.category.toLowerCase().replace(/\s+/g, "-")}`}
+                className="flex items-center gap-1.5 hover:text-primary transition-colors"
+                title="Lihat kategori ini"
+              >
+                <div className="h-4 w-4 flex items-center justify-center rounded-sm bg-primary/10 text-primary">
+                  <span className="text-[10px] font-bold">#</span>
+                </div>
+                {article.category}
+              </Link>
               <span className="flex items-center gap-1.5"><Calendar className="h-4 w-4 text-primary" />{formattedDate}</span>
               <span className="flex items-center gap-1.5"><Eye className="h-4 w-4 text-primary" />{article.views} views</span>
               <span className="flex items-center gap-1.5"><Clock className="h-4 w-4 text-primary" />{readingMinutes} menit baca</span>
-              <span className="flex items-center gap-1.5"><MessageCircle className="h-4 w-4 text-primary" />{article.comment_count} komentar</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1 mr-1 rounded-full border border-border bg-card px-1 py-0.5">
