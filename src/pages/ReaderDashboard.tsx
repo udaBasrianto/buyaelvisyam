@@ -89,7 +89,7 @@ export default function ReaderDashboard() {
       const { data: lbData } = await api.get("/leaderboard");
       setLeaderboard(lbData.data || []);
 
-      const { data: bookmarkData } = await api.get("/bookmarks");
+      const { data: bookmarkData } = await api.get("/koleksi");
       setBookmarks(bookmarkData || []);
     } catch (err: any) {
       console.error(err);
@@ -252,9 +252,9 @@ export default function ReaderDashboard() {
              ) : (
                 <div className="grid grid-cols-1 gap-4">
                    {bookmarks.map((article: any) => (
-                      <Link key={article.id} to={`/articles/${article.id}`} className="bg-card border border-border/50 p-4 rounded-3xl flex items-center gap-4 hover:border-primary/50 transition-all group">
+                      <Link key={article.id} to={`/artikel/${article.slug || article.id}`} className="bg-card border border-border/50 p-4 rounded-3xl flex items-center gap-4 hover:border-primary/50 transition-all group">
                          <div className="h-20 w-20 flex-shrink-0 rounded-2xl overflow-hidden bg-muted">
-                            <img src={article.image_url} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                            <img src={article.cover_image} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                          </div>
                          <div className="flex-1 min-w-0">
                             <h3 className="font-black text-sm line-clamp-2 leading-tight group-hover:text-primary transition-colors">{article.title}</h3>
@@ -327,8 +327,15 @@ export default function ReaderDashboard() {
                   <div key={c.id} className="bg-card rounded-[2.5rem] border border-border/50 p-6 shadow-sm relative overflow-hidden group">
                      <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -mr-12 -mt-12 group-hover:scale-150 transition-transform" />
                      <div className="flex items-start justify-between gap-4 relative z-10">
-                        <div className="flex-1 min-w-0">
-                           <div className="flex items-center gap-2 mb-2"><span className="text-[10px] font-black uppercase text-primary bg-primary/10 px-2 py-0.5 rounded-lg">{c.article_title || "Artikel"}</span><span className="text-[10px] font-bold text-muted-foreground">{new Date(c.created_at).toLocaleDateString("id-ID", { day: 'numeric', month: 'short' })}</span></div>
+                         <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-2">
+                               <Link to={`/artikel/${c.article_slug || c.article_id}`}>
+                                  <span className="text-[10px] font-black uppercase text-primary bg-primary/10 px-2 py-0.5 rounded-lg hover:bg-primary/20 transition-colors">
+                                     {c.article_title || "Artikel"}
+                                  </span>
+                               </Link>
+                               <span className="text-[10px] font-bold text-muted-foreground">{new Date(c.created_at).toLocaleDateString("id-ID", { day: 'numeric', month: 'short' })}</span>
+                            </div>
                            {editingComment === c.id ? <div className="space-y-3"><Textarea value={editText} onChange={(e) => setEditText(e.target.value)} className="min-h-[80px] rounded-2xl bg-background/50" /><div className="flex gap-2"><Button size="sm" onClick={() => saveEditComment(c.id)} className="rounded-xl font-bold px-4">Simpan</Button><Button size="sm" variant="outline" onClick={() => setEditingComment(null)} className="rounded-xl font-bold px-4">Batal</Button></div></div> : <p className="text-sm font-bold text-foreground/80 leading-relaxed italic">"{c.content}"</p>}
                         </div>
                         {!editingComment && <div className="flex gap-1"><Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl" onClick={() => { setEditingComment(c.id); setEditText(c.content); }}><Edit className="h-4 w-4" /></Button><Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl text-destructive" onClick={() => deleteComment(c.id)}><Trash2 className="h-4 w-4" /></Button></div>}

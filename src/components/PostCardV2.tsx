@@ -35,9 +35,9 @@ export function PostCardV2({ post }: PostCardV2Props) {
       return;
     }
     try {
-      const resp = await api.post(`/bookmarks/toggle/${post.id}`);
-      setIsBookmarked(resp.data.status === "added");
-      toast({ title: resp.data.message });
+      const { data } = await api.post(`/koleksi/toggle/${post.id}`);
+      setIsBookmarked(data.status === "added");
+      toast({ title: data.message });
     } catch (err) {
       toast({ title: "Gagal menyimpan bookmark", variant: "destructive" });
     }
