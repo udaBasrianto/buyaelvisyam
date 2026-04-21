@@ -36,6 +36,8 @@ export function CategoriesManager() {
   const [editing, setEditing] = useState<Cat | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [form, setForm] = useState({ name: "", slug: "", color: COLOR_OPTIONS[0].value, sort_order: 0, is_active: true });
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
   const fetchItems = async () => {
     try {
@@ -48,6 +50,35 @@ export function CategoriesManager() {
   };
 
   useEffect(() => { fetchItems(); }, []);
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  };
+
+  const selectAll = () => {
+    if (selectedIds.length === items.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(items.map(i => i.id));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    if (!confirm(`Hapus ${selectedIds.length} kategori terpilih? Artikel tidak akan ikut terhapus.`)) return;
+    
+    setIsBulkDeleting(true);
+    try {
+      await api.post("/categories/bulk-delete", { ids: selectedIds });
+      toast({ title: "Berhasil", description: `${selectedIds.length} kategori dihapus.` });
+      setSelectedIds([]);
+      fetchItems();
+    } catch (error: any) {
+      toast({ title: "Gagal hapus masal", variant: "destructive" });
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
 
   const openEditor = (item?: Cat) => {
     if (item) {
@@ -109,11 +140,31 @@ export function CategoriesManager() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h3 className="font-semibold text-foreground">Kelola Kategori</h3>
-        <Button size="sm" className="gap-1.5" onClick={() => openEditor()}>
-          <Plus className="h-4 w-4" /> Tambah
-        </Button>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex items-center gap-4">
+          <h3 className="font-semibold text-foreground">Kelola Kategori</h3>
+          {items.length > 0 && (
+             <Button variant="ghost" size="sm" onClick={selectAll} className="text-xs text-primary font-bold">
+                {selectedIds.length === items.length ? "Batal Pilih" : "Pilih Semua"}
+             </Button>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {selectedIds.length > 0 && (
+            <Button 
+              size="sm" 
+              variant="destructive" 
+              className="gap-1.5 h-9" 
+              onClick={handleBulkDelete}
+              disabled={isBulkDeleting}
+            >
+              <Trash2 className="h-4 w-4" /> Hapus ({selectedIds.length})
+            </Button>
+          )}
+          <Button size="sm" className="gap-1.5 h-9" onClick={() => openEditor()}>
+            <Plus className="h-4 w-4" /> Tambah
+          </Button>
+        </div>
       </div>
 
       {loading ? (
@@ -123,22 +174,28 @@ export function CategoriesManager() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
           {items.map((cat) => (
-            <div key={cat.id} className="bg-card rounded-xl p-4 card-shadow flex items-center justify-between gap-2">
+            <div 
+              key={cat.id} 
+              className={`bg-card rounded-xl p-4 border transition-all flex items-center justify-between gap-2 relative group ${selectedIds.includes(cat.id) ? 'border-primary ring-1 ring-primary/20 bg-primary/5' : 'border-border/50'}`}
+              onClick={() => toggleSelect(cat.id)}
+              style={{ cursor: 'pointer' }}
+            >
               <div className="flex items-center gap-3 min-w-0">
+                <div 
+                  className={`h-5 w-5 rounded border flex items-center justify-center transition-colors ${selectedIds.includes(cat.id) ? 'bg-primary border-primary text-primary-foreground' : 'bg-background border-border group-hover:border-primary/50'}`}
+                  onClick={(e) => { e.stopPropagation(); toggleSelect(cat.id); }}
+                >
+                  {selectedIds.includes(cat.id) && <Plus className="h-3 w-3 rotate-45 stroke-[4]" />}
+                </div>
                 <div className={`p-2 rounded-lg ${cat.color}`}>
                   <BookOpen className="h-4 w-4" />
                 </div>
                 <div className="min-w-0">
                   <p className="font-semibold text-sm truncate">{cat.name}</p>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <p className="text-[10px] text-muted-foreground truncate">/{cat.slug}</p>
-                    <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-bold">
-                      {cat.article_count || 0} Artikel
-                    </span>
-                  </div>
+                  <p className="text-[10px] text-muted-foreground truncate">/{cat.slug} • {cat.article_count || 0} Artikel</p>
                 </div>
               </div>
-              <div className="flex items-center gap-1 shrink-0">
+              <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
                 <Switch checked={cat.is_active} onCheckedChange={() => toggleActive(cat)} />
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditor(cat)}>
                   <Edit className="h-4 w-4" />

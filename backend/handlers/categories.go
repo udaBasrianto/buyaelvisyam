@@ -108,6 +108,27 @@ func DeleteCategory(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"message": "Category deleted successfully"})
 }
 
+func BulkDeleteCategories(c *fiber.Ctx) error {
+	type Request struct {
+		IDs []string `json:"ids"`
+	}
+	var req Request
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid request body"})
+	}
+
+	if len(req.IDs) == 0 {
+		return c.Status(400).JSON(fiber.Map{"error": "No IDs provided"})
+	}
+
+	db := database.DB
+	if err := db.Where("id IN ?", req.IDs).Delete(&models.Category{}).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Could not delete categories"})
+	}
+
+	return c.JSON(fiber.Map{"message": "Categories deleted successfully"})
+}
+
 func GetSiteSettings(c *fiber.Ctx) error {
 	db := database.DB
 	var settings models.SiteSettings

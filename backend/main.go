@@ -127,6 +127,7 @@ func main() {
 
 	// Categories
 	api.Get("/categories", handlers.GetCategories)
+	api.Post("/categories/bulk-delete", middleware.Protected(), handlers.BulkDeleteCategories)
 	api.Post("/categories", middleware.Protected(), handlers.CreateCategory)
 	api.Put("/categories/:id", middleware.Protected(), handlers.UpdateCategory)
 	api.Delete("/categories/:id", middleware.Protected(), handlers.DeleteCategory)
