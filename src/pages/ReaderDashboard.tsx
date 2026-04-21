@@ -112,7 +112,7 @@ export default function ReaderDashboard() {
       const { data } = await api.post("/upload", formData, {
         headers: { "Content-Type": "multipart/form-data" }
       });
-      const fullUrl = `http://localhost:4000${data.url}`;
+      const fullUrl = `${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:4000'}${data.url}`;
       setProofUrl(fullUrl);
       toast({ title: "Bukti terunggah!", description: "Silakan lanjut kirim permintaan." });
     } catch (err) {
