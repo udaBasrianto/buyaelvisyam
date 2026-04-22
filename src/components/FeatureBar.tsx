@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import * as Icons from "lucide-react";
 import { Sparkles } from "lucide-react";
 import api from "@/lib/api";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 interface FeatureItem {
   id: string;
@@ -11,6 +12,7 @@ interface FeatureItem {
 }
 
 export function FeatureBar() {
+  const { settings } = useSiteSettings();
   const [items, setItems] = useState<FeatureItem[]>([]);
 
   useEffect(() => {
@@ -27,7 +29,7 @@ export function FeatureBar() {
       });
   }, []);
 
-  if (items.length === 0) return null;
+  if (!settings.show_feature_bar || items.length === 0) return null;
 
   return (
     <section className="py-6 overflow-x-auto">

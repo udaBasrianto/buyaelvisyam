@@ -211,6 +211,7 @@ type SiteSettings struct {
 	GoogleAnalyticsID   string    `json:"google_analytics_id"`
 	CategoriesTitle     string    `json:"categories_title"`
 	CategoriesSubtitle  string    `json:"categories_subtitle"`
+	ShowFeatureBar      bool      `gorm:"default:true" json:"show_feature_bar"`
 	UpdatedBy           uuid.UUID `gorm:"type:uuid" json:"updated_by"`
 	UpdatedAt           time.Time `json:"updated_at"`
 }

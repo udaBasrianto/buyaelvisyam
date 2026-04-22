@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { Switch } from "@/components/ui/switch";
 import api from "@/lib/api";
 
 interface Settings {
@@ -46,6 +47,7 @@ interface Settings {
   google_analytics_id?: string;
   categories_title?: string;
   categories_subtitle?: string;
+  show_feature_bar?: boolean;
 }
 
 export function SiteSettingsManager() {
@@ -208,7 +210,18 @@ export function SiteSettingsManager() {
 
       {activeTab === 'features' ? (
         <div className="bg-card rounded-xl card-shadow p-6">
-           <FeaturesManager />
+              <div className="flex items-center justify-between p-4 border rounded-2xl bg-card/50">
+                <div className="space-y-0.5">
+                  <Label className="text-base font-bold">Aktifkan Feature Bar</Label>
+                  <p className="text-xs text-muted-foreground">Tampilkan atau sembunyikan bar fitur cepat di bawah Jendela Beranda.</p>
+                </div>
+                <Switch 
+                  checked={settings.show_feature_bar} 
+                  onCheckedChange={(v) => setSettings({ ...settings, show_feature_bar: v })} 
+                />
+              </div>
+
+              <FeaturesManager />
         </div>
       ) : (
         <div className="bg-card rounded-xl card-shadow p-6 w-full space-y-4">
