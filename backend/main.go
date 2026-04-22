@@ -33,7 +33,9 @@ func main() {
 		log.Println("WhatsApp initialization warning:", err)
 	}
 
-	app := fiber.New()
+	app := fiber.New(fiber.Config{
+		ProxyHeader: "X-Forwarded-For",
+	})
 
 	// Recover middleware — prevents panics from killing the server
 	app.Use(fiberRecover.New())

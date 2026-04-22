@@ -59,8 +59,6 @@ func GetArticle(c *fiber.Ctx) error {
 		return c.Status(404).JSON(fiber.Map{"error": "Article not found"})
 	}
 	
-	db.Model(&article).Update("views", article.Views+1)
-
 	var p models.Profile
 	db.Where("user_id = ?", article.AuthorID).First(&p)
 	article.AuthorName = p.DisplayName
