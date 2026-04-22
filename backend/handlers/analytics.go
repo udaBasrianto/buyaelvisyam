@@ -1,12 +1,14 @@
 package handlers
 
 import (
+	"strings"
 	"time"
 
 	"backend/database"
 	"backend/models"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type AnalyticsOverview struct {
@@ -180,6 +182,34 @@ func TrackVisit(c *fiber.Ctx) error {
 		CreatedAt: time.Now(),
 	}
 	database.DB.Create(&visit)
+
+	// --- IP-based View Counting Logic ---
+	// Only increment view if this IP hasn't visited this path today
+	todayStart := time.Now().Truncate(24 * time.Hour)
+	var existingVisit int64
+	database.DB.Model(&models.Visit{}).
+		Where("ip = ? AND path = ? AND created_at >= ?", c.IP(), body.Path, todayStart).
+		Where("id <> ?", visit.ID). // Ignore the one we just created
+		Count(&existingVisit)
+
+	if existingVisit == 0 {
+		// New unique visit for this path today
+		// 1. Handle old style path: /artikel/:slug
+		// 2. Handle new style path: /:slug
+		slug := body.Path
+		if strings.HasPrefix(slug, "/artikel/") {
+			slug = strings.TrimPrefix(slug, "/artikel/")
+		} else {
+			slug = strings.TrimPrefix(slug, "/")
+		}
+
+		// Try to find the article by slug or ID and increment view
+		if slug != "" {
+			database.DB.Model(&models.Article{}).
+				Where("slug = ? OR id::text = ?", slug, slug).
+				UpdateColumn("views", gorm.Expr("views + 1"))
+		}
+	}
 
 	return c.SendStatus(200)
 }

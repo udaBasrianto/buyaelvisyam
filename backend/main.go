@@ -77,12 +77,6 @@ func main() {
 					CreatedAt: time.Now(),
 				}
 				database.DB.Create(&visit)
-
-				// If it's an article detail page, increment view count
-				if strings.HasPrefix(p, "/artikel/") {
-					slug := strings.TrimPrefix(p, "/artikel/")
-					database.DB.Model(&models.Article{}).Where("slug = ? OR id::text = ?", slug, slug).UpdateColumn("views", gorm.Expr("views + 1"))
-				}
 			}(path, userID, c.IP(), c.Get("User-Agent"))
 		}
 		return c.Next()
