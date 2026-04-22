@@ -162,10 +162,15 @@ func GetPublicStats(c *fiber.Ctx) error {
 	var totalVisitors int64
 	db.Model(&models.Visit{}).Distinct("ip").Count(&totalVisitors)
 
+	// Total active categories
+	var totalCategories int64
+	db.Model(&models.Category{}).Where("is_active = ?", true).Count(&totalCategories)
+
 	return c.JSON(fiber.Map{
-		"total_views":    totalViews,
-		"today_views":    todayViews,
-		"total_visitors": totalVisitors,
-		"total_articles": totalArticles,
+		"total_views":      totalViews,
+		"today_views":      todayViews,
+		"total_visitors":   totalVisitors,
+		"total_articles":   totalArticles,
+		"total_categories": totalCategories,
 	})
 }
