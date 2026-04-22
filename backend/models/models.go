@@ -152,6 +152,7 @@ type Article struct {
 	LocationName string       `json:"location_name"`
 	Latitude     float64      `json:"latitude"`
 	Longitude    float64      `json:"longitude"`
+	YoutubeURL   string       `json:"youtube_url"`
 	AuthorID   uuid.UUID      `gorm:"type:uuid" json:"author_id"`
 	WPID       int            `json:"wp_id"` // Store original WordPress ID to prevent duplicates
 	CreatedAt  time.Time      `json:"created_at"`

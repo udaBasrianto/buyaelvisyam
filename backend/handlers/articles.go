@@ -115,6 +115,7 @@ func UpdateArticle(c *fiber.Ctx) error {
 		LocationName *string         `json:"location_name"`
 		Latitude     *float64        `json:"latitude"`
 		Longitude    *float64        `json:"longitude"`
+		YoutubeURL   *string         `json:"youtube_url"`
 		Tags         *pq.StringArray `json:"tags"`
 	}
 
@@ -133,6 +134,7 @@ func UpdateArticle(c *fiber.Ctx) error {
 	if input.LocationName != nil { article.LocationName = *input.LocationName }
 	if input.Latitude != nil { article.Latitude = *input.Latitude }
 	if input.Longitude != nil { article.Longitude = *input.Longitude }
+	if input.YoutubeURL != nil { article.YoutubeURL = *input.YoutubeURL }
 	if input.Tags != nil { article.Tags = *input.Tags }
 
 	if err := db.Save(&article).Error; err != nil {

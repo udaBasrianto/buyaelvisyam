@@ -37,6 +37,7 @@ interface DbArticle {
   location_name?: string;
   latitude?: number;
   longitude?: number;
+  youtube_url?: string;
 }
 
 export default function ArticleDetail() {
@@ -290,6 +291,40 @@ export default function ArticleDetail() {
                 className="prose prose-lg max-w-none mx-auto lg:mx-0 py-8 overflow-x-auto"
                 dangerouslySetInnerHTML={{ __html: article.content }}
               />
+
+              {/* YouTube Embed Section */}
+              {article.youtube_url && (
+                <div className="max-w-3xl mx-auto lg:mx-0 my-10">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="h-10 w-10 rounded-2xl bg-red-500/10 flex items-center justify-center">
+                      <svg className="h-5 w-5 text-red-500" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-foreground">Video Kajian</h3>
+                      <p className="text-sm text-muted-foreground">Tonton kajian lengkapnya</p>
+                    </div>
+                  </div>
+                  <div className="relative w-full rounded-2xl overflow-hidden border border-border/50 shadow-xl" style={{ paddingBottom: '56.25%' }}>
+                    <iframe
+                      src={(() => {
+                        const url = article.youtube_url;
+                        let videoId = '';
+                        const watchMatch = url.match(/[?&]v=([^&]+)/);
+                        const shortMatch = url.match(/youtu\.be\/([^?]+)/);
+                        const embedMatch = url.match(/embed\/([^?]+)/);
+                        if (watchMatch) videoId = watchMatch[1];
+                        else if (shortMatch) videoId = shortMatch[1];
+                        else if (embedMatch) videoId = embedMatch[1];
+                        return videoId ? `https://www.youtube.com/embed/${videoId}` : url;
+                      })()}
+                      className="absolute inset-0 w-full h-full"
+                      title="Video Kajian"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Location Map Section */}
               {article.location_name && (article.latitude !== 0 || article.longitude !== 0) && (

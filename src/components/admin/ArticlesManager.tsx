@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Plus, Search, Edit, Trash2, Eye, Save, Send, ImagePlus, X, CheckCircle2, Download, Image, MapPin } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Eye, Save, Send, ImagePlus, X, CheckCircle2, Download, Image, MapPin, Youtube } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +33,7 @@ interface Article {
   location_name?: string;
   latitude?: number;
   longitude?: number;
+  youtube_url?: string;
 }
 
 const statusColor: Record<string, string> = {
@@ -72,7 +73,7 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
 
   const [form, setForm] = useState({
     title: "", excerpt: "", content: "", category: "Umum", cover_image: "", status: "draft", is_featured: false,
-    location_name: "", latitude: 0, longitude: 0,
+    location_name: "", latitude: 0, longitude: 0, youtube_url: "",
   });
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -152,11 +153,12 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
         location_name: article.location_name || "",
         latitude: article.latitude || 0,
         longitude: article.longitude || 0,
+        youtube_url: article.youtube_url || "",
       });
       setPreviewUrl(article.cover_image || null);
     } else {
       setEditing(null);
-      setForm({ title: "", excerpt: "", content: "", category: "Umum", cover_image: "", status: "draft", is_featured: false, location_name: "", latitude: -6.2088, longitude: 106.8456 });
+      setForm({ title: "", excerpt: "", content: "", category: "Umum", cover_image: "", status: "draft", is_featured: false, location_name: "", latitude: -6.2088, longitude: 106.8456, youtube_url: "" });
       setPreviewUrl(null);
     }
     setEditorOpen(true);
@@ -179,6 +181,7 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
       location_name: form.location_name.trim(),
       latitude: Number(form.latitude) || 0,
       longitude: Number(form.longitude) || 0,
+      youtube_url: form.youtube_url.trim(),
     };
     
     try {
@@ -499,6 +502,28 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
                     </div>
                     <p className="text-[10px] text-muted-foreground italic">Tips: Gunakan Google Maps untuk mencari koordinat lat/long.</p>
                  </div>
+              </div>
+
+              <div className="p-4 rounded-xl border bg-muted/30 space-y-3">
+                 <div className="flex items-center gap-2 mb-2">
+                    <Youtube className="h-4 w-4 text-red-500" />
+                    <Label className="text-sm font-bold uppercase tracking-wider">Video YouTube (Optional)</Label>
+                 </div>
+                 <div>
+                    <Label className="text-[10px] font-bold uppercase">Link YouTube</Label>
+                    <Input
+                       value={form.youtube_url}
+                       onChange={(e) => setForm({ ...form, youtube_url: e.target.value })}
+                       placeholder="https://www.youtube.com/watch?v=... atau https://youtu.be/..."
+                       className="h-9"
+                    />
+                    <p className="text-[10px] text-muted-foreground italic mt-1">Video akan tampil otomatis di akhir artikel.</p>
+                 </div>
+                 {form.youtube_url && (
+                    <div className="text-[10px] text-emerald-600 font-bold flex items-center gap-1">
+                       ✓ Link YouTube terdeteksi
+                    </div>
+                 )}
               </div>
 
               <div>
