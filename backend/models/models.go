@@ -209,6 +209,8 @@ type SiteSettings struct {
 	AboutFooterQuote    string    `json:"about_footer_quote"`
 	AboutFooterAuthor   string    `json:"about_footer_author"`
 	GoogleAnalyticsID   string    `json:"google_analytics_id"`
+	CategoriesTitle     string    `json:"categories_title"`
+	CategoriesSubtitle  string    `json:"categories_subtitle"`
 	UpdatedBy           uuid.UUID `gorm:"type:uuid" json:"updated_by"`
 	UpdatedAt           time.Time `json:"updated_at"`
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import api from "@/lib/api";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { 
   ArrowRight, Box, Hash, ShieldCheck, Book, History, 
   Scroll, Library, Users, Moon, Heart, Sparkles 
@@ -124,14 +125,20 @@ export function CategorySectionV2() {
     fetch();
   }, []);
 
+  const { settings } = useSiteSettings();
+
   if (!loading && categories.length === 0) return null;
 
   return (
     <section className="py-12">
       <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
         <div>
-          <h2 className="text-2xl font-black text-foreground uppercase tracking-tight">Categori Terpopuler</h2>
-          <p className="text-sm text-muted-foreground mt-1 text-center md:text-left">Temukan topik kajian favorit Anda dengan mudah</p>
+          <h2 className="text-2xl font-black text-foreground uppercase tracking-tight">
+            {settings.categories_title || "Kategori Terpopuler"}
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1 text-center md:text-left">
+            {settings.categories_subtitle || "Temukan topik kajian favorit Anda dengan mudah"}
+          </p>
         </div>
         <Link to="/" className="text-xs font-bold text-primary flex items-center gap-1 hover:underline">
           LIHAT SEMUA <ArrowRight className="h-3 w-3" />

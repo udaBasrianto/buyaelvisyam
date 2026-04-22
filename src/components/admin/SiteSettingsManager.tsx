@@ -44,6 +44,8 @@ interface Settings {
   about_footer_quote?: string;
   about_footer_author?: string;
   google_analytics_id?: string;
+  categories_title?: string;
+  categories_subtitle?: string;
 }
 
 export function SiteSettingsManager() {
@@ -175,6 +177,8 @@ export function SiteSettingsManager() {
         about_footer_quote: settings.about_footer_quote || "",
         about_footer_author: settings.about_footer_author || "",
         google_analytics_id: settings.google_analytics_id?.trim() || "",
+        categories_title: settings.categories_title?.trim() || "",
+        categories_subtitle: settings.categories_subtitle?.trim() || "",
       });
       toast({ title: "Tersimpan", description: "Pengaturan situs diperbarui" });
     } catch (error: any) {
@@ -284,6 +288,22 @@ export function SiteSettingsManager() {
               value={settings.recent_title || ""} 
               onChange={(e) => setSettings({ ...settings, recent_title: e.target.value })} 
               placeholder="Contoh: Recent Stories"
+            />
+          </div>
+          <div>
+            <Label className="text-[10px]">Judul Seksi Kategori Terpopuler</Label>
+            <Input 
+              value={settings.categories_title || ""} 
+              onChange={(e) => setSettings({ ...settings, categories_title: e.target.value })} 
+              placeholder="Contoh: Kategori Terpopuler"
+            />
+          </div>
+          <div>
+            <Label className="text-[10px]">Subjudul Seksi Kategori</Label>
+            <Input 
+              value={settings.categories_subtitle || ""} 
+              onChange={(e) => setSettings({ ...settings, categories_subtitle: e.target.value })} 
+              placeholder="Contoh: Temukan topik kajian favorit Anda"
             />
           </div>
         </div>
