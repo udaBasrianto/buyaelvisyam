@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Plus, Search, Edit, Trash2, Eye, Save, Send, ImagePlus, X, CheckCircle2, Download, Image, MapPin, Youtube } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Eye, Save, Send, ImagePlus, X, CheckCircle2, Download, Image, MapPin, Youtube, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -73,7 +73,7 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
 
   const [form, setForm] = useState({
     title: "", excerpt: "", content: "", category: "Umum", cover_image: "", status: "draft", is_featured: false,
-    location_name: "", latitude: 0, longitude: 0, youtube_url: "",
+    location_name: "", latitude: 0, longitude: 0, youtube_url: "", published_at: "",
   });
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -154,11 +154,12 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
         latitude: article.latitude || 0,
         longitude: article.longitude || 0,
         youtube_url: article.youtube_url || "",
+        published_at: article.created_at ? new Date(article.created_at).toISOString().slice(0, 16) : "",
       });
       setPreviewUrl(article.cover_image || null);
     } else {
       setEditing(null);
-      setForm({ title: "", excerpt: "", content: "", category: "Umum", cover_image: "", status: "draft", is_featured: false, location_name: "", latitude: -6.2088, longitude: 106.8456, youtube_url: "" });
+      setForm({ title: "", excerpt: "", content: "", category: "Umum", cover_image: "", status: "draft", is_featured: false, location_name: "", latitude: -6.2088, longitude: 106.8456, youtube_url: "", published_at: new Date().toISOString().slice(0, 16) });
       setPreviewUrl(null);
     }
     setEditorOpen(true);
@@ -182,6 +183,7 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
       latitude: Number(form.latitude) || 0,
       longitude: Number(form.longitude) || 0,
       youtube_url: form.youtube_url.trim(),
+      published_at: form.published_at ? new Date(form.published_at).toISOString() : undefined,
     };
     
     try {
@@ -451,6 +453,18 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
               <div>
                 <Label>Judul</Label>
                 <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Judul artikel..." />
+              </div>
+              <div>
+                <Label className="flex items-center gap-1.5">
+                  <Calendar className="h-3.5 w-3.5 text-primary" /> Tanggal & Waktu Postingan
+                </Label>
+                <Input
+                  type="datetime-local"
+                  value={form.published_at}
+                  onChange={(e) => setForm({ ...form, published_at: e.target.value })}
+                  className="h-9"
+                />
+                <p className="text-[10px] text-muted-foreground mt-1">Ubah tanggal & waktu postingan artikel ini.</p>
               </div>
               <div>
                 <Label>Ringkasan</Label>

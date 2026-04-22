@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"time"
+
 	"backend/database"
 	"backend/models"
 	"github.com/gofiber/fiber/v2"
@@ -116,6 +118,7 @@ func UpdateArticle(c *fiber.Ctx) error {
 		Latitude     *float64        `json:"latitude"`
 		Longitude    *float64        `json:"longitude"`
 		YoutubeURL   *string         `json:"youtube_url"`
+		PublishedAt  *string         `json:"published_at"` // ISO string from frontend
 		Tags         *pq.StringArray `json:"tags"`
 	}
 
@@ -139,6 +142,19 @@ func UpdateArticle(c *fiber.Ctx) error {
 
 	if err := db.Save(&article).Error; err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": "Could not update article"})
+	}
+
+	// Update created_at separately if provided (GORM doesn't update it via Save)
+	if input.PublishedAt != nil && *input.PublishedAt != "" {
+		parsed, err := time.Parse(time.RFC3339, *input.PublishedAt)
+		if err != nil {
+			// try without timezone
+			parsed, err = time.ParseInLocation("2006-01-02T15:04", *input.PublishedAt, time.Local)
+		}
+		if err == nil {
+			db.Exec("UPDATE articles SET created_at = ? WHERE id = ?", parsed, article.ID)
+			article.CreatedAt = parsed
+		}
 	}
 
 	return c.JSON(article)
