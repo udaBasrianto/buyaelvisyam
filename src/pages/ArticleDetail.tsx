@@ -282,7 +282,7 @@ export default function ArticleDetail() {
               />
 
               {/* Location Map Section */}
-              {article.location_name && article.latitude && article.longitude && (
+              {article.location_name && (article.latitude !== 0 || article.longitude !== 0) && (
                 <div className="max-w-3xl mx-auto lg:mx-0 my-10 p-6 rounded-[2rem] bg-card border border-border/50 shadow-xl shadow-black/5 animate-in fade-in slide-in-from-bottom-4 duration-700">
                    <div className="flex items-center gap-3 mb-4">
                       <div className="h-10 w-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">

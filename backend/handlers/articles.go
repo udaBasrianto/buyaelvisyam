@@ -102,28 +102,37 @@ func UpdateArticle(c *fiber.Ctx) error {
 		return c.Status(404).JSON(fiber.Map{"error": "Article not found"})
 	}
 
-	var updatedData models.Article
-	if err := c.BodyParser(&updatedData); err != nil {
+	var input struct {
+		Title        *string         `json:"title"`
+		Slug         *string         `json:"slug"`
+		Content      *string         `json:"content"`
+		Excerpt      *string         `json:"excerpt"`
+		Category     *string         `json:"category"`
+		CoverImage   *string         `json:"cover_image"`
+		Status       *string         `json:"status"`
+		IsFeatured   *bool           `json:"is_featured"`
+		LocationName *string         `json:"location_name"`
+		Latitude     *float64        `json:"latitude"`
+		Longitude    *float64        `json:"longitude"`
+		Tags         *pq.StringArray `json:"tags"`
+	}
+
+	if err := c.BodyParser(&input); err != nil {
 		return c.Status(400).JSON(fiber.Map{"error": "Invalid body"})
 	}
 
-	if updatedData.Title != "" { article.Title = updatedData.Title }
-	if updatedData.Slug != "" { article.Slug = updatedData.Slug }
-	if updatedData.Content != "" { article.Content = updatedData.Content }
-	if updatedData.Excerpt != "" { article.Excerpt = updatedData.Excerpt }
-	if updatedData.Category != "" { article.Category = updatedData.Category }
-	if updatedData.CoverImage != "" { article.CoverImage = updatedData.CoverImage }
-	if updatedData.Status != "" { article.Status = updatedData.Status }
-	if updatedData.LocationName != "" { article.LocationName = updatedData.LocationName }
-	article.Latitude = updatedData.Latitude
-	article.Longitude = updatedData.Longitude
-	
-	// Handle is_featured correctly (explicit check since it's a bool)
-	if c.BodyParser(&struct {
-		IsFeatured *bool `json:"is_featured"`
-	}{}); true {
-		article.IsFeatured = updatedData.IsFeatured
-	}
+	if input.Title != nil { article.Title = *input.Title }
+	if input.Slug != nil { article.Slug = *input.Slug }
+	if input.Content != nil { article.Content = *input.Content }
+	if input.Excerpt != nil { article.Excerpt = *input.Excerpt }
+	if input.Category != nil { article.Category = *input.Category }
+	if input.CoverImage != nil { article.CoverImage = *input.CoverImage }
+	if input.Status != nil { article.Status = *input.Status }
+	if input.IsFeatured != nil { article.IsFeatured = *input.IsFeatured }
+	if input.LocationName != nil { article.LocationName = *input.LocationName }
+	if input.Latitude != nil { article.Latitude = *input.Latitude }
+	if input.Longitude != nil { article.Longitude = *input.Longitude }
+	if input.Tags != nil { article.Tags = *input.Tags }
 
 	if err := db.Save(&article).Error; err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": "Could not update article"})
