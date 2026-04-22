@@ -150,7 +150,7 @@ export default function AdminDashboard() {
             </div>
           </header>
 
-          <main className="flex-1 p-4 md:p-6 space-y-6 max-w-7xl mx-auto w-full">
+          <main className="flex-1 p-4 md:p-6 space-y-6 max-w-full w-full">
             {activeTab !== "analytics" && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
                 {stats.map((s) => (

@@ -359,7 +359,7 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
               <tbody>
                 {filtered.map((a) => (
                   <tr key={a.id} className="border-b last:border-0 hover:bg-accent/20 transition">
-                    <td className="py-3 px-4 font-medium max-w-[280px] truncate">{a.title}</td>
+                    <td className="py-3 px-4 font-medium max-w-[500px] truncate">{a.title}</td>
                     <td className="py-3 px-4 text-muted-foreground">{a.author || "—"}</td>
                     <td className="py-3 px-4 text-muted-foreground">{a.category}</td>
                     <td className="py-3 px-4 text-center">
