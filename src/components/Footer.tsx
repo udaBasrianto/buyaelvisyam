@@ -48,7 +48,7 @@ export function Footer() {
                    <span className="text-[10px] font-bold uppercase tracking-widest">Total Tayangan</span>
                 </div>
                 <span className="text-lg font-black text-foreground">
-                   {stats?.total_views.toLocaleString() || "..."}
+                   {stats ? stats.total_views.toLocaleString("id-ID") : "..."}
                 </span>
              </div>
              <div className="flex flex-col items-center border-l border-r border-border/30 px-6">
@@ -57,16 +57,16 @@ export function Footer() {
                    <span className="text-[10px] font-bold uppercase tracking-widest">Hari Ini</span>
                 </div>
                 <span className="text-lg font-black text-primary">
-                   {stats?.today_views.toLocaleString() || "..."}
+                   {stats ? stats.today_views.toLocaleString("id-ID") : "..."}
                 </span>
              </div>
              <div className="flex flex-col items-center col-span-2 md:col-span-1">
                 <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
                    <Users className="h-3 w-3" />
-                   <span className="text-[10px] font-bold uppercase tracking-widest">Total Pengunjung</span>
+                   <span className="text-[10px] font-bold uppercase tracking-widest">Artikel Publik</span>
                 </div>
                 <span className="text-lg font-black text-foreground">
-                   {stats?.total_visitors.toLocaleString() || "..."}
+                   {stats ? (stats as any).total_articles?.toLocaleString("id-ID") ?? stats.total_visitors.toLocaleString("id-ID") : "..."}
                 </span>
              </div>
           </div>

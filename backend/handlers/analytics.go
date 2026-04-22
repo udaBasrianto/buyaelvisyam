@@ -143,14 +143,22 @@ func GetAnalytics(c *fiber.Ctx) error {
 
 func GetPublicStats(c *fiber.Ctx) error {
 	db := database.DB
-	
-	var totalViews int64
-	db.Model(&models.Visit{}).Count(&totalViews)
 
+	// Total views = sum of all article view counts (this is the real data)
+	var totalViews int64
+	db.Model(&models.Article{}).Select("COALESCE(SUM(views), 0)").Scan(&totalViews)
+
+	// Total article count as "visitors" proxy (since visits table may be empty)
+	var totalArticles int64
+	db.Model(&models.Article{}).Where("status = ?", "published").Count(&totalArticles)
+
+	// Today's views: count articles updated today (approximate)
+	// Better: count visits today if available, otherwise fallback to 0
 	var todayViews int64
 	today := time.Now().Format("2006-01-02")
 	db.Model(&models.Visit{}).Where("DATE(created_at) = ?", today).Count(&todayViews)
 
+	// Total unique visitors from visits table
 	var totalVisitors int64
 	db.Model(&models.Visit{}).Distinct("ip").Count(&totalVisitors)
 
@@ -158,6 +166,6 @@ func GetPublicStats(c *fiber.Ctx) error {
 		"total_views":    totalViews,
 		"today_views":    todayViews,
 		"total_visitors": totalVisitors,
+		"total_articles": totalArticles,
 	})
 }
-
