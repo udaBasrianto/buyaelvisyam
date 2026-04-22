@@ -144,11 +144,11 @@ export function CategorySectionV2() {
         onMouseLeave={handleMouseLeave}
         onMouseUp={handleMouseUp}
         onMouseMove={handleMouseMove}
-        className={`flex overflow-x-auto pb-4 gap-4 no-scrollbar -mx-4 px-4 md:mx-0 md:px-0 md:grid md:grid-cols-3 lg:grid-cols-6 md:overflow-visible transition-all duration-300 ${isDragging ? 'cursor-grabbing scale-[0.995]' : 'cursor-grab'}`}
+        className={`flex overflow-x-auto pb-6 gap-4 no-scrollbar -mx-4 px-4 scroll-smooth transition-all duration-300 ${isDragging ? 'cursor-grabbing scale-[0.995]' : 'cursor-grab'}`}
       >
         {loading ? (
           Array(6).fill(0).map((_, i) => (
-            <div key={i} className="h-32 w-40 shrink-0 md:w-auto rounded-2xl bg-muted animate-pulse" />
+            <div key={i} className="h-32 w-44 md:w-56 shrink-0 rounded-2xl bg-muted animate-pulse" />
           ))
         ) : (
           categories
@@ -164,7 +164,7 @@ export function CategorySectionV2() {
               <Link
                 key={cat.slug}
                 to={`/kategori/${cat.slug}`}
-                className="group relative h-32 w-40 shrink-0 md:w-auto rounded-2xl overflow-hidden bg-card border border-border/50 hover:border-primary/30 transition-all duration-300"
+                className="group relative h-32 w-44 md:w-56 shrink-0 rounded-2xl overflow-hidden bg-card border border-border/50 hover:border-primary/30 transition-all duration-300"
               >
                 {/* Pattern background - same as main icon */}
                 <div className="absolute top-2 right-2 opacity-5 scale-150 rotate-12 group-hover:scale-[2] transition-transform duration-500">
