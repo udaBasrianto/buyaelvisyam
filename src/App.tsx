@@ -65,10 +65,8 @@ const App = () => (
               </ProtectedRoute>
             } />
             
-            {/* Secret Route Handler */}
-            <Route path="/:slug" element={<SecretRouteHandler />} />
-
-            <Route path="/artikel/:id" element={<ArticleDetail />} />
+            <Route path="/search" element={<SearchPage />} />
+            <Route path="/categories" element={<CategoriesPage />} />
             <Route path="/kontributor" element={
               <ProtectedRoute requiredRole="kontributor">
                 <ContributorDashboard />
@@ -85,16 +83,18 @@ const App = () => (
               </ProtectedRoute>
             } />
             <Route path="/kategori/:slug" element={<CategoryPage />} />
-            <Route 
-              path="/p/:slug" 
-              element={<PageViewWrapper />} 
-            />
+            <Route path="/p/:slug" element={<PageViewWrapper />} />
             <Route path="/tentang" element={<About />} />
             <Route path="/lms" element={<Courses />} />
             <Route path="/lms/course/:slug" element={<CourseDetail />} />
             <Route path="/lms/lesson/:slug" element={<LessonView />} />
-            <Route path="/search" element={<SearchPage />} />
-            <Route path="/categories" element={<CategoriesPage />} />
+            
+            {/* Backward compatibility */}
+            <Route path="/artikel/:id" element={<ArticleDetail />} />
+
+            {/* Secret & Article Route Handler */}
+            <Route path="/:slug" element={<SecretRouteHandler />} />
+            
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
@@ -105,40 +105,50 @@ const App = () => (
 
 function SecretRouteHandler() {
   const { slug } = useParams();
-  const { settings, loading } = useSiteSettings();
+  const { settings, loading: settingsLoading } = useSiteSettings();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [articleExists, setArticleExists] = useState<boolean | null>(null);
+
+  // Check if this slug belongs to an article
+  useEffect(() => {
+    if (!slug) return;
+    // Don't check for known static/admin paths
+    const knownPaths = ["auth", "login", "admin", "wp-admin", "masuk", "yaakhi"];
+    if (knownPaths.includes(slug)) { setArticleExists(false); return; }
+    api.get(`/articles/${slug}`)
+      .then(() => setArticleExists(true))
+      .catch(() => setArticleExists(false));
+  }, [slug]);
 
   useEffect(() => {
-    if (loading) return;
-
-    // If it's the secret slug, do nothing and let it render Auth
-    if (settings.admin_slug && slug === settings.admin_slug) {
-      return;
-    }
-
-    // Log unauthorized attempt if it looks like a login attempt 
-    // or just any unknown slug that could be a guess
+    if (settingsLoading) return;
+    if (settings.admin_slug && slug === settings.admin_slug) return;
     const sensitivePaths = ["auth", "login", "admin", "wp-admin", "masuk", "yaakhi"];
     if (sensitivePaths.includes(slug || "")) {
-       api.post("/log-attempt", { path: `/${slug}`, status: "blocked" });
-       navigate("/", { replace: true });
+      api.post("/log-attempt", { path: `/${slug}`, status: "blocked" });
+      navigate("/", { replace: true });
     }
-  }, [slug, settings.admin_slug, loading, navigate]);
+  }, [slug, settings.admin_slug, settingsLoading, navigate]);
 
-  if (loading) {
+  // Still loading settings or article check
+  if (settingsLoading || articleExists === null) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background">
         <div className="h-10 w-10 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p className="text-sm font-medium animate-pulse">Menghubungi Gerbang...</p>
+        <p className="text-sm font-medium animate-pulse">Memuat...</p>
       </div>
     );
   }
 
+  // Secret admin route
   if (settings.admin_slug && slug === settings.admin_slug) {
     if (user) return <Navigate to="/admin" replace />;
     return <Auth />;
   }
+
+  // Article found — render article detail
+  if (articleExists) return <ArticleDetail />;
 
   return <NotFound />;
 }

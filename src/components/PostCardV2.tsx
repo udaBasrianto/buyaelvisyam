@@ -47,7 +47,7 @@ export function PostCardV2({ post }: PostCardV2Props) {
     e.preventDefault();
     e.stopPropagation();
 
-    const url = `${window.location.origin}/artikel/${post.slug || post.id}`;
+    const url = `${window.location.origin}/${post.slug || post.id}`;
     const title = post.title;
     const text = `Baca artikel "${title}" di BlogUstad.`;
 

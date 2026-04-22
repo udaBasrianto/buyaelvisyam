@@ -143,7 +143,7 @@ export function IndexV2() {
                 {editorsChoice.map((post, index) => (
                   <Link 
                     key={post.id} 
-                    to={`/artikel/${post.slug || post.id}`}
+                    to={`/${post.slug || post.id}`}
                     className={`flex gap-4 p-4 rounded-2xl bg-card border border-border/50 hover:border-primary/30 transition-all group ${editorsChoiceLayout === 'grid2' ? 'flex-col p-3' : 'flex-row'}`}
                   >
                       <div className={`shrink-0 rounded-xl bg-primary text-primary-foreground flex items-center justify-center font-black transition-all ${editorsChoiceLayout === 'grid2' ? 'h-8 w-8 text-sm' : 'h-10 w-10 text-lg'}`}>

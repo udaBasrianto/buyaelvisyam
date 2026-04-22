@@ -66,7 +66,7 @@ export function HeroSliderV3({ slides }: HeroSliderV3Props) {
         >
           {/* Main Big Feature */}
           <div className="lg:col-span-8 lg:row-span-2 relative rounded-[2.5rem] overflow-hidden group shadow-2xl h-full">
-            <Link to={`/artikel/${main.slug || main.id}`} className="block h-full relative">
+            <Link to={`/${main.slug || main.id}`} className="block h-full relative">
               <img
                 src={main.image || STOCK_IMAGES[0]}
                 alt={main.title}
@@ -139,7 +139,7 @@ export function HeroSliderV3({ slides }: HeroSliderV3Props) {
           {/* Side Featured */}
           {side && (
             <div className="hidden lg:block lg:col-span-4 lg:row-span-1 relative rounded-3xl overflow-hidden group shadow-lg">
-              <Link to={`/artikel/${side.slug || side.id}`} className="block h-full relative">
+              <Link to={`/${side.slug || side.id}`} className="block h-full relative">
                 <img
                   src={side.image || STOCK_IMAGES[1]}
                   alt={side.title}
@@ -161,7 +161,7 @@ export function HeroSliderV3({ slides }: HeroSliderV3Props) {
           <div className="hidden lg:grid lg:col-span-4 lg:row-span-1 grid-cols-2 gap-4">
             {bottom.slice(0, 2).map((item, idx) => (
               <div key={item.id} className="relative rounded-2xl overflow-hidden group shadow-md">
-                <Link to={`/artikel/${item.slug || item.id}`} className="block h-full relative">
+                <Link to={`/${item.slug || item.id}`} className="block h-full relative">
                   <img
                     src={item.image || STOCK_IMAGES[(idx + 2) % STOCK_IMAGES.length]}
                     alt={item.title}

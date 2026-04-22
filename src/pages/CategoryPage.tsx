@@ -76,7 +76,7 @@ const CategoryPage = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
               {posts.map((post) => (
-                <Link key={post.id} to={`/artikel/${post.slug || post.id}`}>
+                <Link key={post.id} to={`/${post.slug || post.id}`}>
                   <PostCard post={post} />
                 </Link>
               ))}

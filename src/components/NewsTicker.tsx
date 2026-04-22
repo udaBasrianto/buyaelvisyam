@@ -32,7 +32,7 @@ export function NewsTicker() {
             {[...headlines, ...headlines].map((h, i) => (
               <Link 
                 key={`${h.slug}-${i}`} 
-                to={`/artikel/${h.slug}`}
+                to={`/${h.slug}`}
                 className="text-xs font-bold hover:text-primary transition-colors flex items-center gap-2"
               >
                 <span className="h-1 w-1 rounded-full bg-primary/40" />

@@ -41,7 +41,8 @@ interface DbArticle {
 }
 
 export default function ArticleDetail() {
-  const { id } = useParams<{ id: string }>();
+  const params = useParams<{ id?: string; slug?: string }>();
+  const id = params.id || params.slug;
   const { user } = useAuth();
   const { toast } = useToast();
   const [article, setArticle] = useState<DbArticle | null>(null);
@@ -375,7 +376,7 @@ export default function ArticleDetail() {
             <h2 className="text-xl font-bold text-foreground mb-6">Artikel Terkait</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
               {related.map((p: any) => (
-                <Link key={p.id} to={`/artikel/${p.slug || p.id}`}>
+                <Link key={p.id} to={`/${p.slug || p.id}`}>
                   <PostCard post={toPostCard(p)} />
                 </Link>
               ))}

@@ -172,7 +172,7 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
     }
     const payload = {
       title: form.title.trim(),
-      slug: editing?.slug || generateSlug(form.title) + "-" + Date.now().toString(36),
+      slug: editing?.slug || generateSlug(form.title),
       excerpt: form.excerpt.trim() || "",
       content: form.content.trim(),
       category: form.category,

@@ -60,7 +60,7 @@ export default function SearchPage() {
               {results.map((article) => (
                 <Link 
                   key={article.id} 
-                  to={`/artikel/${article.slug || article.id}`}
+                  to={`/${article.slug || article.id}`}
                   className="bg-card border border-border/50 p-4 rounded-[2rem] flex items-center gap-4 hover:border-primary/50 transition-all group"
                 >
                   <div className="h-20 w-20 flex-shrink-0 rounded-2xl overflow-hidden bg-muted">

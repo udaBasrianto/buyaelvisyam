@@ -60,7 +60,7 @@ export function HeroSlider({ slides }: HeroSliderProps) {
             transition={{ duration: 0.6, ease: "easeInOut" }}
             className="absolute inset-0"
           >
-            <Link to={`/artikel/${slide.slug || slide.id}`} className="block h-full relative">
+            <Link to={`/${slide.slug || slide.id}`} className="block h-full relative">
               <img
                 src={slide.image || DEFAULT_POST_IMAGE}
                 alt={slide.title}

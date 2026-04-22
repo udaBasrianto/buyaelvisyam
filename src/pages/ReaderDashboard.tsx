@@ -246,7 +246,7 @@ export default function ReaderDashboard() {
              ) : (
                 <div className="grid grid-cols-1 gap-4">
                    {bookmarks.map((article: any) => (
-                      <Link key={article.id} to={`/artikel/${article.slug || article.id}`} className="bg-card border border-border/50 p-4 rounded-3xl flex items-center gap-4 hover:border-primary/50 transition-all group">
+                      <Link key={article.id} to={`/${article.slug || article.id}`} className="bg-card border border-border/50 p-4 rounded-3xl flex items-center gap-4 hover:border-primary/50 transition-all group">
                          <div className="h-20 w-20 flex-shrink-0 rounded-2xl overflow-hidden bg-muted">
                             <img src={article.cover_image} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                          </div>
@@ -323,7 +323,7 @@ export default function ReaderDashboard() {
                      <div className="flex items-start justify-between gap-4 relative z-10">
                          <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-2">
-                               <Link to={`/artikel/${c.article_slug || c.article_id}`}>
+                               <Link to={`/${c.article_slug || c.article_id}`}>
                                   <span className="text-[10px] font-black uppercase text-primary bg-primary/10 px-2 py-0.5 rounded-lg hover:bg-primary/20 transition-colors">
                                      {c.article_title || "Artikel"}
                                   </span>
