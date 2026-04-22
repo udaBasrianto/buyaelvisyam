@@ -23,7 +23,8 @@ type DailyStat struct {
 
 func GetAnalytics(c *fiber.Ctx) error {
 	db := database.DB
-
+	now := time.Now()
+	
 	// 1. Overview stats
 	var totalViews int64
 	db.Model(&models.Visit{}).Count(&totalViews)
@@ -31,27 +32,75 @@ func GetAnalytics(c *fiber.Ctx) error {
 	var uniqueVisitors int64
 	db.Model(&models.Visit{}).Distinct("ip").Count(&uniqueVisitors)
 
-	// 2. Daily stats for the last 14 days
-	dailyStats := []DailyStat{}
-	now := time.Now()
-	for i := 13; i >= 0; i-- {
-		day := now.AddDate(0, 0, -i)
-		dateStr := day.Format("2006-01-02")
-		
-		var views int64
-		db.Model(&models.Visit{}).Where("DATE(created_at) = ?", dateStr).Count(&views)
-		
-		var unique int64
-		db.Model(&models.Visit{}).Where("DATE(created_at) = ?", dateStr).Distinct("ip").Count(&unique)
-		
-		dailyStats = append(dailyStats, DailyStat{
-			Date:   day.Format("02 Jan"),
-			Views:  int(views),
-			Unique: int(unique),
-		})
+	// Calculate Growth (compare last 30 days with previous 30 days)
+	var currentViews, prevViews int64
+	thirtyDaysAgo := now.AddDate(0, 0, -30)
+	sixtyDaysAgo := now.AddDate(0, 0, -60)
+	
+	db.Model(&models.Visit{}).Where("created_at >= ?", thirtyDaysAgo).Count(&currentViews)
+	db.Model(&models.Visit{}).Where("created_at >= ? AND created_at < ?", sixtyDaysAgo, thirtyDaysAgo).Count(&prevViews)
+	
+	viewsGrowth := 0.0
+	if prevViews > 0 {
+		viewsGrowth = float64(currentViews-prevViews) / float64(prevViews) * 100
+	} else if currentViews > 0 {
+		viewsGrowth = 100.0
 	}
 
-	// 3. Top Articles
+	var currentVisitors, prevVisitors int64
+	db.Model(&models.Visit{}).Where("created_at >= ?", thirtyDaysAgo).Distinct("ip").Count(&currentVisitors)
+	db.Model(&models.Visit{}).Where("created_at >= ? AND created_at < ?", sixtyDaysAgo, thirtyDaysAgo).Distinct("ip").Count(&prevVisitors)
+	
+	visitorGrowth := 0.0
+	if prevVisitors > 0 {
+		visitorGrowth = float64(currentVisitors-prevVisitors) / float64(prevVisitors) * 100
+	} else if currentVisitors > 0 {
+		visitorGrowth = 100.0
+	}
+
+	// 2. Daily stats for the last 14 days (Efficient grouped query)
+	type Result struct {
+		Date   time.Time
+		Views  int
+		Unique int
+	}
+	var results []Result
+	fourteenDaysAgo := now.AddDate(0, 0, -14)
+	
+	db.Table("visits").
+		Select("DATE(created_at) as date, COUNT(*) as views, COUNT(DISTINCT ip) as unique").
+		Where("created_at >= ?", fourteenDaysAgo).
+		Group("DATE(created_at)").
+		Order("date ASC").
+		Scan(&results)
+
+	// Fill gaps for days with zero activity
+	dailyStats := []DailyStat{}
+	statsMap := make(map[string]Result)
+	for _, r := range results {
+		statsMap[r.Date.Format("2006-01-02")] = r
+	}
+
+	for i := 13; i >= 0; i-- {
+		day := now.AddDate(0, 0, -i)
+		dateKey := day.Format("2006-01-02")
+		
+		if val, ok := statsMap[dateKey]; ok {
+			dailyStats = append(dailyStats, DailyStat{
+				Date:   day.Format("02 Jan"),
+				Views:  val.Views,
+				Unique: val.Unique,
+			})
+		} else {
+			dailyStats = append(dailyStats, DailyStat{
+				Date:   day.Format("02 Jan"),
+				Views:  0,
+				Unique: 0,
+			})
+		}
+	}
+
+	// 3. Top Articles (last 30 days)
 	var topArticles []models.Article
 	db.Order("views desc").Limit(5).Find(&topArticles)
 
@@ -68,7 +117,7 @@ func GetAnalytics(c *fiber.Ctx) error {
 		LastPath    string    `json:"last_path"`
 	}
 	var onlineUsers []OnlineUser
-	fifteenMinsAgo := time.Now().Add(-15 * time.Minute)
+	fifteenMinsAgo := now.Add(-15 * time.Minute)
 	
 	db.Table("visits").
 		Select("profiles.user_id as id, profiles.display_name, profiles.email, MAX(visits.created_at) as last_active, MAX(visits.path) as last_path").
@@ -82,8 +131,8 @@ func GetAnalytics(c *fiber.Ctx) error {
 		"overview": AnalyticsOverview{
 			TotalViews:     totalViews,
 			UniqueVisitors: uniqueVisitors,
-			ViewsGrowth:    12.5, // Simulated growth
-			VisitorGrowth:  8.2,  // Simulated growth
+			ViewsGrowth:    viewsGrowth,
+			VisitorGrowth:  visitorGrowth,
 		},
 		"daily_stats":     dailyStats,
 		"top_articles":    topArticles,
