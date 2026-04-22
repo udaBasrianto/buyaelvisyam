@@ -75,19 +75,24 @@ func UpdateCategory(c *fiber.Ctx) error {
 		return c.Status(404).JSON(fiber.Map{"error": "Category not found"})
 	}
 
+	oldName := category.Name
+
 	var updatedData models.Category
 	if err := c.BodyParser(&updatedData); err != nil {
 		return c.Status(400).JSON(fiber.Map{"error": "Invalid body"})
 	}
 
-	if updatedData.Name != "" { category.Name = updatedData.Name }
-	if updatedData.Slug != "" { category.Slug = updatedData.Slug }
-	if updatedData.Color != "" { category.Color = updatedData.Color }
-	
 	// update booleans / integers appropriately:
 	// Go differentiates empty default values (false/0) so we might need map for full updates
 	// But let's just do a db.Model().Updates()
-	db.Model(&category).Updates(updatedData)
+	if err := db.Model(&category).Updates(updatedData).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Could not update category"})
+	}
+
+	// If name changed, update all articles using the old category name
+	if updatedData.Name != "" && updatedData.Name != oldName {
+		db.Model(&models.Article{}).Where("category = ?", oldName).Update("category", updatedData.Name)
+	}
 
 	return c.JSON(category)
 }
