@@ -41,6 +41,7 @@ type AnalyticsData = {
     email: string;
     last_active: string;
     last_path: string;
+    is_guest: boolean;
   }[];
 };
 
@@ -328,10 +329,10 @@ export function AnalyticsDashboard() {
                       <tr key={u.id} className="hover:bg-accent/10 transition-colors">
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-2">
-                            <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">
-                              {u.display_name?.charAt(0) || "U"}
+                            <div className={`h-7 w-7 rounded-full flex items-center justify-center text-[10px] font-bold ${u.is_guest ? 'bg-amber-500/10 text-amber-600' : 'bg-primary/10 text-primary'}`}>
+                              {u.is_guest ? <Globe className="h-3.5 w-3.5" /> : (u.display_name?.charAt(0) || "U")}
                             </div>
-                            <span className="font-medium">{u.display_name}</span>
+                            <span className={`font-medium ${u.is_guest ? 'text-muted-foreground italic' : ''}`}>{u.display_name}</span>
                           </div>
                         </td>
                         <td className="py-3 px-4 text-xs text-muted-foreground">{u.email}</td>

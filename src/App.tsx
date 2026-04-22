@@ -26,6 +26,7 @@ import Profile from "./pages/Profile.tsx";
 import { ScrollToTop } from "./components/ScrollToTop";
 import { ThemeInitializer } from "./components/ThemeInitializer";
 import { GoogleAnalytics } from "./components/GoogleAnalytics";
+import { VisitorTracker } from "./components/VisitorTracker";
 
 const queryClient = new QueryClient();
 
@@ -54,6 +55,7 @@ const App = () => (
           <ThemeInitializer />
           <ScrollToTop />
           <GoogleAnalytics />
+          <VisitorTracker />
           <Routes>
             <Route path="/" element={<Index />} />
             

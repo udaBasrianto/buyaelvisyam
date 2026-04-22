@@ -6,6 +6,7 @@ import (
 	"backend/database"
 	"backend/models"
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 )
 
 type AnalyticsOverview struct {
@@ -115,17 +116,29 @@ func GetAnalytics(c *fiber.Ctx) error {
 		Email       string    `json:"email"`
 		LastActive  time.Time `json:"last_active"`
 		LastPath    string    `json:"last_path"`
+		IsGuest     bool      `json:"is_guest"`
 	}
 	var onlineUsers []OnlineUser
 	fifteenMinsAgo := now.Add(-15 * time.Minute)
 	
+	// Get registered users
+	var registeredOnline []OnlineUser
 	db.Table("visits").
-		Select("profiles.user_id as id, profiles.display_name, profiles.email, MAX(visits.created_at) as last_active, MAX(visits.path) as last_path").
+		Select("profiles.user_id as id, profiles.display_name, profiles.email, MAX(visits.created_at) as last_active, MAX(visits.path) as last_path, false as is_guest").
 		Joins("join profiles on profiles.user_id = visits.user_id").
 		Where("visits.created_at >= ?", fifteenMinsAgo).
 		Group("profiles.user_id, profiles.display_name, profiles.email").
-		Order("last_active desc").
-		Scan(&onlineUsers)
+		Scan(&registeredOnline)
+
+	// Get anonymous users (distinct by IP)
+	var guestOnline []OnlineUser
+	db.Table("visits").
+		Select("ip as id, 'Guest (' || ip || ')' as display_name, '' as email, MAX(created_at) as last_active, MAX(path) as last_path, true as is_guest").
+		Where("created_at >= ? AND user_id IS NULL", fifteenMinsAgo).
+		Group("ip").
+		Scan(&guestOnline)
+
+	onlineUsers = append(registeredOnline, guestOnline...)
 
 	return c.JSON(fiber.Map{
 		"overview": AnalyticsOverview{
@@ -139,6 +152,36 @@ func GetAnalytics(c *fiber.Ctx) error {
 		"recent_visitors": recentVisits,
 		"online_users":    onlineUsers,
 	})
+}
+
+func TrackVisit(c *fiber.Ctx) error {
+	var body struct {
+		Path     string `json:"path"`
+		Referrer string `json:"referrer"`
+		Title    string `json:"title"`
+	}
+	if err := c.BodyParser(&body); err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid body"})
+	}
+
+	// Try to get user from JWT
+	var userID *uuid.UUID
+	// Note: You might want to extract userID from context if you have an auth middleware for tracking
+	// For now, we'll keep it simple as the frontend VisitorTracker doesn't send Bearer token by default
+	// unless we update it. But we can check it here too.
+
+	// Save visit
+	visit := models.Visit{
+		ID:        uuid.New(),
+		UserID:    userID,
+		IP:        c.IP(),
+		Path:      body.Path,
+		UserAgent: c.Get("User-Agent"),
+		CreatedAt: time.Now(),
+	}
+	database.DB.Create(&visit)
+
+	return c.SendStatus(200)
 }
 
 func GetPublicStats(c *fiber.Ctx) error {

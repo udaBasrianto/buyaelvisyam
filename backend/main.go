@@ -178,6 +178,8 @@ func main() {
 	// Utils
 	api.Post("/upload", middleware.Protected(), handlers.UploadImage)
 	api.Post("/import-wordpress", middleware.Protected(), handlers.ImportWordPress)
+	api.Get("/stats", handlers.GetPublicStats)
+	api.Post("/analytics/track", handlers.TrackVisit)
 	api.Get("/admin/analytics", middleware.Protected(), handlers.GetAnalytics)
 
 	// Widgets
