@@ -9,6 +9,7 @@ import { CommentSection } from "@/components/CommentSection";
 import { ReadingProgress } from "@/components/ReadingProgress";
 import { Sidebar } from "@/components/Sidebar";
 import { SEO } from "@/components/SEO";
+import { Footer } from "@/components/Footer";
 import { ArticleQuiz } from "@/components/ArticleQuiz";
 import { latestPosts, type Post } from "@/data/mockData";
 import { useAuth } from "@/contexts/AuthContext";
@@ -303,6 +304,7 @@ export default function ArticleDetail() {
           </div>
         </div>
       </main>
+      <Footer />
       <BottomNav />
     </div>
   );

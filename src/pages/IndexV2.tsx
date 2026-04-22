@@ -6,6 +6,7 @@ import { HeroSliderV3 } from "@/components/HeroSliderV3";
 import { FeatureBar } from "@/components/FeatureBar";
 import { PostCardV2 } from "@/components/PostCardV2";
 import { CategorySectionV2 } from "@/components/CategorySectionV2";
+import { Footer } from "@/components/Footer";
 import { SEO } from "@/components/SEO";
 import { BottomNav } from "@/components/BottomNav";
 import { PrayerTimesBar } from "@/components/PrayerTimesBar";
@@ -365,27 +366,7 @@ export function IndexV2() {
            </div>
         </div>
 
-        {/* Footer */}
-        <footer className="border-t bg-card mt-16 pt-16 pb-8">
-          <div className="container mx-auto px-4 text-center">
-            <div className="flex items-center justify-center gap-2 mb-6">
-              {settings.logo_url ? (
-                <img src={settings.logo_url} alt={settings.site_name} className="h-8 w-auto object-contain" />
-              ) : (
-                <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center text-white font-bold text-xl ring-4 ring-primary/20">☪</div>
-              )}
-              <span className="text-2xl font-black text-primary tracking-tighter uppercase">{settings.site_name}</span>
-            </div>
-            <p className="text-sm text-muted-foreground max-w-md mx-auto mb-8 line-relaxed">
-              {settings.tagline || settings.footer_text}
-            </p>
-            <div className="border-t border-border pt-8">
-              <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-[0.2em]">
-                {settings.footer_text} — Optimized for SEO & Speed
-              </p>
-            </div>
-          </div>
-        </footer>
+        <Footer />
       </main>
 
       <BottomNav />

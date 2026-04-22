@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { BottomNav } from "@/components/BottomNav";
+import { Footer } from "@/components/Footer";
 import { SEO } from "@/components/SEO";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { Heart, Target, Users, BookOpen, Quote, Mail, MapPin, Phone, Sparkles } from "lucide-react";
@@ -182,21 +183,17 @@ export default function About() {
         </section>
       </main>
 
-      <footer className="bg-card border-t pt-24 pb-12">
+      <section className="bg-card pt-24 pb-12">
         <div className="container mx-auto px-4 text-center">
             <Quote className="h-12 w-12 text-primary/20 mx-auto mb-8" />
             <h2 className="text-2xl italic font-serif max-w-2xl mx-auto mb-16 leading-relaxed">
               "{(settings as any).about_footer_quote || "Sampaikanlah dariku walau hanya satu ayat."}"
               <span className="block text-sm font-bold uppercase tracking-widest mt-4 not-italic text-primary">— {(settings as any).about_footer_author || "HR. Bukhari"}</span>
             </h2>
-            <div className="border-t border-border pt-12">
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/50">
-                {settings.footer_text}
-              </p>
-            </div>
         </div>
-      </footer>
+      </section>
 
+      <Footer />
       <BottomNav />
     </div>
   );

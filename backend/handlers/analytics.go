@@ -140,3 +140,24 @@ func GetAnalytics(c *fiber.Ctx) error {
 		"online_users":    onlineUsers,
 	})
 }
+
+func GetPublicStats(c *fiber.Ctx) error {
+	db := database.DB
+	
+	var totalViews int64
+	db.Model(&models.Visit{}).Count(&totalViews)
+
+	var todayViews int64
+	today := time.Now().Format("2006-01-02")
+	db.Model(&models.Visit{}).Where("DATE(created_at) = ?", today).Count(&todayViews)
+
+	var totalVisitors int64
+	db.Model(&models.Visit{}).Distinct("ip").Count(&totalVisitors)
+
+	return c.JSON(fiber.Map{
+		"total_views":    totalViews,
+		"today_views":    todayViews,
+		"total_visitors": totalVisitors,
+	})
+}
+

@@ -100,6 +100,7 @@ func main() {
 	api := app.Group("/api")
 	api.Post("/upload", handlers.UploadImage)
 	api.Get("/ping", func(c *fiber.Ctx) error { return c.SendString("pong") })
+	api.Get("/stats", handlers.GetPublicStats)
 
 	// Auth
 	auth := api.Group("/auth")

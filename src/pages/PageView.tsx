@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, Navigate } from "react-router-dom";
 import api from "@/lib/api";
 import { Navbar } from "@/components/Navbar";
+import { Footer } from "@/components/Footer";
 import { Skeleton } from "@/components/ui/skeleton";
 
 type PageRow = {
@@ -68,6 +69,7 @@ export default function PageView() {
           </article>
         )}
       </main>
+      <Footer />
     </div>
   );
 }

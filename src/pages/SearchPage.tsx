@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { BottomNav } from "@/components/BottomNav";
+import { Footer } from "@/components/Footer";
 import { Input } from "@/components/ui/input";
 import api from "@/lib/api";
 import { Search, ArrowRight, CornerDownRight, Eye } from "lucide-react";
@@ -92,6 +93,7 @@ export default function SearchPage() {
           )}
         </div>
       </main>
+      <Footer />
       <BottomNav />
     </div>
   );

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { BottomNav } from "@/components/BottomNav";
+import { Footer } from "@/components/Footer";
 import { PostCard } from "@/components/PostCard";
 import api from "@/lib/api";
 import type { Post } from "@/data/mockData";
@@ -83,6 +84,7 @@ const CategoryPage = () => {
           )}
         </div>
       </main>
+      <Footer />
       <BottomNav />
     </div>
   );
