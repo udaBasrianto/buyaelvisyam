@@ -35,10 +35,20 @@ Dokumen ini mencatat kemajuan pengembangan aplikasi blog dan sistem administrasi
 *   **Enrollment**: Sistem pendaftaran kursus bagi pengguna terdaftar.
 *   **Wallet & Payment**: Integrasi dompet digital internal untuk pembayaran kursus.
 
-## 7. Infrastruktur Backend
+## 7. Optimasi Layout & Fitur Baru
+*   **Admin Full-Width**: Memperluas tampilan dashboard admin menjadi layar penuh (max-width: 100%) untuk efisiensi ruang kerja di monitor desktop lebar.
+*   **Lokasi Kajian (Leaflet Maps)**: 
+    *   Integrasi peta interaktif menggunakan **Leaflet.js** di setiap artikel.
+    *   Fitur penambahan nama lokasi dan koordinat (lat/long) saat membuat/edit artikel.
+    *   Tombol "Buka di Google Maps" otomatis untuk memudahkan navigasi user.
+*   **Integrasi Google Analytics**:
+    *   Penambahan field "Measurement ID" (G-XXXX) di Pengaturan Situs.
+    *   Injeksi otomatis script pelacakan GA4 di seluruh halaman publik tanpa perlu edit coding lagi.
+
+## 8. Infrastruktur Backend
 *   **Framework**: Menggunakan Go Fiber untuk performa tinggi.
 *   **Database**: Integrasi GORM dengan PostgreSQL/MySQL.
 *   **Middleware**: Penanganan CORS, Logging, Recovery, dan JWT Protected Routes.
 
 ---
-*Terakhir diperbarui: 22 April 2026*
+*Terakhir diperbarui: 22 April 2026 (12:00 PM)*

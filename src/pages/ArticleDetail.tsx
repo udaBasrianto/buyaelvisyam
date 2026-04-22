@@ -1,6 +1,6 @@
 import { useParams, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Eye, Calendar, User, Share2, BookmarkPlus, Bookmark, AArrowDown, AArrowUp, RotateCcw, Clock, MessageCircle } from "lucide-react";
+import { ArrowLeft, Eye, Calendar, User, Share2, BookmarkPlus, Bookmark, AArrowDown, AArrowUp, RotateCcw, Clock, MessageCircle, MapPin, ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/Navbar";
 import { BottomNav } from "@/components/BottomNav";
@@ -10,6 +10,7 @@ import { ReadingProgress } from "@/components/ReadingProgress";
 import { Sidebar } from "@/components/Sidebar";
 import { SEO } from "@/components/SEO";
 import { Footer } from "@/components/Footer";
+import { LeafletMap } from "@/components/LeafletMap";
 import { ArticleQuiz } from "@/components/ArticleQuiz";
 import { latestPosts, type Post } from "@/data/mockData";
 import { useAuth } from "@/contexts/AuthContext";
@@ -33,6 +34,9 @@ interface DbArticle {
   author_id: string;
   author: string;
   comment_count: number;
+  location_name?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export default function ArticleDetail() {
@@ -276,6 +280,36 @@ export default function ArticleDetail() {
                 className="prose prose-lg max-w-none mx-auto lg:mx-0 py-8 overflow-x-auto"
                 dangerouslySetInnerHTML={{ __html: article.content }}
               />
+
+              {/* Location Map Section */}
+              {article.location_name && article.latitude && article.longitude && (
+                <div className="max-w-3xl mx-auto lg:mx-0 my-10 p-6 rounded-[2rem] bg-card border border-border/50 shadow-xl shadow-black/5 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                   <div className="flex items-center gap-3 mb-4">
+                      <div className="h-10 w-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                         <MapPin className="h-5 w-5" />
+                      </div>
+                      <div>
+                         <h3 className="font-bold text-foreground">Lokasi Kajian</h3>
+                         <p className="text-sm text-muted-foreground">{article.location_name}</p>
+                      </div>
+                   </div>
+                   <LeafletMap 
+                      lat={article.latitude} 
+                      lng={article.longitude} 
+                      locationName={article.location_name} 
+                   />
+                   <div className="mt-4 flex justify-end">
+                      <a 
+                        href={`https://www.google.com/maps/search/?api=1&query=${article.latitude},${article.longitude}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline flex items-center gap-1"
+                      >
+                        Buka di Google Maps <ArrowUpRight className="h-3 w-3" />
+                      </a>
+                   </div>
+                </div>
+              )}
 
               {/* Quiz Section */}
               <div className="max-w-3xl mx-auto lg:mx-0">

@@ -43,6 +43,7 @@ interface Settings {
   about_contact_phone?: string;
   about_footer_quote?: string;
   about_footer_author?: string;
+  google_analytics_id?: string;
 }
 
 export function SiteSettingsManager() {
@@ -173,6 +174,7 @@ export function SiteSettingsManager() {
         about_contact_phone: settings.about_contact_phone || "",
         about_footer_quote: settings.about_footer_quote || "",
         about_footer_author: settings.about_footer_author || "",
+        google_analytics_id: settings.google_analytics_id?.trim() || "",
       });
       toast({ title: "Tersimpan", description: "Pengaturan situs diperbarui" });
     } catch (error: any) {
@@ -397,6 +399,17 @@ export function SiteSettingsManager() {
             value={settings.admin_token || ""} 
             onChange={(e) => setSettings({ ...settings, admin_token: e.target.value })} 
             placeholder="Contoh: 090124"
+          />
+        </div>
+
+        <div>
+          <Label className="text-sm font-bold mb-1 block">Google Analytics (G-XXXXXXX)</Label>
+          <div className="text-[10px] text-muted-foreground mb-3">Masukkan Measurement ID dari Google Analytics 4 (GA4) untuk melacak kunjungan pengunjung secara resmi.</div>
+          <Input 
+            type="text" 
+            value={settings.google_analytics_id || ""} 
+            onChange={(e) => setSettings({ ...settings, google_analytics_id: e.target.value })} 
+            placeholder="G-XXXXXXXXXX"
           />
         </div>
 

@@ -114,6 +114,9 @@ func UpdateArticle(c *fiber.Ctx) error {
 	if updatedData.Category != "" { article.Category = updatedData.Category }
 	if updatedData.CoverImage != "" { article.CoverImage = updatedData.CoverImage }
 	if updatedData.Status != "" { article.Status = updatedData.Status }
+	if updatedData.LocationName != "" { article.LocationName = updatedData.LocationName }
+	article.Latitude = updatedData.Latitude
+	article.Longitude = updatedData.Longitude
 	
 	// Handle is_featured correctly (explicit check since it's a bool)
 	if c.BodyParser(&struct {

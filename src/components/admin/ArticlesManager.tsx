@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Plus, Search, Edit, Trash2, Eye, Save, Send, ImagePlus, X, CheckCircle2, Download, Image } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Eye, Save, Send, ImagePlus, X, CheckCircle2, Download, Image, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +30,9 @@ interface Article {
   created_at: string;
   updated_at: string;
   author: string;
+  location_name?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 const statusColor: Record<string, string> = {
@@ -69,6 +72,7 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
 
   const [form, setForm] = useState({
     title: "", excerpt: "", content: "", category: "Umum", cover_image: "", status: "draft", is_featured: false,
+    location_name: "", latitude: 0, longitude: 0,
   });
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -145,11 +149,14 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
         cover_image: article.cover_image || "",
         status: article.status,
         is_featured: article.is_featured || false,
+        location_name: article.location_name || "",
+        latitude: article.latitude || 0,
+        longitude: article.longitude || 0,
       });
       setPreviewUrl(article.cover_image || null);
     } else {
       setEditing(null);
-      setForm({ title: "", excerpt: "", content: "", category: "Umum", cover_image: "", status: "draft", is_featured: false });
+      setForm({ title: "", excerpt: "", content: "", category: "Umum", cover_image: "", status: "draft", is_featured: false, location_name: "", latitude: -6.2088, longitude: 106.8456 });
       setPreviewUrl(null);
     }
     setEditorOpen(true);
@@ -169,6 +176,9 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
       cover_image: form.cover_image.trim() || "",
       status,
       is_featured: form.is_featured,
+      location_name: form.location_name.trim(),
+      latitude: Number(form.latitude) || 0,
+      longitude: Number(form.longitude) || 0,
     };
     
     try {
@@ -466,6 +476,31 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
                   onCheckedChange={(v) => setForm({ ...form, is_featured: v })} 
                 />
               </div>
+
+              <div className="p-4 rounded-xl border bg-muted/30 space-y-4">
+                 <div className="flex items-center gap-2 mb-2">
+                    <MapPin className="h-4 w-4 text-primary" />
+                    <Label className="text-sm font-bold uppercase tracking-wider">Lokasi Kajian (Optional)</Label>
+                 </div>
+                 <div className="space-y-3">
+                    <div>
+                       <Label className="text-[10px] font-bold uppercase">Nama Tempat / Masjid</Label>
+                       <Input value={form.location_name} onChange={(e) => setForm({ ...form, location_name: e.target.value })} placeholder="Contoh: Masjid Istiqlal, Jakarta" className="h-9" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                       <div>
+                          <Label className="text-[10px] font-bold uppercase">Latitude</Label>
+                          <Input type="number" value={form.latitude} onChange={(e) => setForm({ ...form, latitude: parseFloat(e.target.value) || 0 })} placeholder="-6.123" className="h-9" />
+                       </div>
+                       <div>
+                          <Label className="text-[10px] font-bold uppercase">Longitude</Label>
+                          <Input type="number" value={form.longitude} onChange={(e) => setForm({ ...form, longitude: parseFloat(e.target.value) || 0 })} placeholder="106.123" className="h-9" />
+                       </div>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground italic">Tips: Gunakan Google Maps untuk mencari koordinat lat/long.</p>
+                 </div>
+              </div>
+
               <div>
                 <Label>Gambar Cover</Label>
                 <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />

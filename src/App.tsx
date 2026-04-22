@@ -25,6 +25,7 @@ import LessonView from "./pages/LessonView.tsx";
 import Profile from "./pages/Profile.tsx";
 import { ScrollToTop } from "./components/ScrollToTop";
 import { ThemeInitializer } from "./components/ThemeInitializer";
+import { GoogleAnalytics } from "./components/GoogleAnalytics";
 
 const queryClient = new QueryClient();
 
@@ -52,6 +53,7 @@ const App = () => (
         <AuthProvider>
           <ThemeInitializer />
           <ScrollToTop />
+          <GoogleAnalytics />
           <Routes>
             <Route path="/" element={<Index />} />
             

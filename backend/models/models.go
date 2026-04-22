@@ -149,6 +149,9 @@ type Article struct {
 	Status     string         `gorm:"default:'draft'" json:"status"`
 	Views      int            `gorm:"default:0" json:"views"`
 	IsFeatured bool           `gorm:"default:false" json:"is_featured"`
+	LocationName string       `json:"location_name"`
+	Latitude     float64      `json:"latitude"`
+	Longitude    float64      `json:"longitude"`
 	AuthorID   uuid.UUID      `gorm:"type:uuid" json:"author_id"`
 	WPID       int            `json:"wp_id"` // Store original WordPress ID to prevent duplicates
 	CreatedAt  time.Time      `json:"created_at"`
@@ -204,6 +207,7 @@ type SiteSettings struct {
 	AboutContactPhone   string    `json:"about_contact_phone"`
 	AboutFooterQuote    string    `json:"about_footer_quote"`
 	AboutFooterAuthor   string    `json:"about_footer_author"`
+	GoogleAnalyticsID   string    `json:"google_analytics_id"`
 	UpdatedBy           uuid.UUID `gorm:"type:uuid" json:"updated_by"`
 	UpdatedAt           time.Time `json:"updated_at"`
 }
