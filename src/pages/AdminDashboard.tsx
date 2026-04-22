@@ -55,11 +55,63 @@ export default function AdminDashboard() {
     setRefreshKey((prev) => prev + 1);
   };
 
+  const [systemHealth, setSystemHealth] = useState({
+    settings: { status: "Aktif", color: "text-primary", ok: true },
+    content: { status: "Memuat...", color: "text-secondary-foreground", ok: true },
+    users: { status: "Memuat...", color: "text-primary", ok: true },
+    status: { status: "Online", color: "text-secondary-foreground", ok: true }
+  });
+
+  useEffect(() => {
+    const checkSystems = async () => {
+      try {
+        // 1. Check Content & Stats
+        const statsRes = await api.get("/stats").catch(() => null);
+        const articlesRes = await api.get("/articles?limit=1").catch(() => null);
+        
+        // 2. Check Users
+        const usersRes = await api.get("/users").catch(() => null);
+
+        setSystemHealth({
+          settings: { 
+            status: statsRes ? "Aktif" : "Error", 
+            color: statsRes ? "text-primary" : "text-destructive",
+            ok: !!statsRes 
+          },
+          content: { 
+            status: statsRes?.data ? `${statsRes.data.total_articles} Artikel` : "Error", 
+            color: statsRes?.data ? "text-secondary-foreground" : "text-destructive",
+            ok: !!statsRes 
+          },
+          users: { 
+            status: usersRes?.data ? `${usersRes.data.length} Pengguna` : "Terbatas", 
+            color: usersRes?.data ? "text-primary" : "text-amber-500",
+            ok: !!usersRes 
+          },
+          status: { 
+            status: statsRes || articlesRes ? "Live" : "Offline", 
+            color: statsRes || articlesRes ? "text-secondary-foreground" : "text-destructive",
+            ok: !!(statsRes || articlesRes)
+          }
+        });
+      } catch (err) {
+        setSystemHealth(prev => ({
+          ...prev,
+          status: { status: "Terputus", color: "text-destructive", ok: false }
+        }));
+      }
+    };
+
+    checkSystems();
+    const interval = setInterval(checkSystems, 30000); // Check every 30s
+    return () => clearInterval(interval);
+  }, []);
+
   const stats = [
-    { label: "Pengaturan", value: "Aktif", icon: TrendingUp, color: "text-primary" },
-    { label: "Konten", value: "Dinamis", icon: FileText, color: "text-secondary-foreground" },
-    { label: "Pengguna", value: "Aktif", icon: Users, color: "text-primary" },
-    { label: "Status", value: "Live", icon: TrendingUp, color: "text-secondary-foreground" },
+    { label: "Konfigurasi", value: systemHealth.settings.status, icon: TrendingUp, color: systemHealth.settings.color },
+    { label: "Total Konten", value: systemHealth.content.status, icon: FileText, color: systemHealth.content.color },
+    { label: "Manajemen Pengguna", value: systemHealth.users.status, icon: Users, color: systemHealth.users.color },
+    { label: "Status Server", value: systemHealth.status.status, icon: ShieldAlert, color: systemHealth.status.color },
   ];
 
   const renderContent = () => {
