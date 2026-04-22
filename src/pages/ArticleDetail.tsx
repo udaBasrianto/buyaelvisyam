@@ -236,6 +236,16 @@ export default function ArticleDetail() {
               <span className="flex items-center gap-1.5"><Calendar className="h-4 w-4 text-primary" />{formattedDate}</span>
               <span className="flex items-center gap-1.5"><Eye className="h-4 w-4 text-primary" />{article.views} views</span>
               <span className="flex items-center gap-1.5"><Clock className="h-4 w-4 text-primary" />{readingMinutes} menit baca</span>
+              {article.location_name && (
+                <a
+                  href="#lokasi-kajian"
+                  className="flex items-center gap-1.5 text-primary hover:underline transition-colors font-medium"
+                  title="Lihat lokasi kajian"
+                >
+                  <MapPin className="h-4 w-4 text-primary" />
+                  {article.location_name}
+                </a>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1 mr-1 rounded-full border border-border bg-card px-1 py-0.5">
@@ -283,7 +293,7 @@ export default function ArticleDetail() {
 
               {/* Location Map Section */}
               {article.location_name && (article.latitude !== 0 || article.longitude !== 0) && (
-                <div className="max-w-3xl mx-auto lg:mx-0 my-10 p-6 rounded-[2rem] bg-card border border-border/50 shadow-xl shadow-black/5 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                <div id="lokasi-kajian" className="max-w-3xl mx-auto lg:mx-0 my-10 p-6 rounded-[2rem] bg-card border border-border/50 shadow-xl shadow-black/5 animate-in fade-in slide-in-from-bottom-4 duration-700">
                    <div className="flex items-center gap-3 mb-4">
                       <div className="h-10 w-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
                          <MapPin className="h-5 w-5" />
