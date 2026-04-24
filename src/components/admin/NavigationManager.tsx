@@ -122,7 +122,7 @@ export function NavigationManager() {
 
     // Persist to backend
     try {
-      await api.put("/navigation/reorder", newItems.map(i => i.id));
+      await api.post("/navigation/reorder", newItems.map(i => i.id));
       toast({ title: "Urutan menu berhasil disimpan" });
     } catch (err) {
       toast({ title: "Gagal menyimpan urutan", variant: "destructive" });
