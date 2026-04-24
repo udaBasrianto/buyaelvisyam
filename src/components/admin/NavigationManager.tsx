@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
 import api from "@/lib/api";
 
@@ -16,6 +16,7 @@ type NavItem = {
   sort_order: number;
   is_active: boolean;
   is_external: boolean;
+  parent_id?: string | null;
 };
 
 export function NavigationManager() {
@@ -53,11 +54,18 @@ export function NavigationManager() {
 
   const handleSave = async () => {
     if (!form.label || !form.url) return;
+    
+    const payload = {
+      ...form,
+      parent_id: form.parent_id === "" ? null : form.parent_id,
+      sort_order: editing ? editing.sort_order : items.length + 1
+    };
+
     try {
       if (editing) {
-        await api.put(`/navigation/${editing.id}`, form);
+        await api.put(`/navigation/${editing.id}`, payload);
       } else {
-        await api.post("/navigation", { ...form, sort_order: items.length + 1 });
+        await api.post("/navigation", payload);
       }
       toast({ title: "Berhasil menyimpan menu" });
       setOpen(false);
@@ -108,7 +116,17 @@ export function NavigationManager() {
                 <p className="text-xs text-muted-foreground">{item.url}</p>
              </div>
              <div className="flex items-center gap-2">
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditing(item); setForm({ ...item }); setOpen(true); }}>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { 
+                  setEditing(item); 
+                  setForm({ 
+                    label: item.label, 
+                    url: item.url, 
+                    is_active: item.is_active, 
+                    is_external: item.is_external, 
+                    parent_id: item.parent_id || "" 
+                  }); 
+                  setOpen(true); 
+                }}>
                    <Edit className="h-4 w-4" />
                 </Button>
                 <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => deleteItem(item.id)}>
@@ -123,6 +141,7 @@ export function NavigationManager() {
         <DialogContent className="bg-background/80 backdrop-blur-xl rounded-[2rem] border-primary/20">
           <DialogHeader>
             <DialogTitle className="font-black uppercase tracking-tight">Edit Menu</DialogTitle>
+            <DialogDescription className="hidden">Form for editing or adding menu navigation</DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-4">
               <div className="space-y-2">

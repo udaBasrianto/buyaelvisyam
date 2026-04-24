@@ -3,7 +3,7 @@ import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
 import Image from "@tiptap/extension-image";
 import Placeholder from "@tiptap/extension-placeholder";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useMemo } from "react";
 import {
   Bold, Italic, Strikethrough, Heading2, Heading3, List, ListOrdered,
   Quote, Undo, Redo, Link2, Image as ImageIcon, Code, Minus, Pilcrow,
@@ -122,13 +122,15 @@ export function RichTextEditor({
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const extensions = useMemo(() => [
+    StarterKit.configure({ heading: { levels: [2, 3] } }),
+    Link.configure({ openOnClick: false, HTMLAttributes: { class: "text-primary underline" } }),
+    Image.configure({ HTMLAttributes: { class: "rounded-lg my-3 max-w-full h-auto" } }),
+    Placeholder.configure({ placeholder }),
+  ], [placeholder]);
+
   const editor = useEditor({
-    extensions: [
-      StarterKit.configure({ heading: { levels: [2, 3] } }),
-      Link.configure({ openOnClick: false, HTMLAttributes: { class: "text-primary underline" } }),
-      Image.configure({ HTMLAttributes: { class: "rounded-lg my-3 max-w-full h-auto" } }),
-      Placeholder.configure({ placeholder }),
-    ],
+    extensions,
     content: value || "",
     editorProps: {
       attributes: {
