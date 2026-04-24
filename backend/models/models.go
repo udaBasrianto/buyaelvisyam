@@ -162,17 +162,19 @@ type Article struct {
 }
 
 type Page struct {
-	ID        uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
-	Title     string    `gorm:"not null" json:"title"`
-	Slug      string    `gorm:"unique;not null" json:"slug"`
-	Content   string    `json:"content"`
-	Excerpt   string    `json:"excerpt"`
-	Status    string    `gorm:"default:'draft'" json:"status"`
-	ShowInNav bool      `gorm:"default:false" json:"show_in_nav"`
-	NavOrder  int       `gorm:"default:0" json:"nav_order"`
-	CreatedBy uuid.UUID `gorm:"type:uuid" json:"created_by"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID           uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
+	Title        string    `gorm:"not null" json:"title"`
+	Slug         string    `gorm:"unique;not null" json:"slug"`
+	Content      string    `json:"content"`
+	Excerpt      string    `json:"excerpt"`
+	Status       string    `gorm:"default:'draft'" json:"status"`
+	ShowInNav    bool      `gorm:"default:false" json:"show_in_nav"`
+	NavOrder     int       `gorm:"default:0" json:"nav_order"`
+	TemplateType string    `gorm:"default:'standard'" json:"template_type"` // standard, landing, sidebar
+	HeroImage    string    `json:"hero_image"`
+	CreatedBy    uuid.UUID `gorm:"type:uuid" json:"created_by"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
 }
 
 type SiteSettings struct {
@@ -211,6 +213,9 @@ type SiteSettings struct {
 	GoogleAnalyticsID   string    `json:"google_analytics_id"`
 	CategoriesTitle     string    `json:"categories_title"`
 	CategoriesSubtitle  string    `json:"categories_subtitle"`
+	LmsMenuLabel        string    `gorm:"default:'Akademi'" json:"lms_menu_label"`
+	LmsTitle            string    `gorm:"default:'Belajar Islam Lebih Terstruktur.'" json:"lms_title"`
+	LmsSubtitle         string    `gorm:"default:'Akses materi kajian eksklusif, video tutorial, dan kuis interaktif dari Ustadz-Ustadz terpercaya.'" json:"lms_subtitle"`
 	ShowFeatureBar      bool      `gorm:"default:true" json:"show_feature_bar"`
 	UpdatedBy           uuid.UUID `gorm:"type:uuid" json:"updated_by"`
 	UpdatedAt           time.Time `json:"updated_at"`

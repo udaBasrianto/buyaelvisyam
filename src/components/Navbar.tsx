@@ -11,7 +11,7 @@ import api from "@/lib/api";
 
 const baseNavItems = [
   { label: "Beranda", href: "/" },
-  { label: "Akademi (LMS)", href: "/lms" },
+  { label: "__LMS__", href: "/lms" },
   { label: "Tentang Kami", href: "/tentang" },
 ];
 
@@ -38,9 +38,10 @@ export function Navbar() {
   }, []);
 
   // Navigation Manager is the single source of truth for menu items
+  const lmsLabel = (settings as any).lms_menu_label || "Akademi";
   const rawNavItems = dbNavItems.length > 0 
     ? dbNavItems.filter(i => i.is_active).map(i => ({ id: i.id, label: i.label, href: i.url, isExternal: i.is_external, parent_id: i.parent_id }))
-    : baseNavItems.map(i => ({ ...i, id: i.label, isExternal: false, parent_id: null }));
+    : baseNavItems.map(i => ({ ...i, id: i.label, label: i.label === "__LMS__" ? lmsLabel : i.label, isExternal: false, parent_id: null }));
 
   // Nest children under parents
   const navItems = rawNavItems.filter(item => !item.parent_id).map(parent => ({

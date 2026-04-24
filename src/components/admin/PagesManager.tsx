@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Plus, Edit, Trash2, Eye, EyeOff } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, EyeOff, Layout, Image as ImageIcon, Upload } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,9 @@ import { Badge } from "@/components/ui/badge";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import api from "@/lib/api";
 
@@ -22,6 +25,8 @@ type Page = {
   status: string;
   show_in_nav: boolean;
   nav_order: number;
+  template_type: string;
+  hero_image: string;
   updated_at: string;
 };
 
@@ -34,6 +39,7 @@ const slugify = (s: string) =>
 const empty = {
   id: "", title: "", slug: "", content: "", excerpt: "",
   status: "published", show_in_nav: true, nav_order: 0,
+  template_type: "standard", hero_image: "",
   about_hero_image: "", about_vision_image_1: "", about_vision_image_2: "",
   about_value_1_title: "", about_value_1_desc: "",
   about_value_2_title: "", about_value_2_desc: "",
@@ -42,6 +48,27 @@ const empty = {
   about_footer_quote: "", about_footer_author: "",
 };
 
+const TEMPLATE_OPTIONS = [
+  {
+    value: "standard",
+    label: "Standard",
+    desc: "Satu kolom bersih — ideal untuk kebijakan, artikel panjang",
+    icon: "📄",
+  },
+  {
+    value: "landing",
+    label: "Landing Page",
+    desc: "Full-width, hero besar, seksi modern ala Elementor",
+    icon: "🚀",
+  },
+  {
+    value: "sidebar",
+    label: "With Sidebar",
+    desc: "Konten utama + sidebar widget (artikel terbaru, kategori)",
+    icon: "📰",
+  },
+];
+
 export function PagesManager() {
   const { user } = useAuth();
   const [pages, setPages] = useState<Page[]>([]);
@@ -49,6 +76,7 @@ export function PagesManager() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<typeof empty>(empty);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -71,6 +99,8 @@ export function PagesManager() {
       id: p.id, title: p.title, slug: p.slug, content: p.content,
       excerpt: p.excerpt ?? "", status: p.status,
       show_in_nav: p.show_in_nav, nav_order: p.nav_order,
+      template_type: p.template_type || "standard",
+      hero_image: p.hero_image || "",
     });
     // If it's about page, fetch current images from settings
     if (p.slug === "tentang" || p.slug === "tentang-kami") {
@@ -96,6 +126,28 @@ export function PagesManager() {
     setOpen(true);
   };
 
+  const handleHeroUpload = async () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.onchange = async (e: any) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      setUploading(true);
+      try {
+        const fd = new FormData();
+        fd.append("image", file);
+        const { data } = await api.post("/upload", fd);
+        setForm(f => ({ ...f, hero_image: data.url }));
+        toast({ title: "Gambar hero berhasil diupload" });
+      } catch {
+        toast({ title: "Upload gagal", variant: "destructive" });
+      }
+      setUploading(false);
+    };
+    input.click();
+  };
+
   const save = async () => {
     if (!form.title.trim()) {
       toast({ title: "Judul wajib diisi", variant: "destructive" });
@@ -112,6 +164,8 @@ export function PagesManager() {
       status: form.status,
       show_in_nav: form.show_in_nav,
       nav_order: Number(form.nav_order) || 0,
+      template_type: form.template_type,
+      hero_image: form.hero_image,
     };
 
     try {
@@ -176,6 +230,8 @@ export function PagesManager() {
     }
   };
 
+  const templateLabel = (t: string) => TEMPLATE_OPTIONS.find(o => o.value === t)?.label || "Standard";
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -203,6 +259,10 @@ export function PagesManager() {
                       ? "bg-primary/10 text-primary border-primary/20"
                       : "bg-muted text-muted-foreground"}>
                       {p.status === "published" ? "Publish" : "Hidden"}
+                    </Badge>
+                    <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/20 text-[10px]">
+                      <Layout className="h-3 w-3 mr-1" />
+                      {templateLabel(p.template_type)}
                     </Badge>
                     {p.show_in_nav && (
                       <Badge variant="outline" className="bg-secondary/20 text-secondary-foreground border-secondary/30">
@@ -233,34 +293,107 @@ export function PagesManager() {
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{form.id ? "Edit Halaman" : "Tambah Halaman Baru"}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>Judul</Label>
-              <Input
-                value={form.title}
-                onChange={(e) => setForm({ ...form, title: e.target.value, slug: form.id ? form.slug : slugify(e.target.value) })}
-                placeholder="Tentang Kami"
-              />
+          <div className="space-y-5">
+            {/* Template Selector */}
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-primary/5 via-transparent to-blue-500/5 border border-primary/20">
+              <Label className="text-primary font-bold uppercase tracking-widest text-[10px] mb-3 block">
+                Pilih Template Layout
+              </Label>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {TEMPLATE_OPTIONS.map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setForm({ ...form, template_type: opt.value })}
+                    className={`group relative p-4 rounded-xl border-2 text-left transition-all duration-200 ${
+                      form.template_type === opt.value
+                        ? "border-primary bg-primary/10 shadow-lg shadow-primary/10"
+                        : "border-border bg-card hover:border-primary/30 hover:bg-primary/5"
+                    }`}
+                  >
+                    <div className="text-2xl mb-2">{opt.icon}</div>
+                    <p className={`font-bold text-sm mb-1 ${form.template_type === opt.value ? "text-primary" : "text-foreground"}`}>
+                      {opt.label}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground leading-snug">{opt.desc}</p>
+                    {form.template_type === opt.value && (
+                      <div className="absolute top-2 right-2 h-5 w-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
+                        <span className="text-[10px] font-bold">✓</span>
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div>
-              <Label>Slug URL</Label>
-              <Input
-                value={form.slug}
-                onChange={(e) => setForm({ ...form, slug: slugify(e.target.value) })}
-                placeholder="tentang-kami"
-              />
-              <p className="text-xs text-muted-foreground mt-1">URL: /p/{form.slug || "slug-halaman"}</p>
+
+            {/* Hero Image Uploader (for landing & sidebar templates) */}
+            {(form.template_type === "landing" || form.template_type === "sidebar") && (
+              <div className="p-4 rounded-2xl bg-muted/40 border border-border">
+                <Label className="text-foreground font-bold uppercase tracking-widest text-[10px] mb-3 block">
+                  <ImageIcon className="h-3.5 w-3.5 inline mr-1.5" />
+                  Gambar Hero (Header)
+                </Label>
+                <div className="relative aspect-[3/1] rounded-xl border-2 border-dashed border-border bg-background overflow-hidden group">
+                  {form.hero_image ? (
+                    <>
+                      <img src={form.hero_image} className="w-full h-full object-cover" alt="Hero" />
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                        <Button size="sm" variant="secondary" onClick={handleHeroUpload} disabled={uploading}>
+                          <Upload className="h-4 w-4 mr-1.5" />
+                          Ganti
+                        </Button>
+                        <Button size="sm" variant="destructive" onClick={() => setForm({ ...form, hero_image: "" })}>
+                          <Trash2 className="h-4 w-4 mr-1.5" />
+                          Hapus
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleHeroUpload}
+                      disabled={uploading}
+                      className="w-full h-full flex flex-col items-center justify-center text-muted-foreground hover:text-primary hover:border-primary transition-all"
+                    >
+                      <Upload className="h-8 w-8 mb-2 opacity-50" />
+                      <span className="text-xs font-medium">{uploading ? "Mengupload..." : "Klik untuk upload gambar hero"}</span>
+                      <span className="text-[10px] mt-1 opacity-60">Rasio 3:1 disarankan (1200×400)</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Basic Fields */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>Judul</Label>
+                <Input
+                  value={form.title}
+                  onChange={(e) => setForm({ ...form, title: e.target.value, slug: form.id ? form.slug : slugify(e.target.value) })}
+                  placeholder="Tentang Kami"
+                />
+              </div>
+              <div>
+                <Label>Slug URL</Label>
+                <Input
+                  value={form.slug}
+                  onChange={(e) => setForm({ ...form, slug: slugify(e.target.value) })}
+                  placeholder="tentang-kami"
+                />
+                <p className="text-xs text-muted-foreground mt-1">URL: /p/{form.slug || "slug-halaman"}</p>
+              </div>
             </div>
             <div>
               <Label>Ringkasan (opsional)</Label>
               <Input
                 value={form.excerpt}
                 onChange={(e) => setForm({ ...form, excerpt: e.target.value })}
-                placeholder="Deskripsi singkat halaman"
+                placeholder="Deskripsi singkat halaman — tampil di hero & SEO meta"
               />
             </div>
             <div>

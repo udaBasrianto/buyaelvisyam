@@ -47,6 +47,9 @@ interface Settings {
   google_analytics_id?: string;
   categories_title?: string;
   categories_subtitle?: string;
+  lms_menu_label?: string;
+  lms_title?: string;
+  lms_subtitle?: string;
   show_feature_bar?: boolean;
 }
 
@@ -181,6 +184,9 @@ export function SiteSettingsManager() {
         google_analytics_id: settings.google_analytics_id?.trim() || "",
         categories_title: settings.categories_title?.trim() || "",
         categories_subtitle: settings.categories_subtitle?.trim() || "",
+        lms_menu_label: settings.lms_menu_label?.trim() || "Akademi",
+        lms_title: settings.lms_title?.trim() || "",
+        lms_subtitle: settings.lms_subtitle?.trim() || "",
       });
       toast({ title: "Tersimpan", description: "Pengaturan situs diperbarui" });
     } catch (error: any) {
@@ -444,6 +450,38 @@ export function SiteSettingsManager() {
             onChange={(e) => setSettings({ ...settings, google_analytics_id: e.target.value })} 
             placeholder="G-XXXXXXXXXX"
           />
+        </div>
+
+        <div className="pt-6 border-t space-y-4">
+          <Label className="text-sm font-bold block">Konfigurasi Halaman LMS / Akademi</Label>
+          <div className="text-[10px] text-muted-foreground mb-4">Ubah nama menu, judul hero, dan subtitle halaman kursus secara dinamis.</div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label className="text-[10px]">Label Menu Navigasi</Label>
+              <Input 
+                value={settings.lms_menu_label || ""} 
+                onChange={(e) => setSettings({ ...settings, lms_menu_label: e.target.value })} 
+                placeholder="Akademi"
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">Nama yang tampil di navbar & breadcrumb</p>
+            </div>
+            <div>
+              <Label className="text-[10px]">Judul Hero LMS</Label>
+              <Input 
+                value={settings.lms_title || ""} 
+                onChange={(e) => setSettings({ ...settings, lms_title: e.target.value })} 
+                placeholder="Belajar Islam Lebih Terstruktur."
+              />
+            </div>
+            <div>
+              <Label className="text-[10px]">Subtitle Hero LMS</Label>
+              <Input 
+                value={settings.lms_subtitle || ""} 
+                onChange={(e) => setSettings({ ...settings, lms_subtitle: e.target.value })} 
+                placeholder="Akses materi kajian eksklusif..."
+              />
+            </div>
+          </div>
         </div>
 
         <div className="pt-6 border-t space-y-4">

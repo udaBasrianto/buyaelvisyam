@@ -4,6 +4,7 @@ import { Navbar } from "@/components/Navbar";
 import { BottomNav } from "@/components/BottomNav";
 import { SEO } from "@/components/SEO";
 import { BookOpen, PlayCircle, Clock, Star, Filter, Search, ChevronRight } from "lucide-react";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 import api from "@/lib/api";
 
 type Course = {
@@ -21,6 +22,11 @@ type Course = {
 export default function Courses() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
+  const { settings } = useSiteSettings();
+
+  const lmsLabel = (settings as any).lms_menu_label || "Akademi";
+  const lmsTitle = (settings as any).lms_title || "Belajar Islam Lebih Terstruktur.";
+  const lmsSubtitle = (settings as any).lms_subtitle || "Akses materi kajian eksklusif, video tutorial, dan kuis interaktif dari Ustadz-Ustadz terpercaya.";
 
   useEffect(() => {
     api.get("/courses").then(({ data }) => {
@@ -31,7 +37,7 @@ export default function Courses() {
 
   return (
     <div className="min-h-screen bg-background">
-      <SEO title="Akademi Literasi Islami - LMS" description="Tingkatkan ilmu agama Anda dengan kursus online terstruktur." />
+      <SEO title={`${lmsLabel} - ${settings.site_name}`} description={lmsSubtitle} />
       <Navbar />
 
       <main className="container mx-auto px-4 py-8 bottom-nav-safe">
@@ -40,13 +46,18 @@ export default function Courses() {
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32 blur-3xl" />
           <div className="relative z-10 max-w-2xl">
             <span className="inline-block px-4 py-1.5 rounded-full bg-white/20 text-[10px] font-black uppercase tracking-widest mb-6 border border-white/20">
-              E-Learning Platform
+              {lmsLabel}
             </span>
             <h1 className="text-4xl md:text-6xl font-black mb-6 leading-tight">
-              Belajar Islam Lebih <br/><span className="italic text-secondary">Terstruktur.</span>
+              {lmsTitle.includes(" ") ? (
+                <>
+                  {lmsTitle.split(" ").slice(0, -1).join(" ")} <br/>
+                  <span className="italic text-secondary">{lmsTitle.split(" ").slice(-1)[0]}</span>
+                </>
+              ) : lmsTitle}
             </h1>
             <p className="text-white/80 text-lg mb-8 leading-relaxed">
-              Akses materi kajian eksklusif, video tutorial, dan kuis interaktif dari Ustadz-Ustadz terpercaya.
+              {lmsSubtitle}
             </p>
             <div className="flex flex-wrap gap-4">
                <div className="flex items-center gap-2 px-6 py-3 bg-white text-primary rounded-2xl font-black text-sm uppercase">

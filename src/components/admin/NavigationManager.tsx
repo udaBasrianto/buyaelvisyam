@@ -231,18 +231,18 @@ export function NavigationManager() {
             <div className="h-px bg-border my-2" />
             <div className="space-y-2">
               <Label>Label Menu</Label>
-              <Input placeholder="Contoh: Beranda" value={form.label} onChange={e => setForm({...form, label: e.target.value})} />
+              <Input placeholder="Contoh: Beranda" value={form.label} onChange={e => setForm({ ...form, label: e.target.value })} />
             </div>
             <div className="space-y-2">
               <Label>URL / Link</Label>
-              <Input placeholder="Contoh: /artikel atau https://..." value={form.url} onChange={e => setForm({...form, url: e.target.value})} />
+              <Input placeholder="Contoh: /artikel atau https://..." value={form.url} onChange={e => setForm({ ...form, url: e.target.value })} />
             </div>
             <div className="space-y-2">
               <Label>Menu Induk (Sub-menu dari...)</Label>
               <select
                 className="w-full bg-muted/40 border border-input rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
                 value={form.parent_id || ""}
-                onChange={e => setForm({...form, parent_id: e.target.value})}
+                onChange={e => setForm({ ...form, parent_id: e.target.value })}
               >
                 <option value="">-- Menu Utama (Tidak Ada Induk) --</option>
                 {items.filter(i => !i.parent_id && i.id !== editing?.id).map(i => (
@@ -256,14 +256,14 @@ export function NavigationManager() {
                 <Label>Link Eksternal</Label>
                 <p className="text-[10px] text-muted-foreground">Buka di tab baru</p>
               </div>
-              <Switch checked={form.is_external} onCheckedChange={v => setForm({...form, is_external: v})} />
+              <Switch checked={form.is_external} onCheckedChange={v => setForm({ ...form, is_external: v })} />
             </div>
             <div className="flex items-center justify-between p-3 bg-muted/40 rounded-xl">
               <div className="space-y-0.5">
                 <Label>Aktif</Label>
                 <p className="text-[10px] text-muted-foreground">Tampilkan di website</p>
               </div>
-              <Switch checked={form.is_active} onCheckedChange={v => setForm({...form, is_active: v})} />
+              <Switch checked={form.is_active} onCheckedChange={v => setForm({ ...form, is_active: v })} />
             </div>
           </div>
           <DialogFooter>

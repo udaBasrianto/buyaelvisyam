@@ -40,3 +40,6 @@ buya_insert.sql
 *.sln
 *.sw?
 
+
+# Uploads
+backend/uploads/
