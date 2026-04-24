@@ -65,22 +65,6 @@ export function SEO({ title, description, image, article }: SEOProps) {
     }
     canonical.setAttribute("href", seoURL);
 
-    // Favicon update
-    if (settings?.favicon_url) {
-      const updateFavicon = (rel: string) => {
-        let icon = document.querySelector(`link[rel="${rel}"]`) as HTMLLinkElement;
-        if (!icon) {
-          icon = document.createElement("link");
-          icon.setAttribute("rel", rel);
-          document.head.appendChild(icon);
-        }
-        icon.setAttribute("href", settings.favicon_url!);
-      };
-      updateFavicon("icon");
-      updateFavicon("shortcut icon");
-      updateFavicon("apple-touch-icon");
-    }
-
   }, [title, description, image, article, pathname, baseURL, settings]);
 
   return null;
