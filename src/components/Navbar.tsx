@@ -76,7 +76,7 @@ export function Navbar() {
               className="text-lg leading-tight"
               speed={100}
               deleteSpeed={50}
-              delay={4000}
+              delay={2000}
             />
           </a>
 
