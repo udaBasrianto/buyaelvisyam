@@ -161,12 +161,26 @@ export default function ArticleDetail() {
   const wordCount = plainText.trim().split(/\s+/).filter(Boolean).length;
   const readingMinutes = Math.max(1, Math.ceil(wordCount / 200));
 
+  let youtubeVideoId = "";
+  if (article.youtube_url) {
+    const url = article.youtube_url;
+    const watchMatch = url.match(/[?&]v=([^&]+)/);
+    const shortMatch = url.match(/youtu\.be\/([^?]+)/);
+    const embedMatch = url.match(/embed\/([^?]+)/);
+    if (watchMatch) youtubeVideoId = watchMatch[1];
+    else if (shortMatch) youtubeVideoId = shortMatch[1];
+    else if (embedMatch) youtubeVideoId = embedMatch[1];
+  }
+
+  const youtubeThumbnail = youtubeVideoId ? `https://img.youtube.com/vi/${youtubeVideoId}/hqdefault.jpg` : "";
+  const shareImage = youtubeThumbnail || article.cover_image || DEFAULT_POST_IMAGE;
+
   return (
     <div className="min-h-screen bg-background max-w-full overflow-x-hidden">
       <SEO 
         title={article.title} 
         description={article.excerpt || plainText.substring(0, 160)} 
-        image={article.cover_image || undefined} 
+        image={youtubeThumbnail || article.cover_image || undefined} 
         article 
       />
       <script type="application/ld+json">
@@ -174,7 +188,7 @@ export default function ArticleDetail() {
           "@context": "https://schema.org",
           "@type": "BlogPosting",
           "headline": article.title,
-          "image": [coverImage],
+          "image": [shareImage],
           "datePublished": article.created_at,
           "author": [{
             "@type": "Person",
@@ -307,17 +321,7 @@ export default function ArticleDetail() {
                   </div>
                   <div className="relative w-full rounded-2xl overflow-hidden border border-border/50 shadow-xl" style={{ paddingBottom: '56.25%' }}>
                     <iframe
-                      src={(() => {
-                        const url = article.youtube_url;
-                        let videoId = '';
-                        const watchMatch = url.match(/[?&]v=([^&]+)/);
-                        const shortMatch = url.match(/youtu\.be\/([^?]+)/);
-                        const embedMatch = url.match(/embed\/([^?]+)/);
-                        if (watchMatch) videoId = watchMatch[1];
-                        else if (shortMatch) videoId = shortMatch[1];
-                        else if (embedMatch) videoId = embedMatch[1];
-                        return videoId ? `https://www.youtube.com/embed/${videoId}` : url;
-                      })()}
+                      src={youtubeVideoId ? `https://www.youtube.com/embed/${youtubeVideoId}` : article.youtube_url}
                       className="absolute inset-0 w-full h-full"
                       title="Video Kajian"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
