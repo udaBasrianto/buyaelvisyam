@@ -51,4 +51,14 @@ Dokumen ini mencatat kemajuan pengembangan aplikasi blog dan sistem administrasi
 *   **Middleware**: Penanganan CORS, Logging, Recovery, dan JWT Protected Routes.
 
 ---
-*Terakhir diperbarui: 22 April 2026 (12:00 PM)*
+*Terakhir diperbarui: 24 April 2026 (04:30 PM)*
+
+## 9. Fitur Terbaru (24 April 2026)
+*   **Premium Page Builder**:
+    *   3 pilihan template layout (Standard, Landing Page, With Sidebar).
+    *   Sistem Hero Image dinamis per halaman.
+    *   Desain modern dengan glassmorphism dan animasi parallax.
+*   **LMS Dynamic Configuration**:
+    *   Nama menu, judul hero, dan deskripsi LMS kini bisa diubah dari Admin Panel.
+*   **Project Cleanup**:
+    *   Pembersihan file-file scratch/debug lama untuk menjaga kebersihan codebase.
