@@ -140,7 +140,7 @@ export function CategorySectionV2() {
             {settings.categories_subtitle || "Temukan topik kajian favorit Anda dengan mudah"}
           </p>
         </div>
-        <Link to="/" className="text-xs font-bold text-primary flex items-center gap-1 hover:underline">
+        <Link to="/categories" className="text-xs font-bold text-primary flex items-center gap-1 hover:underline">
           LIHAT SEMUA <ArrowRight className="h-3 w-3" />
         </Link>
       </div>
