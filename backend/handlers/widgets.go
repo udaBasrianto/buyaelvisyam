@@ -48,10 +48,12 @@ func UpdateWidget(c *fiber.Ctx) error {
 		return c.Status(400).JSON(fiber.Map{"error": "Invalid body"})
 	}
 
-	db.Model(&widget).Updates(updatedData)
+	// Gunakan Select("*") agar boolean is_active = false tidak diabaikan GORM
+	db.Model(&widget).Select("*").Omit("id", "created_at").Updates(updatedData)
 
 	return c.JSON(widget)
 }
+
 
 func DeleteWidget(c *fiber.Ctx) error {
 	id := c.Params("id")
