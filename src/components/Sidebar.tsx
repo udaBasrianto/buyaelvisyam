@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { TrendingUp, Tag, ChevronRight } from "lucide-react";
+import { TrendingUp, Tag, ChevronRight, MessageSquare, Info } from "lucide-react";
 import api from "@/lib/api";
 
 type ArticleSummary = {
@@ -19,21 +19,63 @@ type CategorySummary = {
   article_count: number;
 };
 
-export function Sidebar() {
+type Widget = {
+  id: string;
+  title: string;
+  type: string; // html, image, text
+  content: string;
+  image_url: string;
+  link_url: string;
+  is_active: boolean;
+  placement: string; // all, beranda, detail
+  sort_order: number;
+};
+
+interface SidebarProps {
+  placement?: "beranda" | "detail";
+  articleContent?: string; // Optional context from article view
+}
+
+export function Sidebar({ placement = "detail", articleContent }: SidebarProps) {
   const [articles, setArticles] = useState<ArticleSummary[]>([]);
   const [categories, setCategories] = useState<CategorySummary[]>([]);
+  const [dynamicWidgets, setDynamicWidgets] = useState<Widget[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get("/blog/latest?limit=5").then(({ data }) => {
-      if (Array.isArray(data)) setArticles(data);
-    }).catch(() => {});
-    api.get("/categories").then(({ data }) => {
-      if (Array.isArray(data)) setCategories(data.filter((c: any) => c.article_count > 0).slice(0, 8));
-    }).catch(() => {});
-  }, []);
+    const loadSidebarData = async () => {
+      try {
+        const [articlesRes, categoriesRes, widgetsRes] = await Promise.all([
+          api.get("/blog/latest?limit=5"),
+          api.get("/categories"),
+          api.get("/widgets?is_active=true")
+        ]);
+
+        if (Array.isArray(articlesRes.data)) {
+          setArticles(articlesRes.data);
+        }
+        if (Array.isArray(categoriesRes.data)) {
+          setCategories(categoriesRes.data.filter((c: any) => c.article_count > 0).slice(0, 8));
+        }
+        if (Array.isArray(widgetsRes.data)) {
+          // Filter widgets that match the placement
+          const filtered = widgetsRes.data.filter(
+            (w: Widget) => w.placement === "all" || w.placement === placement
+          );
+          setDynamicWidgets(filtered);
+        }
+      } catch (err) {
+        console.error("Failed to load sidebar content", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadSidebarData();
+  }, [placement]);
 
   return (
-    <aside className="space-y-8 w-full">
+    <aside className="space-y-8 w-full select-none">
       {/* Latest Articles Widget */}
       <div className="bg-card/80 backdrop-blur-sm border border-border/50 rounded-[24px] p-6 shadow-sm ring-1 ring-black/[0.02]">
         <div className="flex items-center gap-3 mb-6">
@@ -104,7 +146,78 @@ export function Sidebar() {
         </div>
       </div>
 
-      {/* Newsletter / CTA Placeholder */}
+      {/* Dynamic Database Widgets */}
+      {dynamicWidgets.map(w => {
+        if (w.type === "image" && w.image_url) {
+          return (
+            <div key={w.id} className="group bg-card/80 backdrop-blur-sm border border-border/50 rounded-[24px] overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 ring-1 ring-black/[0.02]">
+              <a 
+                href={w.link_url || "#"} 
+                target={w.link_url?.startsWith("http") ? "_blank" : "_self"} 
+                rel="noopener noreferrer" 
+                className="block relative overflow-hidden"
+              >
+                <img 
+                  src={w.image_url} 
+                  alt={w.title} 
+                  className="w-full h-auto max-h-[300px] object-cover group-hover:scale-105 transition-transform duration-500" 
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-white bg-primary px-3 py-1 rounded-lg">Kunjungi Tautan</span>
+                </div>
+              </a>
+              {w.title && (
+                <div className="p-4 border-t border-border/40">
+                  <h4 className="font-bold text-[13px] text-foreground leading-snug line-clamp-2">{w.title}</h4>
+                </div>
+              )}
+            </div>
+          );
+        }
+
+        if (w.type === "text") {
+          return (
+            <div key={w.id} className="bg-card/80 backdrop-blur-sm border border-border/50 rounded-[24px] p-6 shadow-sm ring-1 ring-black/[0.02] hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-10 w-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
+                  <Info className="h-5 w-5 text-amber-600" />
+                </div>
+                <div>
+                  <h3 className="font-black text-sm text-foreground uppercase tracking-wider">{w.title}</h3>
+                  <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight">Informasi Kajian</p>
+                </div>
+              </div>
+              <p className="text-[12px] text-muted-foreground leading-relaxed whitespace-pre-wrap font-medium">{w.content}</p>
+            </div>
+          );
+        }
+
+        if (w.type === "html") {
+          return (
+            <div key={w.id} className="bg-card/80 backdrop-blur-sm border border-border/50 rounded-[24px] p-6 shadow-sm ring-1 ring-black/[0.02] hover:shadow-md transition-shadow">
+              {w.title && (
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                    <MessageSquare className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-sm text-foreground uppercase tracking-wider">{w.title}</h3>
+                    <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight">Kanal Informasi</p>
+                  </div>
+                </div>
+              )}
+              <div 
+                className="text-[12px] overflow-hidden leading-normal text-muted-foreground whitespace-normal"
+                dangerouslySetInnerHTML={{ __html: w.content }}
+              />
+            </div>
+          );
+        }
+
+        return null;
+      })}
+
+      {/* Default Newsletter / CTA Widget */}
       <div className="relative overflow-hidden bg-primary rounded-[24px] p-6 text-primary-foreground shadow-lg shadow-primary/20">
          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
          <div className="relative z-10">

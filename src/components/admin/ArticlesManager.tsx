@@ -34,6 +34,7 @@ interface Article {
   latitude?: number;
   longitude?: number;
   youtube_url?: string;
+  categories?: string[];
 }
 
 const statusColor: Record<string, string> = {
@@ -83,7 +84,7 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
   }, [search, filterCategory]);
 
   const [form, setForm] = useState({
-    title: "", excerpt: "", content: "", category: "Umum", cover_image: "", status: "draft", is_featured: false,
+    title: "", excerpt: "", content: "", category: "Umum", categories: [] as string[], cover_image: "", status: "draft", is_featured: false,
     location_name: "", latitude: 0, longitude: 0, youtube_url: "", published_at: "",
   });
   const [uploading, setUploading] = useState(false);
@@ -188,6 +189,7 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
         excerpt: article.excerpt || "",
         content: article.content,
         category: article.category,
+        categories: article.categories || (article.category ? [article.category] : []),
         cover_image: article.cover_image || "",
         status: article.status,
         is_featured: article.is_featured || false,
@@ -200,7 +202,7 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
       setPreviewUrl(article.cover_image || null);
     } else {
       setEditing(null);
-      setForm({ title: "", excerpt: "", content: "", category: "Umum", cover_image: "", status: "draft", is_featured: false, location_name: "", latitude: -6.2088, longitude: 106.8456, youtube_url: "", published_at: new Date().toISOString().slice(0, 16) });
+      setForm({ title: "", excerpt: "", content: "", category: "Umum", categories: ["Umum"], cover_image: "", status: "draft", is_featured: false, location_name: "", latitude: -6.2088, longitude: 106.8456, youtube_url: "", published_at: new Date().toISOString().slice(0, 16) });
       setPreviewUrl(null);
     }
     setEditorOpen(true);
@@ -216,7 +218,8 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
       slug: editing?.slug || generateSlug(form.title),
       excerpt: form.excerpt.trim() || "",
       content: form.content.trim(),
-      category: form.category,
+      category: form.categories.length > 0 ? form.categories[0] : "Umum",
+      categories: form.categories.length > 0 ? form.categories : ["Umum"],
       cover_image: form.cover_image.trim() || "",
       status,
       is_featured: form.is_featured,
@@ -494,7 +497,25 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
                       <td className="py-3 px-4 font-medium text-muted-foreground">{startIndex + index + 1}</td>
                       <td className="py-3 px-4 font-medium max-w-[500px] truncate">{a.title}</td>
                       <td className="py-3 px-4 text-muted-foreground">{a.author || "—"}</td>
-                      <td className="py-3 px-4 text-muted-foreground">{a.category}</td>
+                      <td className="py-3 px-4">
+                        <div className="flex flex-wrap gap-1 max-w-[200px]">
+                          {a.categories && a.categories.length > 0 ? (
+                            a.categories.map((cat, idx) => (
+                              <Badge 
+                                key={idx} 
+                                variant={idx === 0 ? "default" : "secondary"} 
+                                className="text-[10px] py-0 px-1.5 font-medium whitespace-nowrap"
+                              >
+                                {cat}
+                              </Badge>
+                            ))
+                          ) : (
+                            <Badge variant="outline" className="text-[10px] py-0 px-1.5 font-medium whitespace-nowrap">
+                              {a.category || "Umum"}
+                            </Badge>
+                          )}
+                        </div>
+                      </td>
                       <td className="py-3 px-4 text-center">
                         <Switch 
                           checked={a.is_featured} 
@@ -550,7 +571,26 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
                       </p>
                       <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                         <Badge variant="outline" className={`text-[10px] ${statusColor[a.status]}`}>{statusLabel[a.status] || a.status}</Badge>
-                        <span className="text-xs text-muted-foreground">{a.category}</span>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {a.categories && a.categories.length > 0 ? (
+                            a.categories.map((cat, idx) => (
+                              <span 
+                                key={idx} 
+                                className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                                  idx === 0 
+                                    ? "bg-primary/10 text-primary" 
+                                    : "bg-muted text-muted-foreground"
+                                }`}
+                              >
+                                {cat}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded font-medium bg-primary/10 text-primary">
+                              {a.category || "Umum"}
+                            </span>
+                          )}
+                        </div>
                         <span className="text-xs text-muted-foreground flex items-center gap-0.5"><Eye className="h-3 w-3" />{a.views}</span>
                       </div>
                     </div>
@@ -658,17 +698,52 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
                 <Input value={form.excerpt} onChange={(e) => setForm({ ...form, excerpt: e.target.value })} placeholder="Ringkasan singkat..." />
               </div>
               <div>
-                <Label>Kategori</Label>
-                <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {dbCategories.length > 0 ? (
-                      dbCategories.map((c) => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)
-                    ) : (
-                      <SelectItem value="Umum">Umum</SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
+                <Label className="block mb-2 text-sm font-semibold">Kategori (Bisa pilih lebih dari satu)</Label>
+                <div className="flex flex-wrap gap-2 p-3 rounded-lg border bg-accent/5">
+                  {dbCategories.length > 0 ? (
+                    dbCategories.map((c) => {
+                      const isSelected = form.categories.includes(c.name);
+                      return (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => {
+                            let nextCategories = [...form.categories];
+                            if (isSelected) {
+                              // Minimal harus ada satu yang terpilih
+                              if (nextCategories.length > 1) {
+                                nextCategories = nextCategories.filter((name) => name !== c.name);
+                              } else {
+                                toast({
+                                  title: "Info",
+                                  description: "Minimal harus memilih satu kategori.",
+                                });
+                              }
+                            } else {
+                              nextCategories.push(c.name);
+                            }
+                            setForm({
+                              ...form,
+                              categories: nextCategories,
+                              category: nextCategories[0] || "Umum"
+                            });
+                          }}
+                          className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all duration-200 active:scale-95 hover:scale-105 flex items-center gap-1.5 ${
+                            isSelected
+                              ? "bg-primary border-primary text-primary-foreground shadow-sm shadow-primary/25"
+                              : "bg-background border-input text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                          }`}
+                        >
+                          {isSelected && <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />}
+                          {c.name}
+                        </button>
+                      );
+                    })
+                  ) : (
+                    <span className="text-xs text-muted-foreground">Tidak ada kategori.</span>
+                  )}
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1">Kategori pertama yang Anda pilih akan digunakan sebagai kategori utama.</p>
               </div>
               <div className="flex items-center justify-between p-3 rounded-lg border bg-accent/10">
                 <div className="space-y-0.5">

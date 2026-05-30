@@ -43,3 +43,7 @@ buya_insert.sql
 
 # Uploads
 backend/uploads/
+
+# Scratch/temp files
+scratch/
+backend/debug_env.go

@@ -51,6 +51,7 @@ interface Settings {
   lms_title?: string;
   lms_subtitle?: string;
   show_feature_bar?: boolean;
+  show_chatbot?: boolean;
 }
 
 export function SiteSettingsManager() {
@@ -187,6 +188,8 @@ export function SiteSettingsManager() {
         lms_menu_label: settings.lms_menu_label?.trim() || "Akademi",
         lms_title: settings.lms_title?.trim() || "",
         lms_subtitle: settings.lms_subtitle?.trim() || "",
+        show_feature_bar: settings.show_feature_bar ?? true,
+        show_chatbot: settings.show_chatbot ?? true,
       });
       toast({ title: "Tersimpan", description: "Pengaturan situs diperbarui" });
     } catch (error: any) {
@@ -224,6 +227,17 @@ export function SiteSettingsManager() {
                 <Switch 
                   checked={settings.show_feature_bar} 
                   onCheckedChange={(v) => setSettings({ ...settings, show_feature_bar: v })} 
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-4 border rounded-2xl bg-card/50">
+                <div className="space-y-0.5">
+                  <Label className="text-base font-bold">Aktifkan Widget AI Chatbot</Label>
+                  <p className="text-xs text-muted-foreground">Tampilkan atau sembunyikan tombol chat asisten AI yang mengambang di seluruh halaman website.</p>
+                </div>
+                <Switch 
+                  checked={settings.show_chatbot ?? true} 
+                  onCheckedChange={(v) => setSettings({ ...settings, show_chatbot: v })} 
                 />
               </div>
 

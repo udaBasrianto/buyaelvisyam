@@ -10,6 +10,7 @@ import { Footer } from "@/components/Footer";
 import { SEO } from "@/components/SEO";
 import { BottomNav } from "@/components/BottomNav";
 import { PrayerTimesBar } from "@/components/PrayerTimesBar";
+import { Sidebar } from "@/components/Sidebar";
 import api from "@/lib/api";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import type { Post } from "@/data/mockData";
@@ -313,56 +314,9 @@ export function IndexV2() {
                )}
              </div>
 
-             <aside className="lg:col-span-4 space-y-12">
-               <div className="bg-card rounded-3xl p-6 border border-border/50">
-                 <div className="flex items-center gap-2 mb-6">
-                   <TrendingUp className="h-4 w-4 text-primary" />
-                   <h3 className="text-sm font-black uppercase tracking-widest">Trending Now</h3>
-                 </div>
-                 
-                 <div className="space-y-6">
-                   {dbPosts.slice(0, 5).map((post, i) => (
-                     <Link key={post.id} to={`/artikel/${post.slug || post.id}`} className="flex gap-4 group">
-                       <span className="text-2xl font-black text-primary/20 group-hover:text-primary transition-colors italic">0{i+1}</span>
-                       <div className="space-y-1">
-                          <h4 className="text-xs font-bold leading-tight line-clamp-2 group-hover:text-primary transition-colors">
-                            {post.title}
-                          </h4>
-                          <p className="text-[10px] text-muted-foreground uppercase font-bold">{post.category}</p>
-                       </div>
-                     </Link>
-                   ))}
-                 </div>
-               </div>
-
-               {/* Newsletter Widget */}
-               <div className="bg-primary rounded-3xl p-8 text-primary-foreground relative overflow-hidden">
-                 <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-3xl" />
-                 <h3 className="text-xl font-black mb-2 uppercase italic">{settings.newsletter_title || "Join Our Newsletter"}</h3>
-                 <p className="text-xs opacity-70 mb-6">{settings.newsletter_description || "Dapatkan notifikasi kajian terbaru langsung ke email Anda setiap minggu."}</p>
-                  {settings.newsletter_link ? (
-                    <a 
-                      href={settings.newsletter_link} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="block w-full bg-white text-primary font-black py-3 rounded-xl text-center text-xs uppercase hover:bg-opacity-90 transition-all shadow-lg"
-                    >
-                      {settings.newsletter_button_text || "GABUNG SEKARANG"}
-                    </a>
-                  ) : (
-                    <div className="space-y-3">
-                      <input 
-                        type="email" 
-                        placeholder="your@email.com" 
-                        className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-white/30 transition-all placeholder:text-white/40"
-                      />
-                      <button className="w-full bg-white text-primary font-black py-2 rounded-xl text-xs uppercase hover:bg-opacity-90 transition-all">
-                        {settings.newsletter_button_text || "Subscribe"}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </aside>
+             <aside className="lg:col-span-4">
+               <Sidebar placement="beranda" />
+             </aside>
            </div>
         </div>
 

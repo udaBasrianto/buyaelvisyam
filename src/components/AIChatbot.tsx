@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MessageSquare, X, Send, Loader2, Bot, User, Minimize2, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import api from '@/lib/api';
 
 export function AIChatbot() {
   const [isOpen, setIsOpen] = useState(false);
@@ -9,8 +10,22 @@ export function AIChatbot() {
   const [message, setMessage] = useState('');
   const [chatHistory, setChatHistory] = useState<{ role: 'user' | 'assistant'; content: string }[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [showChatbot, setShowChatbot] = useState<boolean | null>(null); // null = loading
   const scrollRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
+
+  // Fetch chatbot visibility setting from site settings
+  useEffect(() => {
+    api.get('/settings')
+      .then(({ data }) => {
+        // Default to true if field doesn't exist yet (before migration)
+        setShowChatbot(data?.show_chatbot !== false);
+      })
+      .catch(() => {
+        // On error, show chatbot by default
+        setShowChatbot(true);
+      });
+  }, []);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -28,26 +43,15 @@ export function AIChatbot() {
     setIsLoading(true);
 
     try {
-      // Connect directly to the standard AI endpoint in the Go backend
-      const response = await fetch('http://127.0.0.1:4000/api/ai/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          messages: [
-            ...chatHistory.map(m => ({ role: m.role, content: m.content })),
-            { role: 'user', content: userMessage }
-          ],
-          stream: false
-        })
+      const response = await api.post('/ai/chat', {
+        messages: [
+          ...chatHistory.map(m => ({ role: m.role, content: m.content })),
+          { role: 'user', content: userMessage }
+        ],
+        stream: false
       });
 
-      if (!response.ok) throw new Error('Gagal menghubungi asisten AI');
-
-      const data = await response.json();
-      const assistantMessage = data.choices[0].message.content;
-      
+      const assistantMessage = response.data.choices[0].message.content;
       setChatHistory(prev => [...prev, { role: 'assistant', content: assistantMessage }]);
     } catch (error) {
       console.error('Chatbot error:', error);
@@ -57,11 +61,18 @@ export function AIChatbot() {
     }
   };
 
+  // Still loading settings
+  if (showChatbot === null) return null;
+
+  // Hidden by admin setting
+  if (!showChatbot) return null;
+
   if (!isOpen) {
     return (
       <button
         onClick={() => setIsOpen(true)}
         className="fixed bottom-6 right-6 h-14 w-14 rounded-full bg-primary text-white shadow-lg shadow-primary/30 flex items-center justify-center hover:scale-110 active:scale-95 transition-all duration-300 z-50 group"
+        aria-label="Buka Asisten AI"
       >
         <MessageSquare className="h-6 w-6 group-hover:rotate-12 transition-transform" />
         <span className="absolute -top-2 -right-2 h-5 w-5 bg-red-500 rounded-full border-2 border-white flex items-center justify-center text-[10px] font-bold">1</span>
@@ -75,7 +86,7 @@ export function AIChatbot() {
       isMinimized ? "h-[70px]" : "h-[600px] max-h-[calc(100vh-120px)]"
     )}>
       {/* Header */}
-      <div className="p-4 bg-primary text-white flex items-center justify-between">
+      <div className="p-4 bg-primary text-white flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/10">
             <Bot className="h-6 w-6" />
@@ -88,16 +99,18 @@ export function AIChatbot() {
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           <button 
             onClick={() => setIsMinimized(!isMinimized)}
             className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+            aria-label={isMinimized ? "Perluas" : "Perkecil"}
           >
             {isMinimized ? <TrendingUp className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
           </button>
           <button 
             onClick={() => setIsOpen(false)}
             className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+            aria-label="Tutup chat"
           >
             <X className="h-4 w-4" />
           </button>
@@ -130,9 +143,7 @@ export function AIChatbot() {
                   ].map(q => (
                     <button
                       key={q}
-                      onClick={() => {
-                        setMessage(q);
-                      }}
+                      onClick={() => setMessage(q)}
                       className="text-left p-3 rounded-2xl bg-white border border-border/50 text-[12px] font-medium hover:border-primary hover:text-primary transition-all shadow-sm"
                     >
                       {q}
@@ -179,7 +190,7 @@ export function AIChatbot() {
           {/* Input Area */}
           <form 
             onSubmit={handleSendMessage}
-            className="p-4 bg-card border-t border-border flex items-center gap-2"
+            className="p-4 bg-card border-t border-border flex items-center gap-2 shrink-0"
           >
             <input
               type="text"
@@ -192,6 +203,7 @@ export function AIChatbot() {
               type="submit"
               disabled={!message.trim() || isLoading}
               className="h-11 w-11 rounded-2xl bg-primary text-white flex items-center justify-center disabled:opacity-50 disabled:scale-100 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/20"
+              aria-label="Kirim pesan"
             >
               <Send className="h-5 w-5" />
             </button>

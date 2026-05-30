@@ -145,6 +145,7 @@ type Article struct {
 	Excerpt    string         `json:"excerpt"`
 	CoverImage string         `json:"cover_image"`
 	Category   string         `json:"category"`
+	Categories pq.StringArray `gorm:"type:text[]" json:"categories"`
 	Tags       pq.StringArray `gorm:"type:text[]" json:"tags"`
 	Status     string         `gorm:"default:'draft'" json:"status"`
 	Views      int            `gorm:"default:0" json:"views"`
@@ -217,6 +218,7 @@ type SiteSettings struct {
 	LmsTitle            string    `gorm:"default:'Belajar Islam Lebih Terstruktur.'" json:"lms_title"`
 	LmsSubtitle         string    `gorm:"default:'Akses materi kajian eksklusif, video tutorial, dan kuis interaktif dari Ustadz-Ustadz terpercaya.'" json:"lms_subtitle"`
 	ShowFeatureBar      bool      `gorm:"default:true" json:"show_feature_bar"`
+	ShowChatbot         bool      `gorm:"default:true" json:"show_chatbot"`
 	UpdatedBy           uuid.UUID `gorm:"type:uuid" json:"updated_by"`
 	UpdatedAt           time.Time `json:"updated_at"`
 }
@@ -282,6 +284,7 @@ type Widget struct {
 	ImageURL  string    `json:"image_url"`                  // For image type
 	LinkURL   string    `json:"link_url"`                   // Link for image
 	IsActive  bool      `gorm:"default:true" json:"is_active"`
+	Placement string    `gorm:"default:'all'" json:"placement"` // all, beranda, detail
 	SortOrder int       `gorm:"default:0" json:"sort_order"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`

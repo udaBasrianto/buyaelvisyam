@@ -17,6 +17,7 @@ interface Widget {
   image_url: string;
   link_url: string;
   is_active: boolean;
+  placement: string;
   sort_order: number;
 }
 
@@ -36,7 +37,7 @@ export function WidgetsManager() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
-    title: "", type: "html", content: "", image_url: "", link_url: "", is_active: true, sort_order: 0
+    title: "", type: "html", content: "", image_url: "", link_url: "", is_active: true, placement: "all", sort_order: 0
   });
 
   const fetchWidgets = async () => {
@@ -62,11 +63,12 @@ export function WidgetsManager() {
         image_url: widget.image_url,
         link_url: widget.link_url,
         is_active: widget.is_active,
+        placement: widget.placement || "all",
         sort_order: widget.sort_order,
       });
     } else {
       setEditing(null);
-      setForm({ title: "", type: "html", content: "", image_url: "", link_url: "", is_active: true, sort_order: widgets.length });
+      setForm({ title: "", type: "html", content: "", image_url: "", link_url: "", is_active: true, placement: "all", sort_order: widgets.length });
     }
     setDialogOpen(true);
   };
@@ -134,10 +136,13 @@ export function WidgetsManager() {
           {widgets.map((w) => (
             <div key={w.id} className={`group bg-card rounded-xl border p-4 hover:border-primary/50 transition-all ${!w.is_active && "opacity-60"}`}>
                <div className="flex justify-between items-start mb-3">
-                  <div className="flex items-center gap-2">
-                     <GripVertical className="h-4 w-4 text-muted-foreground cursor-move" />
-                     <span className="text-[10px] font-bold uppercase tracking-widest text-primary bg-primary/10 px-2 py-0.5 rounded">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                     <GripVertical className="h-4 w-4 text-muted-foreground cursor-move shrink-0" />
+                     <span className="text-[9px] font-extrabold uppercase tracking-wider text-primary bg-primary/10 px-2 py-0.5 rounded">
                         {w.type}
+                     </span>
+                     <span className="text-[9px] font-extrabold uppercase tracking-wider text-amber-600 bg-amber-500/10 px-2 py-0.5 rounded">
+                        {w.placement === "all" ? "Semua Halaman" : w.placement === "beranda" ? "Beranda" : "Detail Kajian"}
                      </span>
                   </div>
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -192,6 +197,17 @@ export function WidgetsManager() {
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                        {WIDGET_TYPES.map(t => <SelectItem key={t.id} value={t.id}>{t.label}</SelectItem>)}
+                    </SelectContent>
+                 </Select>
+              </div>
+              <div className="grid gap-2">
+                 <Label className="text-sm font-semibold">Penempatan Widget</Label>
+                 <Select value={form.placement} onValueChange={v => setForm({...form, placement: v})}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                       <SelectItem value="all">🌐 Tampil di Keduanya (Beranda & Detail)</SelectItem>
+                       <SelectItem value="beranda">🏠 Hanya di Beranda</SelectItem>
+                       <SelectItem value="detail">📖 Hanya di Detail Kajian</SelectItem>
                     </SelectContent>
                  </Select>
               </div>

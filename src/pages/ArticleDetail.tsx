@@ -299,7 +299,7 @@ export default function ArticleDetail() {
             </div>
           </div>
 
-          <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_260px] lg:gap-8 mx-auto mt-6">
+          <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-8 mx-auto mt-6">
             <div className="min-w-0">
               <article
                 style={{ fontSize: `${fontSize}px` }}
@@ -372,7 +372,7 @@ export default function ArticleDetail() {
             </div>
 
             <div className="hidden lg:block">
-              <Sidebar articleContent={article.content} />
+              <Sidebar placement="detail" articleContent={article.content} />
             </div>
           </div>
 

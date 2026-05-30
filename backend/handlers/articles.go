@@ -86,6 +86,16 @@ func CreateArticle(c *fiber.Ctx) error {
 	}
 	article.AuthorID = authorID
 
+	// Handle multi-category compatibility
+	if len(article.Categories) > 0 {
+		article.Category = article.Categories[0]
+	} else if article.Category != "" {
+		article.Categories = []string{article.Category}
+	} else {
+		article.Category = "Umum"
+		article.Categories = []string{"Umum"}
+	}
+
 	db := database.DB
 	if err := db.Create(&article).Error; err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": "Could not create article"})
@@ -109,6 +119,7 @@ func UpdateArticle(c *fiber.Ctx) error {
 		Content      *string         `json:"content"`
 		Excerpt      *string         `json:"excerpt"`
 		Category     *string         `json:"category"`
+		Categories   *pq.StringArray `json:"categories"`
 		CoverImage   *string         `json:"cover_image"`
 		Status       *string         `json:"status"`
 		IsFeatured   *bool           `json:"is_featured"`
@@ -128,7 +139,6 @@ func UpdateArticle(c *fiber.Ctx) error {
 	if input.Slug != nil { article.Slug = *input.Slug }
 	if input.Content != nil { article.Content = *input.Content }
 	if input.Excerpt != nil { article.Excerpt = *input.Excerpt }
-	if input.Category != nil { article.Category = *input.Category }
 	if input.CoverImage != nil { article.CoverImage = *input.CoverImage }
 	if input.Status != nil { article.Status = *input.Status }
 	if input.IsFeatured != nil { article.IsFeatured = *input.IsFeatured }
@@ -137,6 +147,17 @@ func UpdateArticle(c *fiber.Ctx) error {
 	if input.Longitude != nil { article.Longitude = *input.Longitude }
 	if input.YoutubeURL != nil { article.YoutubeURL = *input.YoutubeURL }
 	if input.Tags != nil { article.Tags = *input.Tags }
+
+	// Handle multi-category synchronization
+	if input.Categories != nil {
+		article.Categories = *input.Categories
+		if len(article.Categories) > 0 {
+			article.Category = article.Categories[0]
+		}
+	} else if input.Category != nil {
+		article.Category = *input.Category
+		article.Categories = []string{*input.Category}
+	}
 
 	if err := db.Save(&article).Error; err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": "Could not update article"})
