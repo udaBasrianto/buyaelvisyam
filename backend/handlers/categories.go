@@ -204,7 +204,10 @@ func UpdateSiteSettings(c *fiber.Ctx) error {
 		return c.Status(400).JSON(fiber.Map{"error": "Invalid body"})
 	}
 
-	db.Model(&settings).Omit("id", "updated_by", "updated_at").Updates(updatedData)
+	// Gunakan Select("*") agar boolean false (show_chatbot, show_feature_bar, dll)
+	// tidak diabaikan oleh GORM sebagai "zero value"
+	db.Model(&settings).Select("*").Omit("id", "updated_by", "updated_at", "created_at").Updates(updatedData)
 
 	return c.JSON(settings)
 }
+
