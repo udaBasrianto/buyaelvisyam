@@ -25,6 +25,7 @@ import { WordPressImportDialog } from "@/components/WordPressImportDialog";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { WhatsAppSettingsManager } from "@/components/admin/WhatsAppSettingsManager";
 import { UsersManager } from "@/components/admin/UsersManager";
+
 import {
   SidebarProvider,
   SidebarInset,

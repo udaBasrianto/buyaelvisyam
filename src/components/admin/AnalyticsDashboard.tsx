@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  BarChart, Bar, Cell
+  BarChart, Bar, Cell, PieChart, Pie
 } from "recharts";
 import { 
   Users, Eye, TrendingUp, Clock, Globe, ArrowUpRight, 
@@ -264,30 +264,56 @@ export function AnalyticsDashboard() {
             <div className="h-[320px] w-full flex flex-col">
               {topArticles.length > 0 ? (
                 <>
-                  <ResponsiveContainer width="100%" height={150}>
-                    <BarChart data={topArticles} layout="vertical">
-                      <XAxis type="number" hide />
-                      <YAxis 
-                        dataKey="title" 
-                        type="category" 
-                        hide 
+                  <ResponsiveContainer width="100%" height={160}>
+                    <PieChart>
+                      <Tooltip 
+                        contentStyle={{
+                          borderRadius: '16px',
+                          border: 'none',
+                          boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)',
+                          backgroundColor: 'rgba(255,255,255,0.98)',
+                          fontSize: '11px',
+                          fontWeight: 'bold',
+                          padding: '8px 12px'
+                        }}
                       />
-                      <Tooltip cursor={{fill: 'transparent'}} />
-                      <Bar dataKey="views" radius={[0, 4, 4, 0]} barSize={20}>
+                      <Pie
+                        data={topArticles}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={45}
+                        outerRadius={65}
+                        paddingAngle={4}
+                        dataKey="views"
+                        nameKey="title"
+                        cornerRadius={6}
+                        animationBegin={0}
+                        animationDuration={800}
+                      >
                         {topArticles.map((entry: any, index: number) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          <Cell 
+                            key={`cell-${index}`} 
+                            fill={COLORS[index % COLORS.length]} 
+                            style={{ outline: 'none' }}
+                            className="transition-all duration-300 cursor-pointer hover:opacity-90 [transform-origin:center] hover:[transform:scale(1.06)]"
+                          />
                         ))}
-                      </Bar>
-                    </BarChart>
+                      </Pie>
+                    </PieChart>
                   </ResponsiveContainer>
                   <div className="mt-4 space-y-3 overflow-y-auto pr-2 flex-1">
                     {topArticles.map((art: any, i: number) => (
                       <div key={art.id} className="flex items-center justify-between group cursor-default">
                         <div className="flex items-center gap-3 overflow-hidden">
-                          <div className="text-xs font-bold text-muted-foreground w-4">{i + 1}</div>
-                          <p className="text-xs font-medium truncate group-hover:text-primary transition-colors">{art.title}</p>
+                          <div 
+                            className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm" 
+                            style={{ backgroundColor: COLORS[i % COLORS.length] }}
+                          />
+                          <p className="text-[11px] font-semibold truncate group-hover:text-primary transition-colors">{art.title}</p>
                         </div>
-                        <div className="text-[10px] font-bold whitespace-nowrap ml-4">{art.views.toLocaleString()}</div>
+                        <div className="text-[10px] font-extrabold text-foreground/80 whitespace-nowrap ml-4 bg-muted/60 px-2 py-0.5 rounded-md">
+                          {art.views.toLocaleString()} views
+                        </div>
                       </div>
                     ))}
                   </div>

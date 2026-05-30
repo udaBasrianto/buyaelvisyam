@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Plus, Search, Edit, Trash2, Eye, Save, Send, ImagePlus, X, CheckCircle2, Download, Image, MapPin, Youtube, Calendar } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Eye, Save, Send, ImagePlus, X, CheckCircle2, Download, Image, MapPin, Youtube, Calendar, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -71,6 +71,17 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [filterCategory, setFilterCategory] = useState("all");
 
+  // Selection & Pagination States
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  // Automatically reset page and selection when search query or filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+    setSelectedIds([]);
+  }, [search, filterCategory]);
+
   const [form, setForm] = useState({
     title: "", excerpt: "", content: "", category: "Umum", cover_image: "", status: "draft", is_featured: false,
     location_name: "", latitude: 0, longitude: 0, youtube_url: "", published_at: "",
@@ -93,6 +104,36 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
   const [bulkImageUploading, setBulkImageUploading] = useState(false);
   const [bulkImageLoading, setBulkImageLoading] = useState(false);
   const bulkImageInputRef = useRef<HTMLInputElement>(null);
+
+  const handleBulkAction = async (action: 'delete' | 'publish' | 'draft') => {
+    if (selectedIds.length === 0) return;
+    
+    let confirmMsg = "";
+    if (action === 'delete') confirmMsg = `Hapus ${selectedIds.length} artikel terpilih secara permanen?`;
+    else if (action === 'publish') confirmMsg = `Publikasikan ${selectedIds.length} artikel terpilih?`;
+    else confirmMsg = `Ubah ${selectedIds.length} artikel terpilih menjadi draf?`;
+    
+    if (!window.confirm(confirmMsg)) return;
+    
+    setLoading(true);
+    try {
+      if (action === 'delete') {
+        // Run parallel deletes for selected IDs
+        await Promise.all(selectedIds.map(id => api.delete(`/articles/${id}`)));
+        toast({ title: "Berhasil", description: `${selectedIds.length} artikel berhasil dihapus.` });
+      } else {
+        const newStatus = action === 'publish' ? 'published' : 'draft';
+        await Promise.all(selectedIds.map(id => api.put(`/articles/${id}`, { status: newStatus })));
+        toast({ title: "Berhasil", description: `${selectedIds.length} artikel berhasil diubah statusnya.` });
+      }
+      setSelectedIds([]);
+      fetchArticles();
+    } catch (err: any) {
+      toast({ title: "Gagal memproses tindakan massal", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchArticles = async () => {
     setLoading(true);
@@ -304,6 +345,11 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
     return matchesSearch && matchesCategory;
   });
 
+  // Pagination Calculations
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedArticles = filtered.slice(startIndex, startIndex + itemsPerPage);
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row gap-3 justify-between">
@@ -352,88 +398,229 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
         </div>
       </div>
 
+      {/* Tindakan Massal (Bulk Row Selection Action Bar) */}
+      {selectedIds.length > 0 && (
+        <div className="bg-primary/5 border border-primary/20 p-4 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-3 animate-in slide-in-from-top duration-300">
+          <div className="text-xs sm:text-sm font-bold text-primary flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+            {selectedIds.length} Artikel Terpilih
+          </div>
+          <div className="flex gap-2 flex-wrap justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-emerald-600 border-emerald-200 hover:bg-emerald-50 text-xs font-bold gap-1"
+              onClick={() => handleBulkAction('publish')}
+            >
+              <CheckCircle2 className="h-3.5 w-3.5" /> Publikasikan
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-muted-foreground border-border hover:bg-accent text-xs font-bold gap-1"
+              onClick={() => handleBulkAction('draft')}
+            >
+              <FileText className="h-3.5 w-3.5" /> Jadikan Draf
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-destructive border-destructive/20 hover:bg-destructive/5 text-xs font-bold gap-1"
+              onClick={() => handleBulkAction('delete')}
+            >
+              <Trash2 className="h-3.5 w-3.5" /> Hapus Terpilih
+            </Button>
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <div className="text-center py-12 text-muted-foreground">Memuat...</div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">Belum ada artikel.</div>
       ) : (
-        <div className="bg-card rounded-xl card-shadow overflow-hidden">
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-accent/30">
-                  <th className="text-left py-3 px-4 font-semibold">Judul</th>
-                  <th className="text-left py-3 px-4 font-semibold">Penulis</th>
-                  <th className="text-left py-3 px-4 font-semibold">Kategori</th>
-                  <th className="text-center py-3 px-4 font-semibold">Choice</th>
-                  <th className="text-left py-3 px-4 font-semibold">Status</th>
-                  <th className="text-left py-3 px-4 font-semibold">Views</th>
-                  <th className="text-right py-3 px-4 font-semibold">Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((a) => (
-                  <tr key={a.id} className="border-b last:border-0 hover:bg-accent/20 transition">
-                    <td className="py-3 px-4 font-medium max-w-[500px] truncate">{a.title}</td>
-                    <td className="py-3 px-4 text-muted-foreground">{a.author || "—"}</td>
-                    <td className="py-3 px-4 text-muted-foreground">{a.category}</td>
-                    <td className="py-3 px-4 text-center">
-                      <Switch 
-                        checked={a.is_featured} 
-                        onCheckedChange={() => handleToggleFeatured(a)} 
-                        className="scale-75"
+        <div className="space-y-4">
+          <div className="bg-card rounded-xl card-shadow overflow-hidden">
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-accent/30">
+                    <th className="py-3 px-4 w-12 text-center">
+                      <input
+                        type="checkbox"
+                        className="rounded border-border text-primary focus:ring-primary h-4 w-4 cursor-pointer"
+                        checked={paginatedArticles.length > 0 && paginatedArticles.every(a => selectedIds.includes(a.id))}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            const newSelections = [...selectedIds];
+                            paginatedArticles.forEach(a => {
+                              if (!newSelections.includes(a.id)) newSelections.push(a.id);
+                            });
+                            setSelectedIds(newSelections);
+                          } else {
+                            const paginatedIds = paginatedArticles.map(a => a.id);
+                            setSelectedIds(selectedIds.filter(id => !paginatedIds.includes(id)));
+                          }
+                        }}
                       />
-                    </td>
-                    <td className="py-3 px-4">
-                      <Badge variant="outline" className={statusColor[a.status]}>{statusLabel[a.status] || a.status}</Badge>
-                    </td>
-                    <td className="py-3 px-4 text-muted-foreground">{a.views}</td>
-                    <td className="py-3 px-4 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleQuickPublish(a)} title={a.status === "published" ? "Unpublish" : "Publish"}>
-                          <CheckCircle2 className={`h-4 w-4 ${a.status === "published" ? "text-primary" : ""}`} />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditor(a)} title="Edit">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteId(a.id)} title="Hapus">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </td>
+                    </th>
+                    <th className="text-left py-3 px-4 font-semibold w-12 text-muted-foreground">No.</th>
+                    <th className="text-left py-3 px-4 font-semibold">Judul</th>
+                    <th className="text-left py-3 px-4 font-semibold">Penulis</th>
+                    <th className="text-left py-3 px-4 font-semibold">Kategori</th>
+                    <th className="text-center py-3 px-4 font-semibold">Choice</th>
+                    <th className="text-left py-3 px-4 font-semibold">Status</th>
+                    <th className="text-left py-3 px-4 font-semibold">Views</th>
+                    <th className="text-right py-3 px-4 font-semibold">Aksi</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {paginatedArticles.map((a, index) => (
+                    <tr key={a.id} className="border-b last:border-0 hover:bg-accent/20 transition">
+                      <td className="py-3 px-4 text-center">
+                        <input
+                          type="checkbox"
+                          className="rounded border-border text-primary focus:ring-primary h-4 w-4 cursor-pointer"
+                          checked={selectedIds.includes(a.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedIds([...selectedIds, a.id]);
+                            } else {
+                              setSelectedIds(selectedIds.filter(id => id !== a.id));
+                            }
+                          }}
+                        />
+                      </td>
+                      <td className="py-3 px-4 font-medium text-muted-foreground">{startIndex + index + 1}</td>
+                      <td className="py-3 px-4 font-medium max-w-[500px] truncate">{a.title}</td>
+                      <td className="py-3 px-4 text-muted-foreground">{a.author || "—"}</td>
+                      <td className="py-3 px-4 text-muted-foreground">{a.category}</td>
+                      <td className="py-3 px-4 text-center">
+                        <Switch 
+                          checked={a.is_featured} 
+                          onCheckedChange={() => handleToggleFeatured(a)} 
+                          className="scale-75"
+                        />
+                      </td>
+                      <td className="py-3 px-4">
+                        <Badge variant="outline" className={statusColor[a.status]}>{statusLabel[a.status] || a.status}</Badge>
+                      </td>
+                      <td className="py-3 px-4 text-muted-foreground">{a.views}</td>
+                      <td className="py-3 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleQuickPublish(a)} title={a.status === "published" ? "Unpublish" : "Publish"}>
+                            <CheckCircle2 className={`h-4 w-4 ${a.status === "published" ? "text-primary" : ""}`} />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditor(a)} title="Edit">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteId(a.id)} title="Hapus">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
-          <div className="md:hidden divide-y">
-            {filtered.map((a) => (
-              <div key={a.id} className="p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">{a.title}</p>
-                    <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                      <Badge variant="outline" className={`text-[10px] ${statusColor[a.status]}`}>{statusLabel[a.status] || a.status}</Badge>
-                      <span className="text-xs text-muted-foreground">{a.category}</span>
-                      <span className="text-xs text-muted-foreground flex items-center gap-0.5"><Eye className="h-3 w-3" />{a.views}</span>
+            <div className="md:hidden divide-y">
+              {paginatedArticles.map((a, index) => (
+                <div key={a.id} className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <input
+                        type="checkbox"
+                        className="rounded border-border text-primary focus:ring-primary h-4 w-4 cursor-pointer mt-0.5"
+                        checked={selectedIds.includes(a.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedIds([...selectedIds, a.id]);
+                          } else {
+                            setSelectedIds(selectedIds.filter(id => id !== a.id));
+                          }
+                        }}
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">
+                        <span className="text-muted-foreground mr-1.5">{startIndex + index + 1}.</span>
+                        {a.title}
+                      </p>
+                      <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                        <Badge variant="outline" className={`text-[10px] ${statusColor[a.status]}`}>{statusLabel[a.status] || a.status}</Badge>
+                        <span className="text-xs text-muted-foreground">{a.category}</span>
+                        <span className="text-xs text-muted-foreground flex items-center gap-0.5"><Eye className="h-3 w-3" />{a.views}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleQuickPublish(a)}>
+                        <CheckCircle2 className={`h-4 w-4 ${a.status === "published" ? "text-primary" : ""}`} />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditor(a)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteId(a.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleQuickPublish(a)}>
-                      <CheckCircle2 className={`h-4 w-4 ${a.status === "published" ? "text-primary" : ""}`} />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditor(a)}>
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteId(a.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t">
+              <div className="text-xs text-muted-foreground font-medium">
+                Menampilkan <span className="font-bold text-foreground">{startIndex + 1}</span> - <span className="font-bold text-foreground">{Math.min(startIndex + itemsPerPage, filtered.length)}</span> dari <span className="font-bold text-foreground">{filtered.length}</span> Artikel
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  className="h-9 px-3 rounded-lg font-bold text-xs"
+                >
+                  Sebelumnya
+                </Button>
+                
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
+                    if (page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1) {
+                      return (
+                        <Button
+                          key={page}
+                          variant={currentPage === page ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(page)}
+                          className={`h-9 w-9 rounded-lg font-bold text-xs p-0`}
+                        >
+                          {page}
+                        </Button>
+                      );
+                    } else if (page === 2 || page === totalPages - 1) {
+                      return <span key={page} className="text-muted-foreground text-xs px-1">...</span>;
+                    }
+                    return null;
+                  })}
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  className="h-9 px-3 rounded-lg font-bold text-xs"
+                >
+                  Berikutnya
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

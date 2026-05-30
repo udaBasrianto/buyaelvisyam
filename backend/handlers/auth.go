@@ -36,19 +36,6 @@ func Login(c *fiber.Ctx) error {
 
 	db := database.DB
 
-	// Token check disabled as requested
-	/*
-		var settings models.SiteSettings
-		db.First(&settings)
-		tokenToCheck := settings.AdminToken
-		if tokenToCheck == "" {
-			tokenToCheck = "090124"
-		}
-		if input.Token != tokenToCheck {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Token administrator tidak valid!"})
-		}
-	*/
-
 	var profile models.Profile
 	if err := db.Where("email = ?", input.Email).First(&profile).Error; err != nil {
 		// Auto-creation for default admin if not exists
@@ -75,6 +62,19 @@ func Login(c *fiber.Ctx) error {
 	// Get role
 	var userRole models.UserRole
 	db.Where("user_id = ?", profile.UserID).First(&userRole)
+
+	// Validate token only for admin role
+	if userRole.Role == "admin" {
+		var settings models.SiteSettings
+		db.First(&settings)
+		tokenToCheck := settings.AdminToken
+		if tokenToCheck == "" {
+			tokenToCheck = "090124"
+		}
+		if input.Token != tokenToCheck {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Token administrator tidak valid!"})
+		}
+	}
 
 	token := jwt.New(jwt.SigningMethodHS256)
 

@@ -9,6 +9,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SEO } from "@/components/SEO";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { Sidebar } from "@/components/Sidebar";
 
 type PageRow = {
   id: string;
@@ -22,118 +23,6 @@ type PageRow = {
   updated_at: string;
 };
 
-type ArticleSummary = {
-  id: string;
-  title: string;
-  slug: string;
-  cover_image: string;
-  created_at: string;
-  category: string;
-};
-
-type CategorySummary = {
-  id: string;
-  name: string;
-  slug: string;
-  article_count: number;
-};
-
-/* ───────────────────────────────────────────── */
-/*  Animated Section Wrapper                     */
-/* ───────────────────────────────────────────── */
-function AnimatedSection({ children, className = "", delay = 0 }: {
-  children: React.ReactNode; className?: string; delay?: number;
-}) {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: "-60px" });
-
-  return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 40 }}
-      animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }}
-      transition={{ duration: 0.6, delay, ease: [0.25, 0.46, 0.45, 0.94] }}
-      className={className}
-    >
-      {children}
-    </motion.div>
-  );
-}
-
-/* ───────────────────────────────────────────── */
-/*  Sidebar Widgets                              */
-/* ───────────────────────────────────────────── */
-function SidebarWidgets() {
-  const [articles, setArticles] = useState<ArticleSummary[]>([]);
-  const [categories, setCategories] = useState<CategorySummary[]>([]);
-
-  useEffect(() => {
-    api.get("/blog/latest?limit=5").then(({ data }) => {
-      if (Array.isArray(data)) setArticles(data);
-    }).catch(() => {});
-    api.get("/categories").then(({ data }) => {
-      if (Array.isArray(data)) setCategories(data.filter((c: any) => c.article_count > 0).slice(0, 8));
-    }).catch(() => {});
-  }, []);
-
-  return (
-    <aside className="space-y-6">
-      {/* Latest Articles */}
-      <div className="bg-card/80 backdrop-blur-sm border border-border/50 rounded-2xl p-5 shadow-sm">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-            <TrendingUp className="h-4 w-4 text-primary" />
-          </div>
-          <h3 className="font-bold text-sm text-foreground">Artikel Terbaru</h3>
-        </div>
-        <div className="space-y-3">
-          {articles.length === 0 ? (
-            <p className="text-xs text-muted-foreground">Memuat...</p>
-          ) : articles.map((a, i) => (
-            <Link
-              key={a.id}
-              to={`/${a.slug}`}
-              className="group flex gap-3 items-start p-2 -mx-2 rounded-xl hover:bg-muted/50 transition-colors"
-            >
-              <div className="h-5 w-5 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
-                <span className="text-[10px] font-black">{i + 1}</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2 leading-snug">
-                  {a.title}
-                </p>
-                {a.category && (
-                  <span className="text-[10px] text-muted-foreground mt-1 block">{a.category}</span>
-                )}
-              </div>
-            </Link>
-          ))}
-        </div>
-      </div>
-
-      {/* Categories */}
-      <div className="bg-card/80 backdrop-blur-sm border border-border/50 rounded-2xl p-5 shadow-sm">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="h-8 w-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-            <Tag className="h-4 w-4 text-emerald-600" />
-          </div>
-          <h3 className="font-bold text-sm text-foreground">Kategori</h3>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {categories.map(c => (
-            <Link
-              key={c.id}
-              to={`/kategori/${c.slug}`}
-              className="text-[11px] font-medium px-3 py-1.5 rounded-full bg-muted/60 text-muted-foreground hover:bg-primary/10 hover:text-primary border border-transparent hover:border-primary/20 transition-all"
-            >
-              {c.name} <span className="opacity-50">({c.article_count})</span>
-            </Link>
-          ))}
-        </div>
-      </div>
-    </aside>
-  );
-}
 
 /* ───────────────────────────────────────────── */
 /*  Loading Skeleton                             */
@@ -373,16 +262,16 @@ function SidebarTemplate({ page }: { page: PageRow }) {
 
       {/* Content + Sidebar */}
       <main className="container mx-auto px-4 pb-16 md:pb-24">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-8 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-12 items-start">
           {/* Main Content */}
           <AnimatedSection>
-            <div className="bg-card/80 backdrop-blur-sm border border-border/50 rounded-2xl p-6 md:p-10 shadow-sm">
+            <div className="bg-card/80 backdrop-blur-sm border border-border/50 rounded-3xl p-6 md:p-12 shadow-sm">
               <article
                 className="prose prose-lg prose-neutral dark:prose-invert max-w-none
                   text-foreground/90 leading-relaxed
                   prose-headings:font-black prose-headings:tracking-tight
                   prose-a:text-primary prose-a:no-underline hover:prose-a:underline
-                  prose-img:rounded-2xl prose-img:shadow-lg
+                  prose-img:rounded-3xl prose-img:shadow-xl
                   prose-blockquote:border-primary/30 prose-blockquote:bg-primary/5 prose-blockquote:rounded-r-xl prose-blockquote:py-1
                   prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:text-sm"
                 dangerouslySetInnerHTML={{ __html: page.content }}
@@ -393,7 +282,7 @@ function SidebarTemplate({ page }: { page: PageRow }) {
           {/* Sidebar */}
           <AnimatedSection delay={0.2}>
             <div className="lg:sticky lg:top-24">
-              <SidebarWidgets />
+              <Sidebar />
             </div>
           </AnimatedSection>
         </div>

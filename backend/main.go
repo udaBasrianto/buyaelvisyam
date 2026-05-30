@@ -235,8 +235,22 @@ func main() {
 	api.Post("/log-attempt", handlers.LogAccessAttempt)
 	api.Get("/access-logs", middleware.Protected(), handlers.GetAccessLogs)
 
+	// AI Chatbot Route
+	log.Println("Registering AI Chat route...")
+	api.Post("/ai/chat", handlers.AIChat)
+
+	// Serve frontend static assets in production (Vite built files)
+	app.Static("/", "../dist")
+
+	// Dynamic SEO routes for sharing articles
+	app.Get("/artikel/:slug", handlers.ServeDynamicSEO)
+	app.Get("/:slug", handlers.ServeDynamicSEO)
+
 	// Static files for images if needed
 	app.Static("/uploads", "./uploads")
+
+	// SPA Wildcard fallback
+	app.Get("*", handlers.ServeDynamicSEO)
 
 	port := os.Getenv("PORT")
 	if port == "" {

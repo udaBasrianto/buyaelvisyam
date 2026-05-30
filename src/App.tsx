@@ -27,6 +27,8 @@ import { ScrollToTop } from "./components/ScrollToTop";
 import { ThemeInitializer } from "./components/ThemeInitializer";
 import { GoogleAnalytics } from "./components/GoogleAnalytics";
 import { VisitorTracker } from "./components/VisitorTracker";
+import { AIChatbot } from "./components/AIChatbot";
+
 
 const queryClient = new QueryClient();
 
@@ -56,6 +58,7 @@ const App = () => (
           <ScrollToTop />
           <GoogleAnalytics />
           <VisitorTracker />
+          <AIChatbot />
           <Routes>
             <Route path="/" element={<Index />} />
             

@@ -11,6 +11,7 @@ import api from "@/lib/api";
 export default function Auth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [adminToken, setAdminToken] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [otp, setOtp] = useState("");
@@ -23,6 +24,10 @@ export default function Auth() {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  const isAdminRoute = settings?.admin_slug
+    ? window.location.pathname === `/${settings.admin_slug}`
+    : window.location.pathname === "/yaakhi";
+
   useEffect(() => {
     // Fetch site settings for dynamic logo/text
     api.get("/settings").then(res => setSettings(res.data)).catch(() => {});
@@ -31,7 +36,7 @@ export default function Auth() {
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await signIn(email, password, "");
+    const { error } = await signIn(email, password, adminToken);
     if (error) {
       toast({ title: "Gagal masuk", description: error, variant: "destructive" });
     } else {
@@ -215,6 +220,23 @@ export default function Auth() {
                       />
                     </div>
                   </div>
+
+                  {isAdminRoute && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-gray-700">Token Administrator</label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                        <Input
+                          type="password"
+                          placeholder="Masukkan Token Admin"
+                          value={adminToken}
+                          onChange={(e) => setAdminToken(e.target.value)}
+                          className="pl-10 h-11 bg-gray-50 border-gray-100 focus:bg-white transition-all"
+                          required
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   <Button type="submit" className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-bold transition-all shadow-lg shadow-blue-100" disabled={loading}>
                     {loading ? "Memproses..." : "Masuk Sekarang"}
