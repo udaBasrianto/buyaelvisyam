@@ -1,6 +1,9 @@
 package handlers
 
 import (
+	"fmt"
+	"regexp"
+	"strings"
 	"time"
 
 	"backend/database"
@@ -9,7 +12,43 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
+	"gorm.io/gorm"
 )
+
+var nonSlugChars = regexp.MustCompile(`[^a-z0-9]+`)
+
+func slugify(s string) string {
+	s = strings.ToLower(strings.TrimSpace(s))
+	s = nonSlugChars.ReplaceAllString(s, "-")
+	s = strings.Trim(s, "-")
+	return s
+}
+
+func ensureUniqueSlug(db *gorm.DB, base string) (string, error) {
+	slug := base
+	if slug == "" {
+		slug = "artikel"
+	}
+
+	var count int64
+	if err := db.Model(&models.Article{}).Where("slug = ?", slug).Count(&count).Error; err != nil {
+		return "", err
+	}
+	if count == 0 {
+		return slug, nil
+	}
+
+	for i := 2; i <= 200; i++ {
+		trySlug := fmt.Sprintf("%s-%d", slug, i)
+		if err := db.Model(&models.Article{}).Where("slug = ?", trySlug).Count(&count).Error; err != nil {
+			return "", err
+		}
+		if count == 0 {
+			return trySlug, nil
+		}
+	}
+	return "", fmt.Errorf("could not generate unique slug")
+}
 
 func GetArticles(c *fiber.Ctx) error {
 	db := database.DB
@@ -43,20 +82,207 @@ func GetArticles(c *fiber.Ctx) error {
 	return c.JSON(articles)
 }
 
-func GetArticle(c *fiber.Ctx) error {
+type ExportAuthor struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+type ExportArticleItem struct {
+	ID            string         `json:"id"`
+	Title         string         `json:"title"`
+	Slug          string         `json:"slug"`
+	Content       string         `json:"content"`
+	Excerpt       string         `json:"excerpt"`
+	CoverImage    string         `json:"cover_image"`
+	Categories    pq.StringArray `json:"categories"`
+	Tags          pq.StringArray `json:"tags"`
+	IsFeatured    bool           `json:"is_featured"`
+	Views         int            `json:"views"`
+	LocationName  string         `json:"location_name"`
+	Latitude      float64        `json:"latitude"`
+	Longitude     float64        `json:"longitude"`
+	YoutubeURL    string         `json:"youtube_url"`
+	Author        ExportAuthor   `json:"author"`
+	CanonicalPath string         `json:"canonical_path"`
+	CreatedAt     string         `json:"created_at"`
+	UpdatedAt     string         `json:"updated_at"`
+}
+
+func ExportArticles(c *fiber.Ctx) error {
+	db := database.DB
+
+	page := c.QueryInt("page", 1)
+	if page < 1 {
+		page = 1
+	}
+
+	limit := c.QueryInt("limit", 20)
+	if limit < 1 {
+		limit = 20
+	}
+	if limit > 100 {
+		limit = 100
+	}
+
+	includeContent := c.Query("include_content") == "true"
+
+	var sinceTime time.Time
+	since := c.Query("since")
+	if since != "" {
+		t, err := time.Parse(time.RFC3339, since)
+		if err != nil {
+			return c.Status(400).JSON(fiber.Map{"error": "since harus format RFC3339, contoh: 2026-06-01T00:00:00Z"})
+		}
+		sinceTime = t
+	}
+
+	q := db.Model(&models.Article{}).Where("status = ?", "published")
+	if since != "" {
+		q = q.Where("updated_at >= ?", sinceTime)
+	}
+
+	var total int64
+	q.Count(&total)
+
+	var articles []models.Article
+	offset := (page - 1) * limit
+	if err := q.Order("created_at desc").Offset(offset).Limit(limit).Find(&articles).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Gagal mengambil artikel"})
+	}
+
+	items := make([]ExportArticleItem, 0, len(articles))
+	for _, a := range articles {
+		var p models.Profile
+		db.Select("display_name").Where("user_id = ?", a.AuthorID).First(&p)
+
+		cats := a.Categories
+		if len(cats) == 0 && a.Category != "" {
+			cats = []string{a.Category}
+		}
+
+		content := ""
+		if includeContent {
+			content = a.Content
+		}
+
+		items = append(items, ExportArticleItem{
+			ID:         a.ID.String(),
+			Title:      a.Title,
+			Slug:       a.Slug,
+			Content:    content,
+			Excerpt:    a.Excerpt,
+			CoverImage: a.CoverImage,
+			Categories: cats,
+			Tags:       a.Tags,
+			IsFeatured: a.IsFeatured,
+			Views:      a.Views,
+			LocationName: a.LocationName,
+			Latitude:     a.Latitude,
+			Longitude:    a.Longitude,
+			YoutubeURL:   a.YoutubeURL,
+			Author: ExportAuthor{
+				ID:   a.AuthorID.String(),
+				Name: p.DisplayName,
+			},
+			CanonicalPath: "/artikel/" + a.Slug,
+			CreatedAt:     a.CreatedAt.UTC().Format(time.RFC3339),
+			UpdatedAt:     a.UpdatedAt.UTC().Format(time.RFC3339),
+		})
+	}
+
+	nextPage := 0
+	if int64(offset+len(articles)) < total {
+		nextPage = page + 1
+	}
+
+	return c.JSON(fiber.Map{
+		"version":      "v1",
+		"generated_at": time.Now().UTC().Format(time.RFC3339),
+		"filters": fiber.Map{
+			"since":           since,
+			"include_content": includeContent,
+			"status":          "published",
+		},
+		"page":      page,
+		"limit":     limit,
+		"next_page": nextPage,
+		"total":     total,
+		"items":     items,
+	})
+}
+
+func ExportArticle(c *fiber.Ctx) error {
 	id := c.Params("id")
 	db := database.DB
-	var article models.Article
 
-	query := db
+	query := db.Where("status = ?", "published")
 	if _, err := uuid.Parse(id); err == nil {
 		query = query.Where("id = ?", id)
 	} else {
 		query = query.Where("slug = ?", id)
 	}
 
-	if err := query.First(&article).Error; err != nil {
+	var a models.Article
+	if err := query.First(&a).Error; err != nil {
 		return c.Status(404).JSON(fiber.Map{"error": "Article not found"})
+	}
+
+	var p models.Profile
+	db.Select("display_name").Where("user_id = ?", a.AuthorID).First(&p)
+
+	cats := a.Categories
+	if len(cats) == 0 && a.Category != "" {
+		cats = []string{a.Category}
+	}
+
+	item := ExportArticleItem{
+		ID:         a.ID.String(),
+		Title:      a.Title,
+		Slug:       a.Slug,
+		Content:    a.Content,
+		Excerpt:    a.Excerpt,
+		CoverImage: a.CoverImage,
+		Categories: cats,
+		Tags:       a.Tags,
+		IsFeatured: a.IsFeatured,
+		Views:      a.Views,
+		LocationName: a.LocationName,
+		Latitude:     a.Latitude,
+		Longitude:    a.Longitude,
+		YoutubeURL:   a.YoutubeURL,
+		Author: ExportAuthor{
+			ID:   a.AuthorID.String(),
+			Name: p.DisplayName,
+		},
+		CanonicalPath: "/artikel/" + a.Slug,
+		CreatedAt:     a.CreatedAt.UTC().Format(time.RFC3339),
+		UpdatedAt:     a.UpdatedAt.UTC().Format(time.RFC3339),
+	}
+
+	return c.JSON(fiber.Map{
+		"version":      "v1",
+		"generated_at": time.Now().UTC().Format(time.RFC3339),
+		"item":         item,
+	})
+}
+
+func GetArticle(c *fiber.Ctx) error {
+	id := c.Params("id")
+	db := database.DB
+	var article models.Article
+
+	if _, err := uuid.Parse(id); err == nil {
+		if err := db.Where("id = ?", id).First(&article).Error; err != nil {
+			return c.Status(404).JSON(fiber.Map{"error": "Article not found"})
+		}
+	} else {
+		if err := db.Where("slug = ?", id).First(&article).Error; err != nil {
+			var matches []models.Article
+			if err := db.Where("slug LIKE ?", id+"-%").Limit(2).Find(&matches).Error; err != nil || len(matches) != 1 {
+				return c.Status(404).JSON(fiber.Map{"error": "Article not found"})
+			}
+			article = matches[0]
+		}
 	}
 	
 	var p models.Profile
@@ -86,6 +312,13 @@ func CreateArticle(c *fiber.Ctx) error {
 	}
 	article.AuthorID = authorID
 
+	article.Title = strings.TrimSpace(article.Title)
+	if article.Slug == "" {
+		article.Slug = slugify(article.Title)
+	} else {
+		article.Slug = slugify(article.Slug)
+	}
+
 	// Handle multi-category compatibility
 	if len(article.Categories) > 0 {
 		article.Category = article.Categories[0]
@@ -97,6 +330,12 @@ func CreateArticle(c *fiber.Ctx) error {
 	}
 
 	db := database.DB
+	uniqueSlug, err := ensureUniqueSlug(db, article.Slug)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Could not generate unique slug"})
+	}
+	article.Slug = uniqueSlug
+
 	if err := db.Create(&article).Error; err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": "Could not create article"})
 	}
@@ -254,4 +493,3 @@ func BulkUpdateArticleImage(c *fiber.Ctx) error {
 		"category":       body.Category,
 	})
 }
-

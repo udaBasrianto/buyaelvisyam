@@ -228,7 +228,7 @@ func (w *WhatsAppService) SendMessage(phoneNumber string, message string) error 
 		return fmt.Errorf("failed to send message: %v", err)
 	}
 
-	fmt.Printf("Message sent: %s\n", response)
+	fmt.Printf("Message sent: %v\n", response)
 	return nil
 }
 

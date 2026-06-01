@@ -45,10 +45,11 @@ export function Sidebar({ placement = "detail", articleContent }: SidebarProps) 
   useEffect(() => {
     const loadSidebarData = async () => {
       try {
-        const [articlesRes, categoriesRes, widgetsRes] = await Promise.all([
+        const [articlesRes, categoriesRes, widgetsRes, settingsRes] = await Promise.all([
           api.get("/blog/latest?limit=5"),
           api.get("/categories"),
-          api.get("/widgets?is_active=true")
+          api.get("/widgets?is_active=true"),
+          api.get("/settings")
         ]);
 
         if (Array.isArray(articlesRes.data)) {
@@ -58,10 +59,17 @@ export function Sidebar({ placement = "detail", articleContent }: SidebarProps) 
           setCategories(categoriesRes.data.filter((c: any) => c.article_count > 0).slice(0, 8));
         }
         if (Array.isArray(widgetsRes.data)) {
+          const showChatbot = settingsRes?.data?.show_chatbot !== false;
+          const chatbotWidgetRegex = /(chatbot|livechat|tawk\.to|tawkto|crisp|intercom)/i;
+
           // Filter widgets that match the placement
-          const filtered = widgetsRes.data.filter(
-            (w: Widget) => w.placement === "all" || w.placement === placement
-          );
+          const filtered = widgetsRes.data.filter((w: Widget) => {
+            if (!(w.placement === "all" || w.placement === placement)) return false;
+            if (showChatbot) return true;
+
+            const haystack = `${w.title || ""}\n${w.content || ""}\n${w.link_url || ""}`;
+            return !chatbotWidgetRegex.test(haystack);
+          });
           setDynamicWidgets(filtered);
         }
       } catch (err) {
@@ -207,7 +215,7 @@ export function Sidebar({ placement = "detail", articleContent }: SidebarProps) 
                 </div>
               )}
               <div 
-                className="text-[12px] overflow-hidden leading-normal text-muted-foreground whitespace-normal"
+                className="prose prose-sm max-w-none text-muted-foreground prose-a:text-primary prose-a:font-semibold prose-img:rounded-xl prose-img:max-w-full prose-img:h-auto [&_iframe]:w-full [&_iframe]:max-w-full [&_iframe]:aspect-video [&_iframe]:rounded-xl [&_iframe]:border [&_iframe]:border-border/50 [&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto break-words"
                 dangerouslySetInnerHTML={{ __html: w.content }}
               />
             </div>

@@ -245,6 +245,16 @@ export function SiteSettingsManager() {
         </div>
       ) : (
         <div className="bg-card rounded-xl card-shadow p-6 w-full space-y-4">
+      <div className="flex items-center justify-between p-4 border rounded-2xl bg-card/50">
+        <div className="space-y-0.5">
+          <Label className="text-base font-bold">Aktifkan Widget Chatbot</Label>
+          <p className="text-xs text-muted-foreground">Tampilkan atau sembunyikan chatbot di website.</p>
+        </div>
+        <Switch 
+          checked={settings.show_chatbot ?? true} 
+          onCheckedChange={(v) => setSettings({ ...settings, show_chatbot: v })} 
+        />
+      </div>
       <div>
         <Label>Nama Situs</Label>
         <Input value={settings.site_name} onChange={(e) => setSettings({ ...settings, site_name: e.target.value })} />

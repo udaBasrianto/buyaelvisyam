@@ -314,7 +314,7 @@ export function IndexV2() {
                )}
              </div>
 
-             <aside className="lg:col-span-4">
+             <aside className="lg:col-span-4 mt-12 lg:mt-0">
                <Sidebar placement="beranda" />
              </aside>
            </div>

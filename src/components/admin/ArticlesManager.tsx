@@ -106,6 +106,53 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
   const [bulkImageLoading, setBulkImageLoading] = useState(false);
   const bulkImageInputRef = useRef<HTMLInputElement>(null);
 
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [importBaseURL, setImportBaseURL] = useState("https://buyaelvisyam.id");
+  const [importSince, setImportSince] = useState("");
+  const [importMode, setImportMode] = useState<"skip" | "upsert">("skip");
+  const [importLimit, setImportLimit] = useState(50);
+  const [importMaxPages, setImportMaxPages] = useState(20);
+  const [importLoading, setImportLoading] = useState(false);
+  const [importResult, setImportResult] = useState<any | null>(null);
+
+  const handleImportFromAPI = async () => {
+    let base = importBaseURL.trim();
+    if (!base) {
+      toast({ title: "Error", description: "URL sumber wajib diisi", variant: "destructive" });
+      return;
+    }
+    if (!base.startsWith("http://") && !base.startsWith("https://")) {
+      base = `https://${base}`;
+      setImportBaseURL(base);
+    }
+    setImportLoading(true);
+    try {
+      const payload: any = {
+        base_url: base,
+        mode: importMode,
+        limit: importLimit,
+        max_pages: importMaxPages,
+      };
+      if (importSince.trim()) payload.since = importSince.trim();
+
+      const { data } = await api.post("/import-export", payload);
+      setImportResult(data);
+      toast({
+        title: "Import selesai",
+        description: `Imported: ${data.imported || 0}, Updated: ${data.updated || 0}, Skipped: ${data.skipped || 0}, Failed: ${data.failed || 0}`,
+      });
+      fetchArticles();
+    } catch (error: any) {
+      toast({
+        title: "Gagal import",
+        description: error.response?.data?.error || error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setImportLoading(false);
+    }
+  };
+
   const handleBulkAction = async (action: 'delete' | 'publish' | 'draft') => {
     if (selectedIds.length === 0) return;
     
@@ -382,6 +429,16 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
               <Download className="h-4 w-4" /> <span className="hidden sm:inline">Import WP</span>
             </Button>
           )}
+          <Button
+            variant="outline"
+            className="gap-1.5"
+            onClick={() => {
+              setImportResult(null);
+              setImportDialogOpen(true);
+            }}
+          >
+            <FileText className="h-4 w-4" /> <span className="hidden sm:inline">Import API</span>
+          </Button>
           <Button
             variant="outline"
             className="gap-1.5 text-blue-600 border-blue-200 hover:bg-blue-50"
@@ -663,6 +720,88 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
           )}
         </div>
       )}
+
+      <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Import Artikel dari Export API</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Base URL Sumber</Label>
+              <Input
+                value={importBaseURL}
+                onChange={(e) => setImportBaseURL(e.target.value)}
+                placeholder="https://domain-sumber.com"
+              />
+              <p className="text-[10px] text-muted-foreground">
+                Sistem akan mengambil dari: {`<base_url>/api/export/v1/articles`}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Mode</Label>
+                <Select value={importMode} onValueChange={(v: any) => setImportMode(v)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="skip">Skip jika ada</SelectItem>
+                    <SelectItem value="upsert">Update jika ada</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Since (RFC3339)</Label>
+                <Input
+                  value={importSince}
+                  onChange={(e) => setImportSince(e.target.value)}
+                  placeholder="2026-06-01T00:00:00Z"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Limit (1-100)</Label>
+                <Input
+                  type="number"
+                  value={importLimit}
+                  onChange={(e) => setImportLimit(Number(e.target.value) || 0)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Max Pages</Label>
+                <Input
+                  type="number"
+                  value={importMaxPages}
+                  onChange={(e) => setImportMaxPages(Number(e.target.value) || 0)}
+                />
+              </div>
+            </div>
+
+            {importResult && (
+              <div className="rounded-xl border bg-muted/30 p-4 text-sm">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>Imported: <span className="font-bold">{importResult.imported || 0}</span></div>
+                  <div>Updated: <span className="font-bold">{importResult.updated || 0}</span></div>
+                  <div>Skipped: <span className="font-bold">{importResult.skipped || 0}</span></div>
+                  <div>Failed: <span className="font-bold">{importResult.failed || 0}</span></div>
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setImportDialogOpen(false)} disabled={importLoading}>
+              Tutup
+            </Button>
+            <Button onClick={handleImportFromAPI} disabled={importLoading}>
+              {importLoading ? "Mengimport..." : "Mulai Import"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Editor Dialog */}
       <Dialog open={editorOpen} onOpenChange={setEditorOpen}>

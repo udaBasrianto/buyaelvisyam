@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"html"
 	"net/http"
+	"net"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -12,6 +14,7 @@ import (
 	"backend/database"
 	"backend/models"
 	"github.com/gofiber/fiber/v2"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 )
 
@@ -284,4 +287,370 @@ func ImportWordPress(c *fiber.Ctx) error {
 	}
 
 	return c.Status(400).JSON(fiber.Map{"error": "Invalid action"})
+}
+
+type ExportImportRequest struct {
+	BaseURL  string `json:"base_url"`
+	Since    string `json:"since,omitempty"`
+	Mode     string `json:"mode,omitempty"` // skip | upsert
+	Limit    int    `json:"limit,omitempty"`
+	MaxPages int    `json:"max_pages,omitempty"`
+}
+
+type exportListResponse struct {
+	NextPage int                 `json:"next_page"`
+	Items    []exportArticleItem `json:"items"`
+}
+
+type exportArticleItem struct {
+	Title        string   `json:"title"`
+	Slug         string   `json:"slug"`
+	Content      string   `json:"content"`
+	Excerpt      string   `json:"excerpt"`
+	CoverImage   string   `json:"cover_image"`
+	Categories   []string `json:"categories"`
+	Tags         []string `json:"tags"`
+	IsFeatured   bool     `json:"is_featured"`
+	LocationName string   `json:"location_name"`
+	Latitude     float64  `json:"latitude"`
+	Longitude    float64  `json:"longitude"`
+	YoutubeURL   string   `json:"youtube_url"`
+	CreatedAt    string   `json:"created_at"`
+	UpdatedAt    string   `json:"updated_at"`
+}
+
+type legacyArticlesItem struct {
+	Title        string   `json:"title"`
+	Slug         string   `json:"slug"`
+	Content      string   `json:"content"`
+	Excerpt      string   `json:"excerpt"`
+	CoverImage   string   `json:"cover_image"`
+	Category     string   `json:"category"`
+	Categories   []string `json:"categories"`
+	Tags         []string `json:"tags"`
+	Status       string   `json:"status"`
+	IsFeatured   bool     `json:"is_featured"`
+	LocationName string   `json:"location_name"`
+	Latitude     float64  `json:"latitude"`
+	Longitude    float64  `json:"longitude"`
+	YoutubeURL   string   `json:"youtube_url"`
+	CreatedAt    string   `json:"created_at"`
+	UpdatedAt    string   `json:"updated_at"`
+}
+
+func ImportExportV1(c *fiber.Ctx) error {
+	user := c.Locals("user").(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+	userIDStr, _ := claims["user_id"].(string)
+	authorID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid user ID"})
+	}
+
+	var req ExportImportRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid body"})
+	}
+
+	baseURL := strings.TrimSpace(req.BaseURL)
+	baseURL = strings.TrimSuffix(baseURL, "/")
+	if baseURL == "" {
+		return c.Status(400).JSON(fiber.Map{"error": "base_url wajib diisi"})
+	}
+
+	u, err := url.Parse(baseURL)
+	if err == nil && u.Scheme == "" {
+		u, err = url.Parse("https://" + baseURL)
+		if err == nil {
+			baseURL = strings.TrimSuffix("https://"+strings.TrimPrefix(baseURL, "//"), "/")
+		}
+	}
+	if err != nil || u.Scheme == "" || u.Host == "" {
+		return c.Status(400).JSON(fiber.Map{"error": "base_url tidak valid (contoh: https://domain.com)"})
+	}
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return c.Status(400).JSON(fiber.Map{"error": "base_url harus http/https"})
+	}
+
+	host := strings.TrimSpace(strings.ToLower(u.Hostname()))
+	if host == "" {
+		return c.Status(400).JSON(fiber.Map{"error": "base_url tidak valid"})
+	}
+	if ip := net.ParseIP(host); ip != nil {
+		if !ip.IsLoopback() && ip.IsPrivate() {
+			return c.Status(400).JSON(fiber.Map{"error": "base_url tidak diizinkan"})
+		}
+	}
+
+	mode := strings.ToLower(strings.TrimSpace(req.Mode))
+	if mode == "" {
+		mode = "skip"
+	}
+	if mode != "skip" && mode != "upsert" {
+		return c.Status(400).JSON(fiber.Map{"error": "mode harus 'skip' atau 'upsert'"})
+	}
+
+	limit := req.Limit
+	if limit <= 0 {
+		limit = 50
+	}
+	if limit > 100 {
+		limit = 100
+	}
+
+	maxPages := req.MaxPages
+	if maxPages <= 0 {
+		maxPages = 20
+	}
+	if maxPages > 200 {
+		maxPages = 200
+	}
+
+	since := strings.TrimSpace(req.Since)
+	if since != "" {
+		if _, err := time.Parse(time.RFC3339, since); err != nil {
+			return c.Status(400).JSON(fiber.Map{"error": "since harus format RFC3339"})
+		}
+	}
+
+	client := &http.Client{Timeout: 45 * time.Second}
+	db := database.DB
+
+	imported := 0
+	updated := 0
+	skipped := 0
+	failed := 0
+
+	parseTime := func(s string) time.Time {
+		s = strings.TrimSpace(s)
+		if s == "" {
+			return time.Time{}
+		}
+		if t, err := time.Parse(time.RFC3339Nano, s); err == nil {
+			return t
+		}
+		if t, err := time.Parse(time.RFC3339, s); err == nil {
+			return t
+		}
+		return time.Time{}
+	}
+
+	process := func(slug, title, content, excerpt, coverImage string, categories, tags []string, isFeatured bool, locationName string, lat, lng float64, youtubeURL string, createdAt time.Time) {
+		slug = strings.TrimSpace(slug)
+		title = strings.TrimSpace(title)
+		if slug == "" || title == "" {
+			failed++
+			return
+		}
+
+		category := "Umum"
+		if len(categories) > 0 && strings.TrimSpace(categories[0]) != "" {
+			category = strings.TrimSpace(categories[0])
+		} else {
+			categories = []string{category}
+		}
+
+		if createdAt.IsZero() {
+			createdAt = time.Now()
+		}
+
+		var existing models.Article
+		if err := db.Where("slug = ?", slug).First(&existing).Error; err == nil {
+			if mode == "skip" {
+				skipped++
+				return
+			}
+
+			existing.Title = title
+			existing.Content = content
+			existing.Excerpt = excerpt
+			existing.CoverImage = coverImage
+			existing.Category = category
+			existing.Categories = categories
+			existing.Tags = tags
+			existing.IsFeatured = isFeatured
+			existing.LocationName = locationName
+			existing.Latitude = lat
+			existing.Longitude = lng
+			existing.YoutubeURL = youtubeURL
+			existing.Status = "published"
+
+			if err := db.Save(&existing).Error; err != nil {
+				failed++
+				return
+			}
+			updated++
+			return
+		}
+
+		article := models.Article{
+			ID:           uuid.New(),
+			Title:        title,
+			Slug:         slug,
+			Content:      content,
+			Excerpt:      excerpt,
+			CoverImage:   coverImage,
+			Category:     category,
+			Categories:   categories,
+			Tags:         tags,
+			Status:       "published",
+			IsFeatured:   isFeatured,
+			LocationName: locationName,
+			Latitude:     lat,
+			Longitude:    lng,
+			YoutubeURL:   youtubeURL,
+			AuthorID:     authorID,
+			CreatedAt:    createdAt,
+			UpdatedAt:    time.Now(),
+		}
+
+		if err := db.Create(&article).Error; err != nil {
+			failed++
+			return
+		}
+		imported++
+	}
+
+	importLegacy := func() *fiber.Error {
+		legacyURL, _ := url.Parse(baseURL + "/api/articles")
+		q := legacyURL.Query()
+		q.Set("status", "published")
+		q.Set("limit", "1000")
+		legacyURL.RawQuery = q.Encode()
+
+		resp, err := client.Get(legacyURL.String())
+		if err != nil {
+			return fiber.NewError(502, "Gagal mengambil data dari sumber")
+		}
+		if resp.Body == nil {
+			return fiber.NewError(502, "Response sumber kosong")
+		}
+		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			resp.Body.Close()
+			return fiber.NewError(502, "Sumber mengembalikan status tidak valid")
+		}
+
+		var items []legacyArticlesItem
+		if err := json.NewDecoder(resp.Body).Decode(&items); err != nil {
+			resp.Body.Close()
+			return fiber.NewError(502, "Gagal membaca response sumber")
+		}
+		resp.Body.Close()
+
+		var sinceTime time.Time
+		if since != "" {
+			sinceTime, _ = time.Parse(time.RFC3339, since)
+		}
+
+		for _, it := range items {
+			if it.Status != "" && it.Status != "published" {
+				continue
+			}
+			if sinceTime.IsZero() == false {
+				ut := parseTime(it.UpdatedAt)
+				if ut.IsZero() == false && ut.Before(sinceTime) {
+					continue
+				}
+			}
+
+			cats := it.Categories
+			if len(cats) == 0 && strings.TrimSpace(it.Category) != "" {
+				cats = []string{strings.TrimSpace(it.Category)}
+			}
+
+			process(
+				it.Slug,
+				it.Title,
+				it.Content,
+				it.Excerpt,
+				it.CoverImage,
+				cats,
+				it.Tags,
+				it.IsFeatured,
+				it.LocationName,
+				it.Latitude,
+				it.Longitude,
+				it.YoutubeURL,
+				parseTime(it.CreatedAt),
+			)
+		}
+
+		return nil
+	}
+
+	page := 1
+	for page != 0 && page <= maxPages {
+		exportURL, _ := url.Parse(baseURL + "/api/export/v1/articles")
+		q := exportURL.Query()
+		q.Set("page", strconv.Itoa(page))
+		q.Set("limit", strconv.Itoa(limit))
+		q.Set("include_content", "true")
+		if since != "" {
+			q.Set("since", since)
+		}
+		exportURL.RawQuery = q.Encode()
+
+		resp, err := client.Get(exportURL.String())
+		if err != nil {
+			return c.Status(502).JSON(fiber.Map{"error": "Gagal mengambil data dari sumber"})
+		}
+		var parsed exportListResponse
+		if resp.Body != nil {
+			if resp.StatusCode == 404 && page == 1 {
+				resp.Body.Close()
+				if ferr := importLegacy(); ferr != nil {
+					return c.Status(ferr.Code).JSON(fiber.Map{"error": ferr.Message})
+				}
+				return c.JSON(fiber.Map{
+					"imported": imported,
+					"updated":  updated,
+					"skipped":  skipped,
+					"failed":   failed,
+					"source":   "legacy",
+				})
+			}
+			if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+				resp.Body.Close()
+				return c.Status(502).JSON(fiber.Map{"error": "Sumber mengembalikan status tidak valid"})
+			}
+			if err := json.NewDecoder(resp.Body).Decode(&parsed); err != nil {
+				resp.Body.Close()
+				return c.Status(502).JSON(fiber.Map{"error": "Gagal membaca response sumber"})
+			}
+			resp.Body.Close()
+		} else {
+			return c.Status(502).JSON(fiber.Map{"error": "Response sumber kosong"})
+		}
+
+		for _, item := range parsed.Items {
+			process(
+				item.Slug,
+				item.Title,
+				item.Content,
+				item.Excerpt,
+				item.CoverImage,
+				item.Categories,
+				item.Tags,
+				item.IsFeatured,
+				item.LocationName,
+				item.Latitude,
+				item.Longitude,
+				item.YoutubeURL,
+				parseTime(item.CreatedAt),
+			)
+		}
+
+		if parsed.NextPage <= 0 {
+			break
+		}
+		page = parsed.NextPage
+	}
+
+	return c.JSON(fiber.Map{
+		"imported": imported,
+		"updated":  updated,
+		"skipped":  skipped,
+		"failed":   failed,
+		"source":   "export",
+	})
 }

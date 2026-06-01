@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
 
@@ -118,6 +119,17 @@ export function WidgetsManager() {
     }
   };
 
+  const handleToggleActive = async (w: Widget, nextActive: boolean) => {
+    const prevWidgets = widgets;
+    setWidgets((ws) => ws.map((x) => (x.id === w.id ? { ...x, is_active: nextActive } : x)));
+    try {
+      await api.put(`/widgets/${w.id}`, { is_active: nextActive });
+    } catch (err: any) {
+      setWidgets(prevWidgets);
+      toast({ title: "Gagal", description: err.message, variant: "destructive" });
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -168,11 +180,14 @@ export function WidgetsManager() {
 
                <div className="flex items-center justify-between mt-auto pt-2 border-t">
                   <span className="text-[10px] text-muted-foreground">Urutan: {w.sort_order}</span>
-                  {w.is_active ? (
-                    <span className="text-[10px] font-bold text-emerald-500 flex items-center gap-1"><Eye className="h-3 w-3" /> Aktif</span>
-                  ) : (
-                    <span className="text-[10px] font-bold text-muted-foreground flex items-center gap-1"><EyeOff className="h-3 w-3" /> Nonaktif</span>
-                  )}
+                  <div className="flex items-center gap-2">
+                    <Switch checked={w.is_active} onCheckedChange={(v) => handleToggleActive(w, v)} />
+                    {w.is_active ? (
+                      <span className="text-[10px] font-bold text-emerald-500 flex items-center gap-1"><Eye className="h-3 w-3" /> Aktif</span>
+                    ) : (
+                      <span className="text-[10px] font-bold text-muted-foreground flex items-center gap-1"><EyeOff className="h-3 w-3" /> Nonaktif</span>
+                    )}
+                  </div>
                </div>
             </div>
           ))}

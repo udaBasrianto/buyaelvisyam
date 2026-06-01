@@ -127,7 +127,7 @@ export default function ContributorDashboard() {
       return;
     }
 
-    const slug = generateSlug(form.title) + "-" + Date.now().toString(36);
+    const slug = generateSlug(form.title);
     const payload = {
       title: form.title.trim(),
       slug: editingArticle?.slug || slug,

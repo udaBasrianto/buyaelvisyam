@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"strings"
+	"time"
 
 	"backend/database"
 	"backend/models"
@@ -47,7 +48,6 @@ func GetComments(c *fiber.Ctx) error {
 			comments[i].Initials = "AN"
 		}
 
-		// Fetch article title
 		var art models.Article
 		if err := db.Select("title").Where("id = ?", comments[i].ArticleID).First(&art).Error; err == nil {
 			comments[i].ArticleTitle = art.Title
@@ -71,7 +71,19 @@ func CreateComment(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(400).JSON(fiber.Map{"error": "Invalid user ID"})
 	}
+
+	if comment.ArticleID == uuid.Nil {
+		return c.Status(400).JSON(fiber.Map{"error": "Article ID wajib diisi"})
+	}
+	comment.Content = strings.TrimSpace(comment.Content)
+	if comment.Content == "" {
+		return c.Status(400).JSON(fiber.Map{"error": "Komentar tidak boleh kosong"})
+	}
+
+	comment.ID = uuid.New()
 	comment.UserID = userID
+	comment.CreatedAt = time.Now()
+	comment.UpdatedAt = time.Now()
 
 	db := database.DB
 	if err := db.Create(&comment).Error; err != nil {
@@ -82,12 +94,24 @@ func CreateComment(c *fiber.Ctx) error {
 }
 
 func DeleteComment(c *fiber.Ctx) error {
-	// Let's assume for simplicity the user can delete their own or admin can delete. 
-	// We should just check if it exists, and delete it.
 	id := c.Params("id")
 	db := database.DB
-	
-	if err := db.Where("id = ?", id).Delete(&models.Comment{}).Error; err != nil {
+
+	user := c.Locals("user").(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+	userIDStr, _ := claims["user_id"].(string)
+	role, _ := claims["role"].(string)
+
+	var comment models.Comment
+	if err := db.Where("id = ?", id).First(&comment).Error; err != nil {
+		return c.Status(404).JSON(fiber.Map{"error": "Comment not found"})
+	}
+
+	if role != "admin" && comment.UserID.String() != userIDStr {
+		return c.Status(403).JSON(fiber.Map{"error": "Forbidden"})
+	}
+
+	if err := db.Delete(&comment).Error; err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": "Could not delete comment"})
 	}
 
@@ -97,22 +121,37 @@ func DeleteComment(c *fiber.Ctx) error {
 func UpdateComment(c *fiber.Ctx) error {
 	id := c.Params("id")
 	db := database.DB
-	var comment models.Comment
 
+	var comment models.Comment
 	if err := db.Where("id = ?", id).First(&comment).Error; err != nil {
 		return c.Status(404).JSON(fiber.Map{"error": "Comment not found"})
 	}
 
-	var updatedData models.Comment
-	if err := c.BodyParser(&updatedData); err != nil {
+	user := c.Locals("user").(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+	userIDStr, _ := claims["user_id"].(string)
+	role, _ := claims["role"].(string)
+	if role != "admin" && comment.UserID.String() != userIDStr {
+		return c.Status(403).JSON(fiber.Map{"error": "Forbidden"})
+	}
+
+	var body struct {
+		Content string `json:"content"`
+	}
+	if err := c.BodyParser(&body); err != nil {
 		return c.Status(400).JSON(fiber.Map{"error": "Invalid body"})
 	}
 
-	if updatedData.Content != "" {
-		comment.Content = updatedData.Content
+	content := strings.TrimSpace(body.Content)
+	if content == "" {
+		return c.Status(400).JSON(fiber.Map{"error": "Komentar tidak boleh kosong"})
 	}
 
-	db.Save(&comment)
+	comment.Content = content
+	comment.UpdatedAt = time.Now()
+	if err := db.Save(&comment).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Could not update comment"})
+	}
 
 	return c.JSON(comment)
 }

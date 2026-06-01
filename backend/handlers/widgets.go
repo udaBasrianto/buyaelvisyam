@@ -43,13 +43,17 @@ func UpdateWidget(c *fiber.Ctx) error {
 		return c.Status(404).JSON(fiber.Map{"error": "Widget not found"})
 	}
 
-	var updatedData models.Widget
-	if err := c.BodyParser(&updatedData); err != nil {
+	var updateMap map[string]interface{}
+	if err := c.BodyParser(&updateMap); err != nil {
 		return c.Status(400).JSON(fiber.Map{"error": "Invalid body"})
 	}
 
-	// Gunakan Select("*") agar boolean is_active = false tidak diabaikan GORM
-	db.Model(&widget).Select("*").Omit("id", "created_at").Updates(updatedData)
+	delete(updateMap, "id")
+	delete(updateMap, "created_at")
+
+	if err := db.Model(&widget).Updates(updateMap).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Could not update widget"})
+	}
 
 	return c.JSON(widget)
 }

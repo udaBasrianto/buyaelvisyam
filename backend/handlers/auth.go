@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"crypto/subtle"
 	"os"
+	"strings"
 	"time"
 
 	"backend/database"
@@ -34,25 +36,51 @@ func Login(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid input"})
 	}
 
+	input.Email = strings.TrimSpace(strings.ToLower(input.Email))
+	input.Password = strings.TrimSpace(input.Password)
+	input.Token = strings.TrimSpace(input.Token)
+	if input.Email == "" || input.Password == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Email dan password wajib diisi"})
+	}
+
 	db := database.DB
 
 	var profile models.Profile
 	if err := db.Where("email = ?", input.Email).First(&profile).Error; err != nil {
-		// Auto-creation for default admin if not exists
-		if input.Email == "mas@abd.com" && input.Password == "mas@abd.com" {
-			hashedPassword, _ := HashPassword("mas@abd.com")
-			uID := uuid.New()
-			profile = models.Profile{
-				UserID:      uID,
-				Email:       "mas@abd.com",
-				Password:    hashedPassword,
-				DisplayName: "Admin Default",
-			}
-			db.Create(&profile)
-			db.Create(&models.UserRole{UserID: uID, Role: "admin"})
-		} else {
+		allowBootstrap := strings.EqualFold(strings.TrimSpace(os.Getenv("ALLOW_DEFAULT_ADMIN")), "true")
+		if !allowBootstrap {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "User not found"})
 		}
+
+		var cnt int64
+		db.Model(&models.Profile{}).Count(&cnt)
+		if cnt != 0 {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "User not found"})
+		}
+
+		defaultEmail := strings.TrimSpace(strings.ToLower(os.Getenv("DEFAULT_ADMIN_EMAIL")))
+		defaultPassword := strings.TrimSpace(os.Getenv("DEFAULT_ADMIN_PASSWORD"))
+		if defaultEmail == "" || defaultPassword == "" {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Bootstrap admin belum dikonfigurasi"})
+		}
+		if input.Email != defaultEmail || input.Password != defaultPassword {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "User not found"})
+		}
+
+		hashedPassword, err := HashPassword(defaultPassword)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Gagal memproses password"})
+		}
+
+		uID := uuid.New()
+		profile = models.Profile{
+			UserID:      uID,
+			Email:       defaultEmail,
+			Password:    hashedPassword,
+			DisplayName: "Admin",
+		}
+		db.Create(&profile)
+		db.Create(&models.UserRole{UserID: uID, Role: "admin"})
 	}
 
 	if !CheckPasswordHash(input.Password, profile.Password) {
@@ -65,26 +93,41 @@ func Login(c *fiber.Ctx) error {
 
 	// Validate token only for admin role
 	if userRole.Role == "admin" {
+		disableAdminToken := strings.EqualFold(strings.TrimSpace(os.Getenv("DISABLE_ADMIN_TOKEN")), "true")
+		if disableAdminToken {
+			goto signJWT
+		}
+
 		var settings models.SiteSettings
 		db.First(&settings)
-		tokenToCheck := settings.AdminToken
-		if tokenToCheck == "" {
-			tokenToCheck = "090124"
+		tokenToCheck := strings.TrimSpace(settings.AdminToken)
+		if tokenToCheck == "" || tokenToCheck == "090124" {
+			tokenToCheck = strings.TrimSpace(os.Getenv("ADMIN_TOKEN"))
 		}
-		if input.Token != tokenToCheck {
+		if tokenToCheck == "" {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Token administrator belum dikonfigurasi"})
+		}
+
+		if subtle.ConstantTimeCompare([]byte(input.Token), []byte(tokenToCheck)) != 1 {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Token administrator tidak valid!"})
 		}
+	}
+
+signJWT:
+	jwtSecret := strings.TrimSpace(os.Getenv("JWT_SECRET"))
+	if jwtSecret == "" {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "JWT_SECRET belum dikonfigurasi"})
 	}
 
 	token := jwt.New(jwt.SigningMethodHS256)
 
 	claims := token.Claims.(jwt.MapClaims)
-	claims["user_id"] = profile.UserID
+	claims["user_id"] = profile.UserID.String()
 	claims["email"] = profile.Email
 	claims["role"] = userRole.Role
 	claims["exp"] = time.Now().Add(time.Hour * 72).Unix()
 
-	t, err := token.SignedString([]byte(os.Getenv("JWT_SECRET")))
+	t, err := token.SignedString([]byte(jwtSecret))
 	if err != nil {
 		return c.SendStatus(fiber.StatusInternalServerError)
 	}
@@ -111,8 +154,24 @@ func Register(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid input"})
 	}
 
+	input.Email = strings.TrimSpace(strings.ToLower(input.Email))
+	input.Password = strings.TrimSpace(input.Password)
+	input.DisplayName = strings.TrimSpace(input.DisplayName)
+	if input.Email == "" || !strings.Contains(input.Email, "@") {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Email tidak valid"})
+	}
+	if len(input.Password) < 8 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Password minimal 8 karakter"})
+	}
+	if input.DisplayName == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Nama tampilan wajib diisi"})
+	}
+
 	db := database.DB
-	hashedPassword, _ := HashPassword(input.Password)
+	hashedPassword, err := HashPassword(input.Password)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Gagal memproses password"})
+	}
 	userID := uuid.New()
 
 	profile := models.Profile{
@@ -123,6 +182,9 @@ func Register(c *fiber.Ctx) error {
 	}
 
 	if err := db.Create(&profile).Error; err != nil {
+		if strings.Contains(strings.ToLower(err.Error()), "duplicate") || strings.Contains(strings.ToLower(err.Error()), "unique") {
+			return c.Status(fiber.StatusConflict).JSON(fiber.Map{"error": "Email sudah terdaftar"})
+		}
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Could not create user"})
 	}
 
@@ -190,11 +252,17 @@ func UpdateProfile(c *fiber.Ctx) error {
 		profile.AvatarURL = input.AvatarURL
 	}
 	if input.Password != "" {
-		hashedPassword, _ := HashPassword(input.Password)
+		hashedPassword, err := HashPassword(input.Password)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Gagal memproses password"})
+		}
 		profile.Password = hashedPassword
 	}
 
 	if err := db.Save(&profile).Error; err != nil {
+		if strings.Contains(strings.ToLower(err.Error()), "duplicate") || strings.Contains(strings.ToLower(err.Error()), "unique") {
+			return c.Status(fiber.StatusConflict).JSON(fiber.Map{"error": "Email sudah terpakai"})
+		}
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update profile"})
 	}
 

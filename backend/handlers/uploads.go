@@ -2,7 +2,9 @@ package handlers
 
 import (
 	"fmt"
+	"net/http"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -15,12 +17,41 @@ func UploadImage(c *fiber.Ctx) error {
 		return c.Status(400).JSON(fiber.Map{"error": "Failed to get image file"})
 	}
 
+	const maxBytes = 5 * 1024 * 1024
+	if file.Size <= 0 || file.Size > maxBytes {
+		return c.Status(400).JSON(fiber.Map{"error": "Ukuran file terlalu besar (maks 5MB)"})
+	}
+
+	f, err := file.Open()
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "Gagal membaca file"})
+	}
+	defer f.Close()
+
+	header := make([]byte, 512)
+	n, _ := f.Read(header)
+	contentType := http.DetectContentType(header[:n])
+
+	extByType := map[string]string{
+		"image/jpeg": ".jpg",
+		"image/png":  ".png",
+		"image/webp": ".webp",
+		"image/gif":  ".gif",
+	}
+	ext := extByType[contentType]
+	if ext == "" {
+		return c.Status(400).JSON(fiber.Map{"error": "Format file tidak didukung (hanya JPG/PNG/WEBP/GIF)"})
+	}
+
 	// generate unique filename
-	ext := filepath.Ext(file.Filename)
 	filename := fmt.Sprintf("%s-%d%s", uuid.New().String(), time.Now().Unix(), ext)
 	
 	// Create uploads dir if not exists. We already did `mkdir uploads`
 	savePath := fmt.Sprintf("./uploads/%s", filename)
+	savePath = filepath.Clean(savePath)
+	if strings.Contains(savePath, "..") {
+		return c.Status(400).JSON(fiber.Map{"error": "Nama file tidak valid"})
+	}
 	
 	if err := c.SaveFile(file, savePath); err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": "Failed to save image"})

@@ -18,17 +18,32 @@ func GetCategories(c *fiber.Ctx) error {
 	var categories []models.Category
 	
 	// Check if we need to sync from articles (especially useful after imports)
-	var articleCats []string
-	db.Model(&models.Article{}).Distinct("category").Pluck("category", &articleCats)
-	
-	for _, catName := range articleCats {
-		if catName == "" { continue }
-		
+	type ArticleCats struct {
+		Category   string   `gorm:"column:category"`
+		Categories []string `gorm:"column:categories"`
+	}
+	var rows []ArticleCats
+	db.Model(&models.Article{}).Select("category, categories").Find(&rows)
+
+	unique := make(map[string]struct{})
+	for _, r := range rows {
+		if strings.TrimSpace(r.Category) != "" {
+			unique[strings.TrimSpace(r.Category)] = struct{}{}
+		}
+		for _, name := range r.Categories {
+			name = strings.TrimSpace(name)
+			if name == "" {
+				continue
+			}
+			unique[name] = struct{}{}
+		}
+	}
+
+	for catName := range unique {
 		var existing models.Category
 		slug := strings.ToLower(strings.ReplaceAll(catName, " ", "-"))
-		
+
 		if err := db.Where("name = ? OR slug = ?", catName, slug).First(&existing).Error; err != nil {
-			// Category doesn't exist, create it
 			newCat := models.Category{
 				ID:        uuid.New(),
 				Name:      catName,
@@ -46,7 +61,9 @@ func GetCategories(c *fiber.Ctx) error {
 	// Calculate article count for each category
 	for i := range categories {
 		var count int64
-		db.Model(&models.Article{}).Where("category = ? AND status = ?", categories[i].Name, "published").Count(&count)
+		db.Model(&models.Article{}).
+			Where("status = ? AND (category = ? OR ? = ANY(categories))", "published", categories[i].Name, categories[i].Name).
+			Count(&count)
 		categories[i].ArticleCount = int(count)
 	}
 
@@ -100,6 +117,7 @@ func UpdateCategory(c *fiber.Ctx) error {
 			// Log error but don't fail the whole request if sync fails
 			log.Println("Failed to sync articles after category rename:", err)
 		}
+		db.Exec("UPDATE articles SET categories = array_replace(categories, ?, ?) WHERE ? = ANY(categories)", oldName, newName, oldName)
 	}
 
 	return c.JSON(category)
@@ -210,4 +228,3 @@ func UpdateSiteSettings(c *fiber.Ctx) error {
 
 	return c.JSON(settings)
 }
-

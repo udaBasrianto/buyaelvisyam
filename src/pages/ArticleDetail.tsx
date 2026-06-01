@@ -27,6 +27,7 @@ interface DbArticle {
   content: string;
   cover_image: string | null;
   category: string;
+  categories?: string[] | null;
   tags: string[] | null;
   status: string;
   views: number;
@@ -85,7 +86,18 @@ export default function ArticleDetail() {
   };
 
   const handleShare = async () => {
-    const url = window.location.href;
+    const baseFromTitle = (article?.title || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "");
+    const shouldShareBase =
+      !!article?.slug &&
+      !!baseFromTitle &&
+      article.slug.startsWith(baseFromTitle + "-") &&
+      /^[0-9a-z]+$/.test(article.slug.slice(baseFromTitle.length + 1));
+    const shareSlug = shouldShareBase ? baseFromTitle : (article?.slug || article?.id || "");
+
+    const url = `${window.location.origin}/${shareSlug}`;
     const title = article?.title || "BlogUstad";
     const text = article?.excerpt || `Baca artikel "${title}" di BlogUstad.`;
 
@@ -155,6 +167,9 @@ export default function ArticleDetail() {
 
   const formattedDate = new Date(article.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
   const coverImage = article.cover_image || DEFAULT_POST_IMAGE;
+  const categories = (article.categories && article.categories.length > 0 ? article.categories : [article.category])
+    .map((c) => String(c || "").trim())
+    .filter(Boolean);
   const tags = article.tags || [];
 
   const plainText = (article.content || "").replace(/<[^>]+>/g, " ");
@@ -218,12 +233,15 @@ export default function ArticleDetail() {
             </div>
             <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-12">
               <div className="flex flex-wrap gap-2 mb-4">
-                <Link 
-                  to={`/kategori/${article.category.toLowerCase().replace(/\s+/g, "-")}`}
-                  className="tag-badge islamic-gradient text-primary-foreground text-[10px] font-bold uppercase tracking-wider hover:scale-105 transition-transform"
-                >
-                  #{article.category}
-                </Link>
+                {categories.map((c) => (
+                  <Link 
+                    key={c}
+                    to={`/kategori/${c.toLowerCase().replace(/\s+/g, "-")}`}
+                    className="tag-badge islamic-gradient text-primary-foreground text-[10px] font-bold uppercase tracking-wider hover:scale-105 transition-transform"
+                  >
+                    #{c}
+                  </Link>
+                ))}
                 {tags.map((tag) => (
                   <span key={tag} className="tag-badge gold-gradient text-primary-foreground text-[10px] font-bold uppercase tracking-wider">#{tag}</span>
                 ))}
@@ -239,16 +257,19 @@ export default function ArticleDetail() {
           <div className="flex flex-wrap items-center justify-between gap-4 py-4 border-b border-border">
             <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
               <span className="flex items-center gap-1.5"><User className="h-4 w-4 text-primary" />{article.author || "Ustadz"}</span>
-              <Link 
-                to={`/kategori/${article.category.toLowerCase().replace(/\s+/g, "-")}`}
-                className="flex items-center gap-1.5 hover:text-primary transition-colors"
-                title="Lihat kategori ini"
-              >
-                <div className="h-4 w-4 flex items-center justify-center rounded-sm bg-primary/10 text-primary">
-                  <span className="text-[10px] font-bold">#</span>
-                </div>
-                {article.category}
-              </Link>
+              {categories.map((c) => (
+                <Link 
+                  key={c}
+                  to={`/kategori/${c.toLowerCase().replace(/\s+/g, "-")}`}
+                  className="flex items-center gap-1.5 hover:text-primary transition-colors"
+                  title="Lihat kategori ini"
+                >
+                  <div className="h-4 w-4 flex items-center justify-center rounded-sm bg-primary/10 text-primary">
+                    <span className="text-[10px] font-bold">#</span>
+                  </div>
+                  {c}
+                </Link>
+              ))}
               <span className="flex items-center gap-1.5"><Calendar className="h-4 w-4 text-primary" />{formattedDate}</span>
               <span className="flex items-center gap-1.5"><Eye className="h-4 w-4 text-primary" />{article.views} views</span>
               <span className="flex items-center gap-1.5"><Clock className="h-4 w-4 text-primary" />{readingMinutes} menit baca</span>
@@ -374,6 +395,10 @@ export default function ArticleDetail() {
             <div className="hidden lg:block">
               <Sidebar placement="detail" articleContent={article.content} />
             </div>
+          </div>
+
+          <div className="lg:hidden mt-10">
+            <Sidebar placement="detail" articleContent={article.content} />
           </div>
 
           <div className="border-t border-border py-8">

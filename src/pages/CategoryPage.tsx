@@ -29,9 +29,12 @@ const CategoryPage = () => {
         const { data: articles } = await api.get("/articles", { params: { limit: 1000, status: "published" } });
         
         if (articles) {
-          const filtered = articles.filter((a: any) => 
-            a.category.toLowerCase() === realName.toLowerCase()
-          );
+          const filtered = articles.filter((a: any) => {
+            const cats: string[] = Array.isArray(a.categories) && a.categories.length > 0
+              ? a.categories
+              : (a.category ? [a.category] : []);
+            return cats.some((c: string) => String(c).toLowerCase() === realName.toLowerCase());
+          });
           
           setPosts(filtered.map((a: any) => {
             const words = (a.content || "").replace(/<[^>]+>/g, " ").trim().split(/\s+/).filter(Boolean).length;
