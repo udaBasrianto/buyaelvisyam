@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"database/sql"
 	"log"
 	"os"
 	"strings"
@@ -19,19 +20,25 @@ func GetCategories(c *fiber.Ctx) error {
 	var categories []models.Category
 	
 	// Check if we need to sync from articles (especially useful after imports)
-	type ArticleCats struct {
-		Category   string   `gorm:"column:category"`
-		Categories pq.StringArray `gorm:"column:categories"`
+	rows, err := db.Raw(`SELECT category, categories FROM articles`).Rows()
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Gagal memuat kategori"})
 	}
-	var rows []ArticleCats
-	db.Model(&models.Article{}).Select("category, categories").Find(&rows)
+	defer rows.Close()
 
 	unique := make(map[string]struct{})
-	for _, r := range rows {
-		if strings.TrimSpace(r.Category) != "" {
-			unique[strings.TrimSpace(r.Category)] = struct{}{}
+	for rows.Next() {
+		var category sql.NullString
+		var categoriesArr []string
+		if err := rows.Scan(&category, pq.Array(&categoriesArr)); err != nil {
+			return c.Status(500).JSON(fiber.Map{"error": "Gagal memuat kategori"})
 		}
-		for _, name := range r.Categories {
+
+		if strings.TrimSpace(category.String) != "" {
+			unique[strings.TrimSpace(category.String)] = struct{}{}
+		}
+
+		for _, name := range categoriesArr {
 			name = strings.TrimSpace(name)
 			if name == "" {
 				continue
