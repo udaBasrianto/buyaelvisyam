@@ -17,6 +17,7 @@ interface AuthContextType {
   loading: boolean;
   signUp: (email: string, password: string, displayName: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string, token: string) => Promise<{ error: any }>;
+  signInWithGoogle: (idToken: string, adminToken: string) => Promise<{ error: any }>;
   signInWithWhatsApp: (token: string, user: UserProfile) => void;
   signOut: () => Promise<void>;
 }
@@ -74,6 +75,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const signInWithGoogle = async (idToken: string, adminToken: string) => {
+    try {
+      const { data } = await api.post("/auth/google", { id_token: idToken, token: adminToken });
+      localStorage.setItem("token", data.token);
+      setUser(data.user);
+      setRole(data.user.role);
+      return { error: null };
+    } catch (error: any) {
+      if (!error?.response) {
+        return { error: "Backend tidak dapat diakses. Pastikan server berjalan di http://127.0.0.1:4000" };
+      }
+      return { error: error.response?.data?.error || "Google login gagal" };
+    }
+  };
+
   const signInWithWhatsApp = (token: string, user: UserProfile) => {
     localStorage.setItem("token", token);
     setUser(user);
@@ -87,7 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, role, loading, signUp, signIn, signInWithWhatsApp, signOut }}>
+    <AuthContext.Provider value={{ user, role, loading, signUp, signIn, signInWithGoogle, signInWithWhatsApp, signOut }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -11,9 +11,69 @@ export default function AdminLogin() {
   const [password, setPassword] = useState("");
   const [token, setToken] = useState("");
   const [loading, setLoading] = useState(false);
-  const { signIn } = useAuth();
+  const { signIn, signInWithGoogle } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const googleBtnRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    if (!clientId) return;
+    if (!googleBtnRef.current) return;
+
+    const loadScript = () =>
+      new Promise<void>((resolve, reject) => {
+        if ((window as any).google?.accounts?.id) return resolve();
+        const existing = document.querySelector('script[src="https://accounts.google.com/gsi/client"]') as HTMLScriptElement | null;
+        if (existing) {
+          existing.addEventListener("load", () => resolve(), { once: true });
+          existing.addEventListener("error", () => reject(new Error("Failed to load Google script")), { once: true });
+          return;
+        }
+        const script = document.createElement("script");
+        script.src = "https://accounts.google.com/gsi/client";
+        script.async = true;
+        script.defer = true;
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error("Failed to load Google script"));
+        document.head.appendChild(script);
+      });
+
+    loadScript()
+      .then(() => {
+        const google = (window as any).google;
+        if (!google?.accounts?.id) return;
+        google.accounts.id.initialize({
+          client_id: clientId,
+          callback: async (response: any) => {
+            const credential = String(response?.credential || "").trim();
+            if (!credential) {
+              toast({ title: "Gagal", description: "Google credential tidak valid", variant: "destructive" });
+              return;
+            }
+            setLoading(true);
+            const { error } = await signInWithGoogle(credential, token);
+            if (error) {
+              toast({ title: "Gagal masuk", description: error, variant: "destructive" });
+            } else {
+              toast({ title: "Berhasil masuk!" });
+              navigate("/admin");
+            }
+            setLoading(false);
+          },
+        });
+        if (!googleBtnRef.current) return;
+        googleBtnRef.current.innerHTML = "";
+        google.accounts.id.renderButton(googleBtnRef.current, {
+          theme: "outline",
+          size: "large",
+          width: "360",
+          text: "signin_with",
+          shape: "pill",
+        });
+      })
+      .catch(() => {});
+  }, [navigate, signInWithGoogle, toast, token]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,6 +147,12 @@ export default function AdminLogin() {
               />
             </div>
           </div>
+
+          {import.meta.env.VITE_GOOGLE_CLIENT_ID ? (
+            <div className="pt-1">
+              <div ref={googleBtnRef} />
+            </div>
+          ) : null}
 
           {/* Submit Button */}
           <Button 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -20,9 +20,10 @@ export default function Auth() {
   const [loginMethod, setLoginMethod] = useState<"email" | "whatsapp">("email");
   const [loginStep, setLoginStep] = useState(1); // 1: Input number, 2: OTP
   const [settings, setSettings] = useState<any>(null);
-  const { signIn, signInWithWhatsApp } = useAuth();
+  const { signIn, signInWithGoogle, signInWithWhatsApp } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const googleBtnRef = useRef<HTMLDivElement | null>(null);
 
   const isAdminRoute = settings?.admin_slug
     ? window.location.pathname === `/${settings.admin_slug}`
@@ -32,6 +33,67 @@ export default function Auth() {
     // Fetch site settings for dynamic logo/text
     api.get("/settings").then(res => setSettings(res.data)).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    if (!clientId) return;
+    if (loginMethod !== "email") return;
+    if (!googleBtnRef.current) return;
+
+    const loadScript = () =>
+      new Promise<void>((resolve, reject) => {
+        if ((window as any).google?.accounts?.id) return resolve();
+        const existing = document.querySelector('script[src="https://accounts.google.com/gsi/client"]') as HTMLScriptElement | null;
+        if (existing) {
+          existing.addEventListener("load", () => resolve(), { once: true });
+          existing.addEventListener("error", () => reject(new Error("Failed to load Google script")), { once: true });
+          return;
+        }
+        const script = document.createElement("script");
+        script.src = "https://accounts.google.com/gsi/client";
+        script.async = true;
+        script.defer = true;
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error("Failed to load Google script"));
+        document.head.appendChild(script);
+      });
+
+    loadScript()
+      .then(() => {
+        const google = (window as any).google;
+        if (!google?.accounts?.id) return;
+        google.accounts.id.initialize({
+          client_id: clientId,
+          callback: async (response: any) => {
+            const credential = String(response?.credential || "").trim();
+            if (!credential) {
+              toast({ title: "Gagal", description: "Google credential tidak valid", variant: "destructive" });
+              return;
+            }
+            setLoading(true);
+            const { error } = await signInWithGoogle(credential, adminToken);
+            if (error) {
+              toast({ title: "Gagal masuk", description: error, variant: "destructive" });
+            } else {
+              toast({ title: "Berhasil masuk!" });
+              navigate("/");
+            }
+            setLoading(false);
+          },
+        });
+
+        if (!googleBtnRef.current) return;
+        googleBtnRef.current.innerHTML = "";
+        google.accounts.id.renderButton(googleBtnRef.current, {
+          theme: "outline",
+          size: "large",
+          width: "360",
+          text: "signin_with",
+          shape: "pill",
+        });
+      })
+      .catch(() => {});
+  }, [adminToken, loginMethod, navigate, signInWithGoogle, toast]);
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -237,6 +299,12 @@ export default function Auth() {
                       </div>
                     </div>
                   )}
+
+                  {import.meta.env.VITE_GOOGLE_CLIENT_ID ? (
+                    <div className="pt-1">
+                      <div ref={googleBtnRef} />
+                    </div>
+                  ) : null}
 
                   <Button type="submit" className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-bold transition-all shadow-lg shadow-blue-100" disabled={loading}>
                     {loading ? "Memproses..." : "Masuk Sekarang"}

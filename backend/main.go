@@ -160,6 +160,7 @@ func main() {
 	auth := api.Group("/auth")
 	auth.Post("/register", handlers.Register)
 	auth.Post("/login", handlers.Login)
+	auth.Post("/google", handlers.GoogleLogin)
 	auth.Get("/me", middleware.Protected(), handlers.Me)
 	auth.Put("/profile", middleware.Protected(), handlers.UpdateProfile)
 	auth.Post("/profile", middleware.Protected(), handlers.UpdateProfile)

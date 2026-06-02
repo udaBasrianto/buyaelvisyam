@@ -2,6 +2,9 @@ package handlers
 
 import (
 	"crypto/subtle"
+	"encoding/json"
+	"net/http"
+	"net/url"
 	"os"
 	"regexp"
 	"strings"
@@ -54,6 +57,57 @@ func CheckPasswordHash(password, hash string) bool {
 func HashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
 	return string(bytes), err
+}
+
+func validateAdminToken(db any, provided string) error {
+	disableAdminToken := strings.EqualFold(strings.TrimSpace(os.Getenv("DISABLE_ADMIN_TOKEN")), "true")
+	if disableAdminToken {
+		return nil
+	}
+
+	var settings models.SiteSettings
+	database.DB.First(&settings)
+	tokenToCheck := strings.TrimSpace(settings.AdminToken)
+	if tokenToCheck == "" {
+		tokenToCheck = strings.TrimSpace(os.Getenv("ADMIN_TOKEN"))
+	}
+	if tokenToCheck == "" {
+		return fiber.NewError(fiber.StatusUnauthorized, "Token administrator belum dikonfigurasi")
+	}
+
+	if subtle.ConstantTimeCompare([]byte(strings.TrimSpace(provided)), []byte(tokenToCheck)) != 1 {
+		return fiber.NewError(fiber.StatusUnauthorized, "Token administrator tidak valid!")
+	}
+	return nil
+}
+
+func issueJWT(profile models.Profile, role string) (fiber.Map, error) {
+	jwtSecret := strings.TrimSpace(os.Getenv("JWT_SECRET"))
+	if jwtSecret == "" {
+		return nil, fiber.NewError(fiber.StatusInternalServerError, "JWT_SECRET belum dikonfigurasi")
+	}
+
+	token := jwt.New(jwt.SigningMethodHS256)
+	claims := token.Claims.(jwt.MapClaims)
+	claims["user_id"] = profile.UserID.String()
+	claims["email"] = profile.Email
+	claims["role"] = role
+	claims["exp"] = time.Now().Add(time.Hour * 72).Unix()
+
+	t, err := token.SignedString([]byte(jwtSecret))
+	if err != nil {
+		return nil, fiber.NewError(fiber.StatusInternalServerError, "Gagal membuat token")
+	}
+
+	return fiber.Map{
+		"token": t,
+		"user": fiber.Map{
+			"id":           profile.UserID,
+			"email":        profile.Email,
+			"display_name": profile.DisplayName,
+			"role":         role,
+		},
+	}, nil
 }
 
 func Login(c *fiber.Ctx) error {
@@ -124,54 +178,137 @@ func Login(c *fiber.Ctx) error {
 
 	// Validate token only for admin role
 	if userRole.Role == "admin" {
-		disableAdminToken := strings.EqualFold(strings.TrimSpace(os.Getenv("DISABLE_ADMIN_TOKEN")), "true")
-		if disableAdminToken {
-			goto signJWT
-		}
-
-		var settings models.SiteSettings
-		db.First(&settings)
-		tokenToCheck := strings.TrimSpace(settings.AdminToken)
-		if tokenToCheck == "" {
-			tokenToCheck = strings.TrimSpace(os.Getenv("ADMIN_TOKEN"))
-		}
-		if tokenToCheck == "" {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Token administrator belum dikonfigurasi"})
-		}
-
-		if subtle.ConstantTimeCompare([]byte(input.Token), []byte(tokenToCheck)) != 1 {
+		if err := validateAdminToken(db, input.Token); err != nil {
+			if ferr, ok := err.(*fiber.Error); ok {
+				return c.Status(ferr.Code).JSON(fiber.Map{"error": ferr.Message})
+			}
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Token administrator tidak valid!"})
 		}
 	}
 
-signJWT:
-	jwtSecret := strings.TrimSpace(os.Getenv("JWT_SECRET"))
-	if jwtSecret == "" {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "JWT_SECRET belum dikonfigurasi"})
-	}
-
-	token := jwt.New(jwt.SigningMethodHS256)
-
-	claims := token.Claims.(jwt.MapClaims)
-	claims["user_id"] = profile.UserID.String()
-	claims["email"] = profile.Email
-	claims["role"] = userRole.Role
-	claims["exp"] = time.Now().Add(time.Hour * 72).Unix()
-
-	t, err := token.SignedString([]byte(jwtSecret))
+	out, err := issueJWT(profile, userRole.Role)
 	if err != nil {
-		return c.SendStatus(fiber.StatusInternalServerError)
+		if ferr, ok := err.(*fiber.Error); ok {
+			return c.Status(ferr.Code).JSON(fiber.Map{"error": ferr.Message})
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Gagal membuat token"})
+	}
+	return c.JSON(out)
+}
+
+func GoogleLogin(c *fiber.Ctx) error {
+	type Input struct {
+		IDToken string `json:"id_token"`
+		Token   string `json:"token"`
+	}
+	var input Input
+	if err := c.BodyParser(&input); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid input"})
+	}
+	input.IDToken = strings.TrimSpace(input.IDToken)
+	input.Token = strings.TrimSpace(input.Token)
+	if input.IDToken == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "id_token wajib diisi"})
 	}
 
-	return c.JSON(fiber.Map{
-		"token": t,
-		"user": fiber.Map{
-			"id":           profile.UserID,
-			"email":        profile.Email,
-			"display_name": profile.DisplayName,
-			"role":         userRole.Role,
-		},
-	})
+	googleClientID := strings.TrimSpace(os.Getenv("GOOGLE_CLIENT_ID"))
+	if googleClientID == "" {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Google login belum dikonfigurasi"})
+	}
+
+	tokenInfoURL := "https://oauth2.googleapis.com/tokeninfo?id_token=" + url.QueryEscape(input.IDToken)
+	httpClient := &http.Client{Timeout: 8 * time.Second}
+	resp, err := httpClient.Get(tokenInfoURL)
+	if err != nil || resp == nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Token Google tidak valid"})
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Token Google tidak valid"})
+	}
+
+	type tokenInfo struct {
+		Aud           string `json:"aud"`
+		Email         string `json:"email"`
+		EmailVerified string `json:"email_verified"`
+		Name          string `json:"name"`
+		Picture       string `json:"picture"`
+	}
+	var ti tokenInfo
+	if err := json.NewDecoder(resp.Body).Decode(&ti); err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Token Google tidak valid"})
+	}
+	if strings.TrimSpace(ti.Aud) != googleClientID {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Token Google tidak valid"})
+	}
+	email := strings.TrimSpace(strings.ToLower(ti.Email))
+	if email == "" || !strings.Contains(email, "@") {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Akun Google tidak valid"})
+	}
+	if strings.TrimSpace(strings.ToLower(ti.EmailVerified)) != "true" {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Email Google belum terverifikasi"})
+	}
+
+	db := database.DB
+	var profile models.Profile
+	err = db.Where("email = ?", email).First(&profile).Error
+	if err != nil {
+		userID := uuid.New()
+		displayName := strings.TrimSpace(ti.Name)
+		if displayName == "" {
+			displayName = email
+		}
+		profile = models.Profile{
+			UserID:      userID,
+			Email:       email,
+			Password:    "",
+			DisplayName: displayName,
+			AvatarURL:   strings.TrimSpace(ti.Picture),
+		}
+		if err := db.Create(&profile).Error; err != nil {
+			if strings.Contains(strings.ToLower(err.Error()), "duplicate") || strings.Contains(strings.ToLower(err.Error()), "unique") {
+				return c.Status(fiber.StatusConflict).JSON(fiber.Map{"error": "Email sudah terdaftar"})
+			}
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Gagal membuat user"})
+		}
+		db.Create(&models.UserRole{UserID: userID, Role: "pembaca"})
+	} else {
+		updates := map[string]any{}
+		if strings.TrimSpace(profile.DisplayName) == "" && strings.TrimSpace(ti.Name) != "" {
+			updates["display_name"] = strings.TrimSpace(ti.Name)
+		}
+		if strings.TrimSpace(profile.AvatarURL) == "" && strings.TrimSpace(ti.Picture) != "" {
+			updates["avatar_url"] = strings.TrimSpace(ti.Picture)
+		}
+		if len(updates) > 0 {
+			db.Model(&profile).Updates(updates)
+			db.Where("user_id = ?", profile.UserID).First(&profile)
+		}
+	}
+
+	var userRole models.UserRole
+	if err := db.Where("user_id = ?", profile.UserID).First(&userRole).Error; err != nil || strings.TrimSpace(userRole.Role) == "" {
+		userRole = models.UserRole{UserID: profile.UserID, Role: "pembaca"}
+		db.Create(&userRole)
+	}
+
+	if userRole.Role == "admin" {
+		if err := validateAdminToken(db, input.Token); err != nil {
+			if ferr, ok := err.(*fiber.Error); ok {
+				return c.Status(ferr.Code).JSON(fiber.Map{"error": ferr.Message})
+			}
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Token administrator tidak valid!"})
+		}
+	}
+
+	out, err := issueJWT(profile, userRole.Role)
+	if err != nil {
+		if ferr, ok := err.(*fiber.Error); ok {
+			return c.Status(ferr.Code).JSON(fiber.Map{"error": ferr.Message})
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Gagal membuat token"})
+	}
+	return c.JSON(out)
 }
 
 func Register(c *fiber.Ctx) error {
