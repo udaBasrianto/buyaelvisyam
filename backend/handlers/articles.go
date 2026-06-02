@@ -285,7 +285,7 @@ func ExportArticle(c *fiber.Ctx) error {
 	}
 
 	var p models.Profile
-	db.Select("display_name").Where("user_id = ?", a.AuthorID).First(&p)
+	db.Model(&models.Profile{}).Select("display_name").Where("user_id = ?", a.AuthorID).Limit(1).Find(&p)
 
 	cats := a.Categories
 	if len(cats) == 0 && a.Category != "" {
@@ -309,7 +309,12 @@ func ExportArticle(c *fiber.Ctx) error {
 		YoutubeURL:   a.YoutubeURL,
 		Author: ExportAuthor{
 			ID:   a.AuthorID.String(),
-			Name: p.DisplayName,
+			Name: func() string {
+				if p.DisplayName != "" {
+					return p.DisplayName
+				}
+				return "Ustadz"
+			}(),
 		},
 		CanonicalPath: "/artikel/" + a.Slug,
 		CreatedAt:     a.CreatedAt.UTC().Format(time.RFC3339),
@@ -343,8 +348,12 @@ func GetArticle(c *fiber.Ctx) error {
 	}
 	
 	var p models.Profile
-	db.Where("user_id = ?", article.AuthorID).First(&p)
-	article.AuthorName = p.DisplayName
+	db.Model(&models.Profile{}).Select("display_name").Where("user_id = ?", article.AuthorID).Limit(1).Find(&p)
+	if p.DisplayName != "" {
+		article.AuthorName = p.DisplayName
+	} else {
+		article.AuthorName = "Ustadz"
+	}
 
 	var count int64
 	db.Model(&models.Comment{}).Where("article_id = ?", article.ID).Count(&count)

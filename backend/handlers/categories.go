@@ -11,6 +11,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 func GetCategories(c *fiber.Ctx) error {
@@ -20,7 +21,7 @@ func GetCategories(c *fiber.Ctx) error {
 	// Check if we need to sync from articles (especially useful after imports)
 	type ArticleCats struct {
 		Category   string   `gorm:"column:category"`
-		Categories []string `gorm:"column:categories"`
+		Categories pq.StringArray `gorm:"column:categories"`
 	}
 	var rows []ArticleCats
 	db.Model(&models.Article{}).Select("category, categories").Find(&rows)
