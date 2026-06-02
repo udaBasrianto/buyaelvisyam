@@ -19,6 +19,7 @@ interface Settings {
   logo_url: string | null;
   favicon_url: string | null;
   footer_text: string;
+  google_client_id?: string;
   homepage_version: string;
   slider_style: string;
   scroll_to_top_version: string;
@@ -156,6 +157,7 @@ export function SiteSettingsManager() {
         logo_url: settings.logo_url,
         favicon_url: settings.favicon_url,
         footer_text: settings.footer_text.trim(),
+        google_client_id: settings.google_client_id?.trim() || "",
         homepage_version: settings.homepage_version,
         slider_style: settings.slider_style,
         scroll_to_top_version: settings.scroll_to_top_version,
@@ -473,6 +475,17 @@ export function SiteSettingsManager() {
             value={settings.google_analytics_id || ""} 
             onChange={(e) => setSettings({ ...settings, google_analytics_id: e.target.value })} 
             placeholder="G-XXXXXXXXXX"
+          />
+        </div>
+
+        <div>
+          <Label className="text-sm font-bold mb-1 block">Google Client ID</Label>
+          <div className="text-[10px] text-muted-foreground mb-3">Masukkan Client ID dari Google OAuth / Google Identity Services untuk tombol Login Google.</div>
+          <Input 
+            type="text" 
+            value={settings.google_client_id || ""} 
+            onChange={(e) => setSettings({ ...settings, google_client_id: e.target.value })} 
+            placeholder="xxxxx.apps.googleusercontent.com"
           />
         </div>
 

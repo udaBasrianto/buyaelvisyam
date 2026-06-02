@@ -211,7 +211,15 @@ func GoogleLogin(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "id_token wajib diisi"})
 	}
 
-	googleClientID := strings.TrimSpace(os.Getenv("GOOGLE_CLIENT_ID"))
+	googleClientID := ""
+	{
+		var settings models.SiteSettings
+		database.DB.First(&settings)
+		googleClientID = strings.TrimSpace(settings.GoogleClientID)
+		if googleClientID == "" {
+			googleClientID = strings.TrimSpace(os.Getenv("GOOGLE_CLIENT_ID"))
+		}
+	}
 	if googleClientID == "" {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Google login belum dikonfigurasi"})
 	}

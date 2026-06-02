@@ -225,7 +225,11 @@ func GetSiteSettings(c *fiber.Ctx) error {
 		settings.AdminToken = ""
 	}
 
-	settings.GoogleClientID = strings.TrimSpace(os.Getenv("GOOGLE_CLIENT_ID"))
+	envGoogleClientID := strings.TrimSpace(os.Getenv("GOOGLE_CLIENT_ID"))
+	if strings.TrimSpace(settings.GoogleClientID) == "" && envGoogleClientID != "" {
+		settings.GoogleClientID = envGoogleClientID
+		db.Model(&settings).Update("google_client_id", envGoogleClientID)
+	}
 
 	return c.JSON(settings)
 }
