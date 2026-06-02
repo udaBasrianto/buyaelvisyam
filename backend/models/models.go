@@ -297,6 +297,7 @@ type DonationCampaign struct {
 	ID           uuid.UUID  `gorm:"type:uuid;primaryKey" json:"id"`
 	Title        string     `gorm:"not null" json:"title"`
 	Description  string     `json:"description"`
+	ImageURL     string     `json:"image_url"`
 	TargetAmount int64      `gorm:"not null;default:0" json:"target_amount"`
 	Currency     string     `gorm:"default:'IDR'" json:"currency"`
 	IsActive     bool       `gorm:"default:true" json:"is_active"`

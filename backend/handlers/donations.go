@@ -57,6 +57,21 @@ func getOptionalUserID(c *fiber.Ctx) *uuid.UUID {
 	return &uid
 }
 
+func normalizeImageURL(s string) (string, error) {
+	val := strings.TrimSpace(s)
+	if val == "" {
+		return "", nil
+	}
+	lower := strings.ToLower(val)
+	if strings.HasPrefix(lower, "javascript:") || strings.HasPrefix(lower, "data:") {
+		return "", errors.New("invalid image url")
+	}
+	if strings.HasPrefix(val, "/uploads/") || strings.HasPrefix(val, "http://") || strings.HasPrefix(val, "https://") {
+		return val, nil
+	}
+	return "", errors.New("invalid image url")
+}
+
 func GetDonationSettings(c *fiber.Ctx) error {
 	db := database.DB
 
@@ -279,6 +294,7 @@ func GetPublicDonationCampaigns(c *fiber.Ctx) error {
 			"id":               cpn.ID,
 			"title":            cpn.Title,
 			"description":      cpn.Description,
+			"image_url":        cpn.ImageURL,
 			"target_amount":    cpn.TargetAmount,
 			"raised_amount":    raised,
 			"currency":         cpn.Currency,
@@ -668,6 +684,7 @@ func AdminGetDonationCampaigns(c *fiber.Ctx) error {
 			"id":               cpn.ID,
 			"title":            cpn.Title,
 			"description":      cpn.Description,
+			"image_url":        cpn.ImageURL,
 			"target_amount":    cpn.TargetAmount,
 			"raised_amount":    raised,
 			"currency":         cpn.Currency,
@@ -688,6 +705,7 @@ func AdminCreateDonationCampaign(c *fiber.Ctx) error {
 	type Input struct {
 		Title        string  `json:"title"`
 		Description  string  `json:"description"`
+		ImageURL     string  `json:"image_url"`
 		TargetAmount int64   `json:"target_amount"`
 		IsActive     *bool   `json:"is_active"`
 		SortOrder    *int    `json:"sort_order"`
@@ -703,6 +721,11 @@ func AdminCreateDonationCampaign(c *fiber.Ctx) error {
 	title := strings.TrimSpace(input.Title)
 	if title == "" {
 		return c.Status(400).JSON(fiber.Map{"error": "Judul program wajib diisi"})
+	}
+
+	imageURL, err := normalizeImageURL(input.ImageURL)
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "ImageURL tidak valid"})
 	}
 
 	if input.TargetAmount < 0 {
@@ -749,6 +772,7 @@ func AdminCreateDonationCampaign(c *fiber.Ctx) error {
 		ID:           uuid.New(),
 		Title:        title,
 		Description:  strings.TrimSpace(input.Description),
+		ImageURL:     imageURL,
 		TargetAmount: input.TargetAmount,
 		Currency:     "IDR",
 		IsActive:     isActive,
@@ -776,6 +800,7 @@ func AdminUpdateDonationCampaign(c *fiber.Ctx) error {
 	type Input struct {
 		Title        *string `json:"title"`
 		Description  *string `json:"description"`
+		ImageURL     *string `json:"image_url"`
 		TargetAmount *int64  `json:"target_amount"`
 		IsActive     *bool   `json:"is_active"`
 		SortOrder    *int    `json:"sort_order"`
@@ -821,6 +846,13 @@ func AdminUpdateDonationCampaign(c *fiber.Ctx) error {
 	}
 	if input.Description != nil {
 		cpn.Description = strings.TrimSpace(*input.Description)
+	}
+	if input.ImageURL != nil {
+		val, err := normalizeImageURL(*input.ImageURL)
+		if err != nil {
+			return c.Status(400).JSON(fiber.Map{"error": "ImageURL tidak valid"})
+		}
+		cpn.ImageURL = val
 	}
 	if input.TargetAmount != nil {
 		if *input.TargetAmount < 0 {

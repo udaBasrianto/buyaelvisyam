@@ -43,6 +43,7 @@ type DonationCampaignRow = {
   id: string;
   title: string;
   description: string;
+  image_url?: string;
   target_amount: number;
   raised_amount: number;
   currency: string;
@@ -118,9 +119,11 @@ export function DonationsManager() {
   const [campaignDialogOpen, setCampaignDialogOpen] = useState(false);
   const [editingCampaignId, setEditingCampaignId] = useState<string | null>(null);
   const [campaignSaving, setCampaignSaving] = useState(false);
+  const [campaignImageUploading, setCampaignImageUploading] = useState(false);
   const [campaignForm, setCampaignForm] = useState({
     title: "",
     description: "",
+    image_url: "",
     target_amount: 0,
     is_active: true,
     sort_order: 0,
@@ -294,6 +297,7 @@ export function DonationsManager() {
     setCampaignForm({
       title: "",
       description: "",
+      image_url: "",
       target_amount: 0,
       is_active: true,
       sort_order: 0,
@@ -306,6 +310,7 @@ export function DonationsManager() {
     setCampaignForm({
       title: c.title || "",
       description: c.description || "",
+      image_url: c.image_url || "",
       target_amount: Number(c.target_amount) || 0,
       is_active: !!c.is_active,
       sort_order: Number(c.sort_order) || 0,
@@ -313,9 +318,34 @@ export function DonationsManager() {
     setCampaignDialogOpen(true);
   };
 
+  const handleCampaignImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setCampaignImageUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+      const { data } = await api.post("/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setCampaignForm((p) => ({ ...p, image_url: data.url }));
+      toast({ title: "Gambar terunggah" });
+    } catch (err: any) {
+      toast({
+        title: "Gagal upload gambar",
+        description: err.response?.data?.error || err.message,
+        variant: "destructive",
+      });
+    } finally {
+      setCampaignImageUploading(false);
+    }
+  };
+
   const saveCampaign = async () => {
     const title = campaignForm.title.trim();
     const description = campaignForm.description.trim();
+    const image_url = (campaignForm.image_url || "").trim();
     const target_amount = Number(campaignForm.target_amount) || 0;
     const sort_order = Number(campaignForm.sort_order) || 0;
 
@@ -333,6 +363,7 @@ export function DonationsManager() {
       const payload = {
         title,
         description,
+        image_url,
         target_amount,
         is_active: !!campaignForm.is_active,
         sort_order,
@@ -564,8 +595,22 @@ export function DonationsManager() {
                       return (
                         <tr key={c.id} className="hover:bg-accent/10 transition-colors">
                           <td className="py-4 px-6">
-                            <div className="font-bold">{c.title}</div>
-                            {c.description ? <div className="text-[10px] text-muted-foreground line-clamp-2">{c.description}</div> : null}
+                            <div className="flex items-start gap-3">
+                              {c.image_url ? (
+                                <img
+                                  src={c.image_url}
+                                  alt={c.title}
+                                  className="h-12 w-12 rounded-xl object-cover border"
+                                  loading="lazy"
+                                />
+                              ) : null}
+                              <div className="min-w-0">
+                                <div className="font-bold">{c.title}</div>
+                                {c.description ? (
+                                  <div className="text-[10px] text-muted-foreground line-clamp-2">{c.description}</div>
+                                ) : null}
+                              </div>
+                            </div>
                             <div className="mt-2 h-2 w-56 bg-muted rounded-full overflow-hidden">
                               <div className="h-full bg-primary" style={{ width: `${pct}%` }} />
                             </div>
@@ -794,6 +839,31 @@ export function DonationsManager() {
             <div className="space-y-2">
               <Label>Deskripsi (opsional)</Label>
               <Textarea value={campaignForm.description} onChange={(e) => setCampaignForm((p) => ({ ...p, description: e.target.value }))} />
+            </div>
+            <div className="space-y-2">
+              <Label>Gambar (opsional)</Label>
+              <div className="flex items-center gap-2">
+                <Input type="file" accept="image/*" onChange={handleCampaignImageUpload} disabled={campaignSaving || campaignImageUploading} />
+                {campaignForm.image_url ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setCampaignForm((p) => ({ ...p, image_url: "" }))}
+                    disabled={campaignSaving || campaignImageUploading}
+                  >
+                    Hapus
+                  </Button>
+                ) : null}
+              </div>
+              {campaignForm.image_url ? (
+                <div className="rounded-xl overflow-hidden border">
+                  <img src={campaignForm.image_url} alt={campaignForm.title || "Program"} className="w-full h-40 object-cover" />
+                </div>
+              ) : (
+                <div className="text-xs text-muted-foreground">
+                  Upload gambar program agar tampil lebih menarik di halaman donasi.
+                </div>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">

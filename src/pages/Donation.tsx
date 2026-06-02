@@ -41,6 +41,7 @@ type DonationCampaign = {
   id: string;
   title: string;
   description: string;
+  image_url?: string;
   target_amount: number;
   raised_amount: number;
   currency: string;
@@ -264,14 +265,24 @@ export default function Donation() {
                         }`}
                       >
                         <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <div className="font-black truncate">{c.title}</div>
-                            {c.description ? (
-                              <div className="text-sm text-muted-foreground mt-1 line-clamp-2">{c.description}</div>
+                          <div className="flex items-start gap-3 min-w-0">
+                            {c.image_url ? (
+                              <img
+                                src={c.image_url}
+                                alt={c.title}
+                                className="h-14 w-14 rounded-xl object-cover border shrink-0"
+                                loading="lazy"
+                              />
                             ) : null}
+                            <div className="min-w-0">
+                              <div className="font-black truncate">{c.title}</div>
+                              {c.description ? (
+                                <div className="text-sm text-muted-foreground mt-1 line-clamp-2">{c.description}</div>
+                              ) : null}
+                            </div>
                           </div>
                           {selected ? (
-                            <div className="text-[10px] font-black uppercase tracking-widest text-primary">Dipilih</div>
+                            <div className="text-[10px] font-black uppercase tracking-widest text-primary shrink-0">Dipilih</div>
                           ) : null}
                         </div>
                         <div className="mt-4 space-y-2">
