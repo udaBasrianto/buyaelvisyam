@@ -15,7 +15,8 @@ export function NewsTicker() {
     api.get("/articles", { params: { limit: 5, status: "published" } })
       .then(({ data }) => {
         if (data) setHeadlines(data);
-      });
+      })
+      .catch(() => {});
   }, []);
 
   if (headlines.length === 0) return null;

@@ -13,7 +13,8 @@ import {
   ShieldAlert,
   Wallet,
   Trophy,
-  User
+  User,
+  HandHeart
 } from "lucide-react";
 import {
   Sidebar,
@@ -45,6 +46,7 @@ export function AdminSidebar({ activeTab, setActiveTab }: AdminSidebarProps) {
     { id: "categories", label: "Kategori", icon: FolderOpen },
     { id: "lms", label: "Akademi LMS", icon: GraduationCap },
     { id: "wallet", label: "Keuangan", icon: Wallet },
+    { id: "donations", label: "Donasi", icon: HandHeart },
     { id: "leaderboard", label: "Peringkat", icon: Trophy },
     { id: "navigation", label: "Menu Navigasi", icon: Menu },
     { id: "access_logs", label: "Security Logs", icon: ShieldAlert },
@@ -55,6 +57,7 @@ export function AdminSidebar({ activeTab, setActiveTab }: AdminSidebarProps) {
     { id: "whatsapp", label: "WhatsApp Bot", icon: MessageCircle },
     { id: "comments", label: "Komentar", icon: MessageCircle },
     { id: "users", label: "Pengguna", icon: Users },
+    { id: "profile", label: "Profil", icon: User },
   ];
 
   return (
@@ -105,15 +108,6 @@ export function AdminSidebar({ activeTab, setActiveTab }: AdminSidebarProps) {
       </SidebarContent>
       <SidebarFooter className="border-t p-4">
         <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              onClick={() => window.location.href = "/profile"}
-              className="mb-1"
-            >
-              <User className="h-4 w-4" />
-              <span>Profil Saya</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
               onClick={() => signOut()}

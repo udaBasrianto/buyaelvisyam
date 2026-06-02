@@ -34,7 +34,7 @@ export function useSiteSettings() {
         const { data } = await api.get("/settings");
         if (data) setSettings(data);
       } catch (err) {
-        console.error("Fetch settings failed", err);
+        return;
       } finally {
         setLoading(false);
       }

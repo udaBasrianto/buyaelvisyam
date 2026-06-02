@@ -236,13 +236,14 @@ func VerifyWhatsAppToken(c *fiber.Ctx) error {
 	tempPassword, _ := bcrypt.GenerateFromPassword([]byte(input.PhoneNumber), 14)
 
 	// Create profile
+	whatsappNumber := input.PhoneNumber
 	profile := models.Profile{
 		ID:               uuid.New(),
 		UserID:           userID,
 		Email:            email,
 		Password:         string(tempPassword),
 		DisplayName:      displayName,
-		WhatsAppNumber:   input.PhoneNumber,
+		WhatsAppNumber:   &whatsappNumber,
 		WhatsAppVerified: true,
 		CreatedAt:        time.Now(),
 		UpdatedAt:        time.Now(),

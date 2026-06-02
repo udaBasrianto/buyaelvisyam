@@ -52,9 +52,13 @@ func ConnectDB() {
 		&models.Enrollment{},
 		&models.Transaction{},
 		&models.Bookmark{},
+		&models.Donation{},
+		&models.BankAccount{},
 		&models.WhatsAppToken{},
 		&models.WhatsAppSession{},
 	)
+
+	db.Exec(`UPDATE profiles SET whats_app_number = NULL WHERE whats_app_number = ''`)
 
 	DB = db
 }

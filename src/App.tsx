@@ -23,6 +23,7 @@ import Courses from "./pages/Courses.tsx";
 import CourseDetail from "./pages/CourseDetail.tsx";
 import LessonView from "./pages/LessonView.tsx";
 import Profile from "./pages/Profile.tsx";
+import Donation from "./pages/Donation.tsx";
 import { ScrollToTop } from "./components/ScrollToTop";
 import { ThemeInitializer } from "./components/ThemeInitializer";
 import { GoogleAnalytics } from "./components/GoogleAnalytics";
@@ -41,7 +42,7 @@ function PageViewWrapper() {
 
 function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode; requiredRole?: string }) {
   const { user, role, loading } = useAuth();
-  if (loading) return <div className="min-h-screen flex items-center justify-center">Memuat...</div>;
+  if (loading) return <LoadingScreen />;
   if (!user) return <Navigate to="/auth" replace />;
   if (requiredRole && role !== requiredRole && role !== "admin") return <Navigate to="/" replace />;
   return <>{children}</>;
@@ -87,6 +88,7 @@ const App = () => (
                 <Profile />
               </ProtectedRoute>
             } />
+            <Route path="/donasi" element={<Donation />} />
             <Route path="/kategori/:slug" element={<CategoryPage />} />
             <Route path="/p/:slug" element={<PageViewWrapper />} />
             <Route path="/tentang" element={<About />} />
@@ -119,7 +121,7 @@ function SecretRouteHandler() {
   useEffect(() => {
     if (!slug) return;
     // Don't check for known static/admin paths
-    const knownPaths = ["auth", "login", "admin", "wp-admin", "masuk", "yaakhi"];
+    const knownPaths = ["auth", "login", "admin", "wp-admin", "masuk", "yaakhi", "donasi"];
     if (knownPaths.includes(slug)) { setArticleExists(false); return; }
     api.get(`/articles/${slug}`)
       .then(() => setArticleExists(true))
@@ -129,7 +131,7 @@ function SecretRouteHandler() {
   useEffect(() => {
     if (settingsLoading) return;
     if (settings.admin_slug && slug === settings.admin_slug) return;
-    const sensitivePaths = ["auth", "login", "admin", "wp-admin", "masuk", "yaakhi"];
+    const sensitivePaths = ["auth", "login", "admin", "wp-admin", "masuk", "yaakhi", "donasi"];
     if (sensitivePaths.includes(slug || "")) {
       api.post("/log-attempt", { path: `/${slug}`, status: "blocked" });
       navigate("/", { replace: true });
@@ -138,12 +140,7 @@ function SecretRouteHandler() {
 
   // Still loading settings or article check
   if (settingsLoading || articleExists === null) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background">
-        <div className="h-10 w-10 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p className="text-sm font-medium animate-pulse">Memuat...</p>
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   // Secret admin route
@@ -156,6 +153,24 @@ function SecretRouteHandler() {
   if (articleExists) return <ArticleDetail />;
 
   return <NotFound />;
+}
+
+function LoadingScreen() {
+  const { settings } = useSiteSettings();
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="flex flex-col items-center gap-4">
+        {settings.logo_url ? (
+          <img src={settings.logo_url} alt={settings.site_name} className="h-14 w-auto object-contain" />
+        ) : (
+          <div className="h-14 w-14 rounded-2xl islamic-gradient flex items-center justify-center text-primary-foreground font-black text-2xl">
+            {settings.site_name?.charAt(0)?.toUpperCase() || "B"}
+          </div>
+        )}
+        <div className="h-10 w-10 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+      </div>
+    </div>
+  );
 }
 
 export default App;

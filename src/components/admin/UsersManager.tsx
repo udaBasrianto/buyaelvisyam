@@ -5,6 +5,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
@@ -14,8 +17,9 @@ import api from "@/lib/api";
 interface UserProfile {
   id: string;
   user_id: string;
+  email: string;
   display_name: string;
-  whatsapp_number: string;
+  whatsapp_number: string | null;
   role: string;
   articles: number;
   created_at: string;
@@ -32,6 +36,25 @@ export function UsersManager() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [createForm, setCreateForm] = useState({
+    display_name: "",
+    email: "",
+    password: "",
+    whatsapp_number: "",
+    role: "pembaca",
+  });
+  const [editForm, setEditForm] = useState({
+    display_name: "",
+    email: "",
+    password: "",
+    whatsapp_number: "",
+    role: "pembaca",
+  });
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -73,8 +96,110 @@ export function UsersManager() {
     }
   };
 
+  const openEditUser = (user: UserProfile) => {
+    setEditingUserId(user.user_id);
+    setEditForm({
+      display_name: user.display_name || "",
+      email: user.email || "",
+      password: "",
+      whatsapp_number: user.whatsapp_number || "",
+      role: user.role || "pembaca",
+    });
+    setEditOpen(true);
+  };
+
+  const handleCreateUser = async () => {
+    const email = createForm.email.trim();
+    const displayName = createForm.display_name.trim();
+    const password = createForm.password.trim();
+    const whatsapp = createForm.whatsapp_number.trim();
+    const role = createForm.role;
+
+    if (!displayName || !email || !password) {
+      toast({ title: "Error", description: "Nama, email, dan password wajib diisi", variant: "destructive" });
+      return;
+    }
+
+    setCreating(true);
+    try {
+      await api.post("/users", {
+        display_name: displayName,
+        email,
+        password,
+        whatsapp_number: whatsapp,
+        role,
+      });
+      toast({ title: "Berhasil", description: "Pengguna berhasil dibuat" });
+      setCreateOpen(false);
+      setCreateForm({ display_name: "", email: "", password: "", whatsapp_number: "", role: "pembaca" });
+      fetchUsers();
+    } catch (error: any) {
+      toast({
+        title: "Gagal membuat pengguna",
+        description: error.response?.data?.error || error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleUpdateUser = async () => {
+    if (!editingUserId) return;
+
+    const email = editForm.email.trim();
+    const displayName = editForm.display_name.trim();
+    const password = editForm.password.trim();
+    const whatsapp = editForm.whatsapp_number.trim();
+    const role = editForm.role;
+
+    if (!displayName || !email) {
+      toast({ title: "Error", description: "Nama dan email wajib diisi", variant: "destructive" });
+      return;
+    }
+    if (password && password.length < 8) {
+      toast({ title: "Error", description: "Password minimal 8 karakter", variant: "destructive" });
+      return;
+    }
+
+    const payload: any = {
+      display_name: displayName,
+      email,
+      whatsapp_number: whatsapp,
+      role,
+    };
+    if (password) payload.password = password;
+
+    setEditing(true);
+    try {
+      await api.put(`/users/${editingUserId}`, payload);
+      toast({ title: "Berhasil", description: "Pengguna berhasil diubah" });
+      setEditOpen(false);
+      setEditingUserId(null);
+      setEditForm({ display_name: "", email: "", password: "", whatsapp_number: "", role: "pembaca" });
+      fetchUsers();
+    } catch (error: any) {
+      if (error?.response?.status === 405) {
+        toast({
+          title: "Gagal mengubah pengguna",
+          description: "Endpoint update user belum aktif di backend (server belum restart / belum terdeploy). Restart backend lalu coba lagi.",
+          variant: "destructive",
+        });
+        return;
+      }
+      toast({
+        title: "Gagal mengubah pengguna",
+        description: error.response?.data?.error || error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setEditing(false);
+    }
+  };
+
   const filtered = users.filter(u => 
     u.display_name?.toLowerCase().includes(search.toLowerCase()) || 
+    u.email?.toLowerCase().includes(search.toLowerCase()) ||
     u.whatsapp_number?.includes(search)
   );
 
@@ -84,14 +209,17 @@ export function UsersManager() {
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input 
-            placeholder="Cari nama atau nomor WA..." 
+            placeholder="Cari nama, email, atau nomor WA..." 
             className="pl-9 h-11"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <Button className="gap-2 h-11 px-6 shadow-lg shadow-primary/20">
-          <UserPlus className="h-4 w-4" /> Tambah Admin
+        <Button
+          className="gap-2 h-11 px-6 shadow-lg shadow-primary/20"
+          onClick={() => setCreateOpen(true)}
+        >
+          <UserPlus className="h-4 w-4" /> Tambah Pengguna
         </Button>
       </div>
 
@@ -129,6 +257,7 @@ export function UsersManager() {
                         </div>
                         <div>
                           <p className="font-bold text-foreground">{u.display_name}</p>
+                          <p className="text-xs text-muted-foreground font-medium mt-0.5">{u.email}</p>
                           <p className="text-[10px] text-muted-foreground font-medium mt-0.5 uppercase tracking-tighter">ID: {u.user_id.slice(0, 8)}</p>
                         </div>
                       </div>
@@ -167,6 +296,10 @@ export function UsersManager() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48 p-1 rounded-xl">
+                          <DropdownMenuItem className="gap-2 cursor-pointer rounded-lg mb-1" onClick={() => openEditUser(u)}>
+                            <Edit className="h-4 w-4 text-blue-500" /> Edit Pengguna
+                          </DropdownMenuItem>
+                          <div className="h-px bg-border my-1" />
                           <DropdownMenuItem className="gap-2 cursor-pointer rounded-lg mb-1" onClick={() => handleUpdateRole(u.user_id, "admin")}>
                             <Shield className="h-4 w-4 text-primary" /> Jadikan Admin
                           </DropdownMenuItem>
@@ -190,6 +323,146 @@ export function UsersManager() {
           </div>
         )}
       </div>
+
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Tambah Pengguna</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Nama</Label>
+              <Input
+                value={createForm.display_name}
+                onChange={(e) => setCreateForm((p) => ({ ...p, display_name: e.target.value }))}
+                placeholder="Nama lengkap"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Email</Label>
+              <Input
+                type="email"
+                value={createForm.email}
+                onChange={(e) => setCreateForm((p) => ({ ...p, email: e.target.value }))}
+                placeholder="email@domain.com"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Password</Label>
+              <Input
+                type="password"
+                value={createForm.password}
+                onChange={(e) => setCreateForm((p) => ({ ...p, password: e.target.value }))}
+                placeholder="••••••••"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Nomor WhatsApp (opsional)</Label>
+              <Input
+                inputMode="tel"
+                value={createForm.whatsapp_number}
+                onChange={(e) => setCreateForm((p) => ({ ...p, whatsapp_number: e.target.value }))}
+                placeholder="62xxxxxxxxxx atau 08xxxxxxxxxx"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Role</Label>
+              <Select value={createForm.role} onValueChange={(v) => setCreateForm((p) => ({ ...p, role: v }))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pembaca">Pembaca</SelectItem>
+                  <SelectItem value="kontributor">Kontributor</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setCreateOpen(false)} disabled={creating}>
+              Batal
+            </Button>
+            <Button onClick={handleCreateUser} disabled={creating}>
+              {creating ? "Menyimpan..." : "Simpan"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Pengguna</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Nama</Label>
+              <Input
+                value={editForm.display_name}
+                onChange={(e) => setEditForm((p) => ({ ...p, display_name: e.target.value }))}
+                placeholder="Nama lengkap"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Email</Label>
+              <Input
+                type="email"
+                value={editForm.email}
+                onChange={(e) => setEditForm((p) => ({ ...p, email: e.target.value }))}
+                placeholder="email@domain.com"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Password (opsional)</Label>
+              <Input
+                type="password"
+                value={editForm.password}
+                onChange={(e) => setEditForm((p) => ({ ...p, password: e.target.value }))}
+                placeholder="Kosongkan jika tidak diubah"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Nomor WhatsApp</Label>
+              <Input
+                inputMode="tel"
+                value={editForm.whatsapp_number}
+                onChange={(e) => setEditForm((p) => ({ ...p, whatsapp_number: e.target.value }))}
+                placeholder="Kosongkan untuk menghapus"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Role</Label>
+              <Select value={editForm.role} onValueChange={(v) => setEditForm((p) => ({ ...p, role: v }))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pembaca">Pembaca</SelectItem>
+                  <SelectItem value="kontributor">Kontributor</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setEditOpen(false)} disabled={editing}>
+              Batal
+            </Button>
+            <Button onClick={handleUpdateUser} disabled={editing}>
+              {editing ? "Menyimpan..." : "Simpan"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

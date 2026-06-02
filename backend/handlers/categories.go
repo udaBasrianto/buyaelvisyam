@@ -164,17 +164,28 @@ func GetSiteSettings(c *fiber.Ctx) error {
 	db := database.DB
 	var settings models.SiteSettings
 	if err := db.First(&settings).Error; err != nil {
+		adminToken := strings.TrimSpace(os.Getenv("ADMIN_TOKEN"))
+		if adminToken == "" {
+			adminToken = "090124"
+		}
+
 		// Initialize if missing
 		settings = models.SiteSettings{
 			ID: uuid.New(),
-			SiteName: "Buyaelvisyam.id",
-			Tagline: "Berilmu Sebelum Beramal",
-			AdminSlug: "yaakhi",
-			HeroTitle: "Editors Choice",
-			RecentTitle: "Recent Stories",
-			HomepageVersion: "v2",
-			SliderStyle: "v3",
-			UpdatedAt: time.Now(),
+			SiteName:         "Buyaelvisyam.id",
+			Tagline:          "Berilmu Sebelum Beramal",
+			HomepageVersion:  "v2",
+			ScrollToTopVersion: "animated",
+			AdminToken:       adminToken,
+			AdminSlug:        "yaakhi",
+			HeroTitle:        "Editors Choice",
+			RecentTitle:      "Recent Stories",
+			SliderStyle:      "v3",
+			ShowFeatureBar:   true,
+			ShowChatbot:      true,
+			DonationTitle:    "Donasi",
+			ShowDonors:       true,
+			UpdatedAt:        time.Now(),
 		}
 		db.Create(&settings)
 	}

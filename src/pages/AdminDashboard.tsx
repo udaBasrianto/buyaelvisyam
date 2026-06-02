@@ -25,6 +25,7 @@ import { WordPressImportDialog } from "@/components/WordPressImportDialog";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { WhatsAppSettingsManager } from "@/components/admin/WhatsAppSettingsManager";
 import { UsersManager } from "@/components/admin/UsersManager";
+import { DonationsManager } from "@/components/admin/DonationsManager";
 
 import {
   SidebarProvider,
@@ -32,6 +33,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { MoreVertical, Edit, Trash2 } from "lucide-react";
+import Profile from "./Profile";
 
 // removed mockUsers as we use real data now
 
@@ -147,6 +149,10 @@ export default function AdminDashboard() {
         return <AccessLogsManager />;
       case "users":
         return <UsersManager />;
+      case "donations":
+        return <DonationsManager />;
+      case "profile":
+        return <Profile embedded />;
       default:
         return <AnalyticsDashboard />;
     }
@@ -167,6 +173,8 @@ export default function AdminDashboard() {
       case "access_logs": return "Log Keamanan Akses";
       case "users": return "Manajemen Pengguna";
       case "comments": return "Manajemen Komentar";
+      case "donations": return "Donasi";
+      case "profile": return "Profil";
       default: return "Admin Panel";
     }
   };

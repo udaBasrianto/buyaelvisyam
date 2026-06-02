@@ -46,7 +46,7 @@ export function Sidebar({ placement = "detail", articleContent }: SidebarProps) 
     const loadSidebarData = async () => {
       try {
         const [articlesRes, categoriesRes, widgetsRes, settingsRes] = await Promise.all([
-          api.get("/blog/latest?limit=5"),
+          api.get("/articles", { params: { limit: 5, status: "published" } }),
           api.get("/categories"),
           api.get("/widgets?is_active=true"),
           api.get("/settings")
@@ -54,6 +54,8 @@ export function Sidebar({ placement = "detail", articleContent }: SidebarProps) 
 
         if (Array.isArray(articlesRes.data)) {
           setArticles(articlesRes.data);
+        } else {
+          setArticles([]);
         }
         if (Array.isArray(categoriesRes.data)) {
           setCategories(categoriesRes.data.filter((c: any) => c.article_count > 0).slice(0, 8));
@@ -96,11 +98,15 @@ export function Sidebar({ placement = "detail", articleContent }: SidebarProps) 
           </div>
         </div>
         <div className="space-y-4">
-          {articles.length === 0 ? (
+          {loading ? (
             <div className="space-y-3">
               {[1, 2, 3].map(i => (
                 <div key={i} className="h-12 w-full bg-muted animate-pulse rounded-lg" />
               ))}
+            </div>
+          ) : articles.length === 0 ? (
+            <div className="text-sm text-muted-foreground">
+              Belum ada artikel terbaru.
             </div>
           ) : articles.map((a, i) => (
             <Link

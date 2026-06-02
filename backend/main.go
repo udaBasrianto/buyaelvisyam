@@ -205,6 +205,11 @@ func main() {
 	// Settings
 	api.Get("/settings", handlers.GetSiteSettings)
 
+	// Donations
+	api.Get("/donations/settings", handlers.GetDonationSettings)
+	api.Get("/donations", handlers.GetPublicDonations)
+	api.Post("/donations", handlers.CreateDonation)
+
 	// Blog API for Mobile/Android
 	blog := api.Group("/blog")
 	blog.Get("/latest", handlers.GetLatestArticles)
@@ -240,6 +245,14 @@ func main() {
 	api.Post("/import-export", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.ImportExportV1)
 	api.Post("/analytics/track", handlers.TrackVisit)
 	api.Get("/admin/analytics", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.GetAnalytics)
+	api.Get("/admin/donations", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.AdminGetDonations)
+	api.Put("/admin/donations/settings", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.AdminUpdateDonationSettings)
+	api.Put("/admin/donations/:id/status", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.AdminUpdateDonationStatus)
+	api.Delete("/admin/donations/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.AdminDeleteDonation)
+	api.Get("/admin/bank-accounts", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.AdminGetBankAccounts)
+	api.Post("/admin/bank-accounts", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.AdminCreateBankAccount)
+	api.Put("/admin/bank-accounts/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.AdminUpdateBankAccount)
+	api.Delete("/admin/bank-accounts/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.AdminDeleteBankAccount)
 
 	// Widgets
 	api.Get("/widgets", handlers.GetWidgets)
@@ -249,6 +262,8 @@ func main() {
 
 	// Users
 	api.Get("/users", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.GetUsers)
+	api.Post("/users", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.CreateUser)
+	api.Put("/users/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.UpdateUser)
 	api.Put("/users/:id/role", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.UpdateUserRole)
 	api.Delete("/users/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.DeleteUser)
 

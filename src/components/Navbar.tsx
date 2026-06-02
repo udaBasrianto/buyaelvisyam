@@ -39,9 +39,15 @@ export function Navbar() {
 
   // Navigation Manager is the single source of truth for menu items
   const lmsLabel = (settings as any).lms_menu_label || "Akademi";
-  const rawNavItems = dbNavItems.length > 0 
+  const rawNavItemsBase = dbNavItems.length > 0 
     ? dbNavItems.filter(i => i.is_active).map(i => ({ id: i.id, label: i.label, href: i.url, isExternal: i.is_external, parent_id: i.parent_id }))
     : baseNavItems.map(i => ({ ...i, id: i.label, label: i.label === "__LMS__" ? lmsLabel : i.label, isExternal: false, parent_id: null }));
+
+  const rawNavItems = (() => {
+    const hasDonation = rawNavItemsBase.some((i: any) => (i?.href || "").toLowerCase() === "/donasi" || (i?.label || "").toLowerCase() === "donasi");
+    if (hasDonation) return rawNavItemsBase;
+    return [...rawNavItemsBase, { id: "donasi", label: "Donasi", href: "/donasi", isExternal: false, parent_id: null }];
+  })();
 
   // Nest children under parents
   const navItems = rawNavItems.filter(item => !item.parent_id).map(parent => ({

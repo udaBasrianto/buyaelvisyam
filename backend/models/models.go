@@ -111,7 +111,7 @@ type Profile struct {
 	Password          string     `json:"-"`
 	DisplayName       string     `json:"display_name"`
 	AvatarURL         string     `json:"avatar_url"`
-	WhatsAppNumber    string     `gorm:"unique" json:"whatsapp_number"`
+	WhatsAppNumber    *string    `gorm:"uniqueIndex" json:"whatsapp_number"`
 	WhatsAppVerified  bool       `gorm:"default:false" json:"whatsapp_verified"`
 	CreatedAt         time.Time  `json:"created_at"`
 	UpdatedAt         time.Time  `json:"updated_at"`
@@ -219,6 +219,10 @@ type SiteSettings struct {
 	LmsSubtitle         string    `gorm:"default:'Akses materi kajian eksklusif, video tutorial, dan kuis interaktif dari Ustadz-Ustadz terpercaya.'" json:"lms_subtitle"`
 	ShowFeatureBar      bool      `gorm:"default:true" json:"show_feature_bar"`
 	ShowChatbot         bool      `gorm:"default:true" json:"show_chatbot"`
+	DonationTitle       string    `gorm:"default:'Donasi'" json:"donation_title"`
+	DonationDescription string    `json:"donation_description"`
+	DonationInstructions string   `json:"donation_instructions"`
+	ShowDonors          bool      `gorm:"default:true" json:"show_donors"`
 	UpdatedBy           uuid.UUID `gorm:"type:uuid" json:"updated_by"`
 	UpdatedAt           time.Time `json:"updated_at"`
 }
@@ -265,6 +269,39 @@ type Transaction struct {
 	Reference string    `json:"reference"` // description or course title
 	ProofURL  string    `json:"proof_url"`
 	CreatedAt time.Time `json:"created_at"`
+}
+
+type Donation struct {
+	ID           uuid.UUID  `gorm:"type:uuid;primaryKey" json:"id"`
+	UserID       *uuid.UUID `gorm:"type:uuid" json:"user_id"`
+	BankAccountID *uuid.UUID `gorm:"type:uuid" json:"bank_account_id"`
+	Amount       int64      `gorm:"not null" json:"amount"`
+	Currency     string     `gorm:"default:'IDR'" json:"currency"`
+	DonorName    string     `json:"donor_name"`
+	IsAnonymous  bool       `gorm:"default:false" json:"is_anonymous"`
+	WhatsAppNumber *string  `json:"whatsapp_number"`
+	Message      string     `json:"message"`
+	ProofURL     string     `json:"proof_url"`
+	SenderName   string     `json:"sender_name"`
+	SenderBank   string     `json:"sender_bank"`
+	SenderAccountNumber string `json:"sender_account_number"`
+	TransferDate *time.Time `json:"transfer_date"`
+	Status       string     `gorm:"default:'pending'" json:"status"`
+	AdminNote    string     `json:"admin_note"`
+	CreatedAt    time.Time  `json:"created_at"`
+	UpdatedAt    time.Time  `json:"updated_at"`
+}
+
+type BankAccount struct {
+	ID            uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
+	BankName      string    `gorm:"not null" json:"bank_name"`
+	AccountNumber string    `gorm:"not null" json:"account_number"`
+	AccountHolder string    `gorm:"not null" json:"account_holder"`
+	Note          string    `json:"note"`
+	IsActive      bool      `gorm:"default:true" json:"is_active"`
+	SortOrder     int       `gorm:"default:0" json:"sort_order"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
 }
 
 type Visit struct {

@@ -3,6 +3,7 @@ package handlers
 import (
 	"crypto/subtle"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -13,6 +14,36 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
+
+var nonDigits = regexp.MustCompile(`\D+`)
+
+func normalizeWhatsAppNumber(input string) (string, error) {
+	raw := strings.TrimSpace(input)
+	if raw == "" {
+		return "", fiber.NewError(fiber.StatusBadRequest, "Nomor WhatsApp wajib diisi")
+	}
+
+	digits := nonDigits.ReplaceAllString(raw, "")
+	if digits == "" {
+		return "", fiber.NewError(fiber.StatusBadRequest, "Nomor WhatsApp tidak valid")
+	}
+
+	switch {
+	case strings.HasPrefix(digits, "62"):
+	case strings.HasPrefix(digits, "0"):
+		digits = "62" + strings.TrimPrefix(digits, "0")
+	case strings.HasPrefix(digits, "8"):
+		digits = "62" + digits
+	default:
+		return "", fiber.NewError(fiber.StatusBadRequest, "Format nomor WhatsApp tidak valid. Gunakan 62xxxxxxxxxx atau 08xxxxxxxxxx")
+	}
+
+	if len(digits) < 10 || len(digits) > 15 {
+		return "", fiber.NewError(fiber.StatusBadRequest, "Format nomor WhatsApp tidak valid. Gunakan 62xxxxxxxxxx")
+	}
+
+	return digits, nil
+}
 
 // CheckPasswordHash compare password with hash
 func CheckPasswordHash(password, hash string) bool {
@@ -101,7 +132,7 @@ func Login(c *fiber.Ctx) error {
 		var settings models.SiteSettings
 		db.First(&settings)
 		tokenToCheck := strings.TrimSpace(settings.AdminToken)
-		if tokenToCheck == "" || tokenToCheck == "090124" {
+		if tokenToCheck == "" {
 			tokenToCheck = strings.TrimSpace(os.Getenv("ADMIN_TOKEN"))
 		}
 		if tokenToCheck == "" {
@@ -215,7 +246,9 @@ func Me(c *fiber.Ctx) error {
 		"display_name": profile.DisplayName,
 		"role":         userRole.Role,
 		"avatar_url":   profile.AvatarURL,
-		"whatsapp":     profile.WhatsAppNumber,
+		"whatsapp":          profile.WhatsAppNumber,
+		"whatsapp_number":   profile.WhatsAppNumber,
+		"whatsapp_verified": profile.WhatsAppVerified,
 	})
 }
 
@@ -225,10 +258,11 @@ func UpdateProfile(c *fiber.Ctx) error {
 	userIDStr := claims["user_id"].(string)
 
 	type UpdateInput struct {
-		DisplayName string `json:"display_name"`
-		Email       string `json:"email"`
-		AvatarURL   string `json:"avatar_url"`
-		Password    string `json:"password"`
+		DisplayName    string `json:"display_name"`
+		Email          string `json:"email"`
+		AvatarURL      string `json:"avatar_url"`
+		Password       string `json:"password"`
+		WhatsAppNumber string `json:"whatsapp_number"`
 	}
 
 	var input UpdateInput
@@ -251,6 +285,19 @@ func UpdateProfile(c *fiber.Ctx) error {
 	if input.AvatarURL != "" {
 		profile.AvatarURL = input.AvatarURL
 	}
+	if strings.TrimSpace(input.WhatsAppNumber) != "" {
+		normalized, err := normalizeWhatsAppNumber(input.WhatsAppNumber)
+		if err != nil {
+			if ferr, ok := err.(*fiber.Error); ok {
+				return c.Status(ferr.Code).JSON(fiber.Map{"error": ferr.Message})
+			}
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Nomor WhatsApp tidak valid"})
+		}
+		if profile.WhatsAppNumber == nil || *profile.WhatsAppNumber != normalized {
+			profile.WhatsAppNumber = &normalized
+			profile.WhatsAppVerified = false
+		}
+	}
 	if input.Password != "" {
 		hashedPassword, err := HashPassword(input.Password)
 		if err != nil {
@@ -261,7 +308,14 @@ func UpdateProfile(c *fiber.Ctx) error {
 
 	if err := db.Save(&profile).Error; err != nil {
 		if strings.Contains(strings.ToLower(err.Error()), "duplicate") || strings.Contains(strings.ToLower(err.Error()), "unique") {
-			return c.Status(fiber.StatusConflict).JSON(fiber.Map{"error": "Email sudah terpakai"})
+			msg := "Data sudah terpakai"
+			lower := strings.ToLower(err.Error())
+			if strings.Contains(lower, "email") {
+				msg = "Email sudah terpakai"
+			} else if strings.Contains(lower, "whats") || strings.Contains(lower, "whatsapp") {
+				msg = "Nomor WhatsApp sudah terpakai"
+			}
+			return c.Status(fiber.StatusConflict).JSON(fiber.Map{"error": msg})
 		}
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to update profile"})
 	}

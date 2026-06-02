@@ -4,11 +4,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { LogIn, Mail, Lock } from "lucide-react";
+import { LogIn, Mail, Lock, KeyRound } from "lucide-react";
 
 export default function AdminLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [token, setToken] = useState("");
   const [loading, setLoading] = useState(false);
   const { signIn } = useAuth();
   const { toast } = useToast();
@@ -18,7 +19,7 @@ export default function AdminLogin() {
     e.preventDefault();
     setLoading(true);
 
-    const { error } = await signIn(email, password, "");
+    const { error } = await signIn(email, password, token);
     if (error) {
       toast({ title: "Gagal masuk", description: error, variant: "destructive" });
     } else {
@@ -69,6 +70,20 @@ export default function AdminLogin() {
                 className="pl-12 h-12 rounded-lg bg-slate-700 border-slate-600 text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500"
                 required
                 minLength={6}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">Token Admin</label>
+            <div className="relative">
+              <KeyRound className="absolute left-4 top-3.5 h-5 w-5 text-slate-500" />
+              <Input
+                type="password"
+                placeholder="Masukkan token admin"
+                value={token}
+                onChange={(e) => setToken(e.target.value)}
+                className="pl-12 h-12 rounded-lg bg-slate-700 border-slate-600 text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-blue-500"
               />
             </div>
           </div>

@@ -25,7 +25,7 @@ export function GoogleAnalytics() {
           document.head.appendChild(script2);
         }
       } catch (err) {
-        console.error("Failed to load Google Analytics settings", err);
+        return;
       }
     };
 
