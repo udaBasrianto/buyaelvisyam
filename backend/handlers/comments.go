@@ -26,13 +26,70 @@ func GetComments(c *fiber.Ctx) error {
 		query = query.Where("user_id = ?", userID)
 	}
 
-	query.Find(&comments)
+	if err := query.Find(&comments).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Gagal memuat komentar"})
+	}
+
+	userIDSet := make(map[uuid.UUID]struct{})
+	articleIDSet := make(map[uuid.UUID]struct{})
+	for i := range comments {
+		userIDSet[comments[i].UserID] = struct{}{}
+		articleIDSet[comments[i].ArticleID] = struct{}{}
+	}
+
+	userIDs := make([]uuid.UUID, 0, len(userIDSet))
+	for id := range userIDSet {
+		userIDs = append(userIDs, id)
+	}
+
+	type ProfileRow struct {
+		UserID      uuid.UUID
+		DisplayName string
+	}
+	displayNameByUserID := make(map[uuid.UUID]string, len(userIDs))
+	if len(userIDs) > 0 {
+		var rows []ProfileRow
+		db.Model(&models.Profile{}).
+			Select("user_id, display_name").
+			Where("user_id IN ?", userIDs).
+			Find(&rows)
+		for _, r := range rows {
+			if r.DisplayName != "" {
+				displayNameByUserID[r.UserID] = r.DisplayName
+			}
+		}
+	}
+
+	articleIDs := make([]uuid.UUID, 0, len(articleIDSet))
+	for id := range articleIDSet {
+		articleIDs = append(articleIDs, id)
+	}
+
+	type ArticleRow struct {
+		ID    uuid.UUID
+		Title string
+	}
+	titleByArticleID := make(map[uuid.UUID]string, len(articleIDs))
+	if len(articleIDs) > 0 {
+		var rows []ArticleRow
+		db.Model(&models.Article{}).
+			Select("id, title").
+			Where("id IN ?", articleIDs).
+			Find(&rows)
+		for _, r := range rows {
+			if r.Title != "" {
+				titleByArticleID[r.ID] = r.Title
+			}
+		}
+	}
 
 	for i := range comments {
-		var p models.Profile
-		if err := db.Where("user_id = ?", comments[i].UserID).First(&p).Error; err == nil {
-			comments[i].DisplayName = p.DisplayName
-			words := strings.Fields(p.DisplayName)
+		comments[i].DisplayName = displayNameByUserID[comments[i].UserID]
+		if comments[i].DisplayName == "" {
+			comments[i].DisplayName = "Anonim"
+			comments[i].Initials = "AN"
+		} else {
+			words := strings.Fields(comments[i].DisplayName)
 			if len(words) > 0 {
 				initials := ""
 				for j := 0; j < len(words) && j < 2; j++ {
@@ -43,15 +100,8 @@ func GetComments(c *fiber.Ctx) error {
 				comments[i].Initials = strings.ToUpper(initials)
 			}
 		}
-		if comments[i].DisplayName == "" {
-			comments[i].DisplayName = "Anonim"
-			comments[i].Initials = "AN"
-		}
 
-		var art models.Article
-		if err := db.Select("title").Where("id = ?", comments[i].ArticleID).First(&art).Error; err == nil {
-			comments[i].ArticleTitle = art.Title
-		}
+		comments[i].ArticleTitle = titleByArticleID[comments[i].ArticleID]
 	}
 
 	return c.JSON(comments)
