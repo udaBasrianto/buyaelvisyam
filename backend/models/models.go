@@ -186,6 +186,7 @@ type SiteSettings struct {
 	LogoURL             string    `json:"logo_url"`
 	FaviconURL          string    `json:"favicon_url"`
 	FooterText          string    `json:"footer_text"`
+	GoogleClientID      string    `gorm:"-" json:"google_client_id"`
 	HomepageVersion     string    `gorm:"default:'v1'" json:"homepage_version"`
 	ScrollToTopVersion  string    `gorm:"default:'animated'" json:"scroll_to_top_version"`
 	AdminToken          string    `gorm:"default:'090124'" json:"admin_token"`

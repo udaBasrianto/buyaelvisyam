@@ -35,7 +35,7 @@ export default function Auth() {
   }, []);
 
   useEffect(() => {
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || settings?.google_client_id;
     if (!clientId) return;
     if (loginMethod !== "email") return;
     if (!googleBtnRef.current) return;
@@ -93,7 +93,7 @@ export default function Auth() {
         });
       })
       .catch(() => {});
-  }, [adminToken, loginMethod, navigate, signInWithGoogle, toast]);
+  }, [adminToken, loginMethod, navigate, settings?.google_client_id, signInWithGoogle, toast]);
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -300,7 +300,7 @@ export default function Auth() {
                     </div>
                   )}
 
-                  {import.meta.env.VITE_GOOGLE_CLIENT_ID ? (
+                  {(import.meta.env.VITE_GOOGLE_CLIENT_ID || settings?.google_client_id) ? (
                     <div className="pt-1">
                       <div ref={googleBtnRef} />
                     </div>

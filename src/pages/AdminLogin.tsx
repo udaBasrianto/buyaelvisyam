@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { LogIn, Mail, Lock, KeyRound } from "lucide-react";
+import api from "@/lib/api";
 
 export default function AdminLogin() {
   const [email, setEmail] = useState("");
@@ -15,9 +16,10 @@ export default function AdminLogin() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const googleBtnRef = useRef<HTMLDivElement | null>(null);
+  const [googleClientId, setGoogleClientId] = useState<string>("");
 
   useEffect(() => {
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || googleClientId;
     if (!clientId) return;
     if (!googleBtnRef.current) return;
 
@@ -73,7 +75,13 @@ export default function AdminLogin() {
         });
       })
       .catch(() => {});
-  }, [navigate, signInWithGoogle, toast, token]);
+  }, [googleClientId, navigate, signInWithGoogle, toast, token]);
+
+  useEffect(() => {
+    api.get("/settings")
+      .then((res) => setGoogleClientId(String(res?.data?.google_client_id || "")))
+      .catch(() => {});
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -148,7 +156,7 @@ export default function AdminLogin() {
             </div>
           </div>
 
-          {import.meta.env.VITE_GOOGLE_CLIENT_ID ? (
+          {(import.meta.env.VITE_GOOGLE_CLIENT_ID || googleClientId) ? (
             <div className="pt-1">
               <div ref={googleBtnRef} />
             </div>
