@@ -15,6 +15,7 @@ type DonationRow = {
   id: string;
   user_id: string | null;
   bank_account_id: string | null;
+  campaign_id?: string | null;
   amount: number;
   currency: string;
   donor_name: string;
@@ -35,6 +36,23 @@ type DonationRow = {
   bank_name?: string | null;
   account_number?: string | null;
   account_holder?: string | null;
+  campaign_title?: string | null;
+};
+
+type DonationCampaignRow = {
+  id: string;
+  title: string;
+  description: string;
+  target_amount: number;
+  raised_amount: number;
+  currency: string;
+  progress_percent: number;
+  is_active: boolean;
+  sort_order: number;
+  start_at?: string | null;
+  end_at?: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
 type BankAccount = {
@@ -74,6 +92,7 @@ export function DonationsManager() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("pending");
   const [donations, setDonations] = useState<DonationRow[]>([]);
+  const [campaigns, setCampaigns] = useState<DonationCampaignRow[]>([]);
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [settings, setSettings] = useState<DonationSettings>({
     donation_title: "Donasi",
@@ -96,10 +115,26 @@ export function DonationsManager() {
     sort_order: 0,
   });
 
+  const [campaignDialogOpen, setCampaignDialogOpen] = useState(false);
+  const [editingCampaignId, setEditingCampaignId] = useState<string | null>(null);
+  const [campaignSaving, setCampaignSaving] = useState(false);
+  const [campaignForm, setCampaignForm] = useState({
+    title: "",
+    description: "",
+    target_amount: 0,
+    is_active: true,
+    sort_order: 0,
+  });
+
   const fetchDonations = async () => {
     const status = statusFilter === "all" ? "" : statusFilter;
     const { data } = await api.get("/admin/donations", { params: { status, page: 1, limit: 200 } });
     setDonations(data?.data || []);
+  };
+
+  const fetchCampaigns = async () => {
+    const { data } = await api.get("/admin/donation-campaigns");
+    setCampaigns(Array.isArray(data) ? data : []);
   };
 
   const fetchBankAccounts = async () => {
@@ -120,7 +155,7 @@ export function DonationsManager() {
   const fetchAll = async () => {
     setLoading(true);
     try {
-      await Promise.all([fetchDonations(), fetchBankAccounts(), fetchSettings()]);
+      await Promise.all([fetchDonations(), fetchCampaigns(), fetchBankAccounts(), fetchSettings()]);
     } catch (err: any) {
       toast({
         title: "Gagal memuat donasi",
@@ -254,6 +289,90 @@ export function DonationsManager() {
     }
   };
 
+  const openCreateCampaign = () => {
+    setEditingCampaignId(null);
+    setCampaignForm({
+      title: "",
+      description: "",
+      target_amount: 0,
+      is_active: true,
+      sort_order: 0,
+    });
+    setCampaignDialogOpen(true);
+  };
+
+  const openEditCampaign = (c: DonationCampaignRow) => {
+    setEditingCampaignId(c.id);
+    setCampaignForm({
+      title: c.title || "",
+      description: c.description || "",
+      target_amount: Number(c.target_amount) || 0,
+      is_active: !!c.is_active,
+      sort_order: Number(c.sort_order) || 0,
+    });
+    setCampaignDialogOpen(true);
+  };
+
+  const saveCampaign = async () => {
+    const title = campaignForm.title.trim();
+    const description = campaignForm.description.trim();
+    const target_amount = Number(campaignForm.target_amount) || 0;
+    const sort_order = Number(campaignForm.sort_order) || 0;
+
+    if (!title) {
+      toast({ title: "Wajib diisi", description: "Judul program wajib diisi", variant: "destructive" });
+      return;
+    }
+    if (target_amount < 0) {
+      toast({ title: "Tidak valid", description: "Target tidak boleh negatif", variant: "destructive" });
+      return;
+    }
+
+    setCampaignSaving(true);
+    try {
+      const payload = {
+        title,
+        description,
+        target_amount,
+        is_active: !!campaignForm.is_active,
+        sort_order,
+      };
+      if (editingCampaignId) {
+        await api.put(`/admin/donation-campaigns/${editingCampaignId}`, payload);
+        toast({ title: "Program diperbarui" });
+      } else {
+        await api.post("/admin/donation-campaigns", payload);
+        toast({ title: "Program ditambahkan" });
+      }
+      setCampaignDialogOpen(false);
+      setEditingCampaignId(null);
+      fetchCampaigns();
+    } catch (err: any) {
+      toast({
+        title: "Gagal menyimpan program",
+        description: err.response?.data?.error || err.message,
+        variant: "destructive",
+      });
+    } finally {
+      setCampaignSaving(false);
+    }
+  };
+
+  const deleteCampaign = async (id: string) => {
+    if (!confirm("Hapus program donasi ini?")) return;
+    try {
+      await api.delete(`/admin/donation-campaigns/${id}`);
+      toast({ title: "Program dihapus" });
+      fetchCampaigns();
+    } catch (err: any) {
+      toast({
+        title: "Gagal menghapus program",
+        description: err.response?.data?.error || err.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const saveSettings = async () => {
     setSavingSettings(true);
     try {
@@ -289,6 +408,7 @@ export function DonationsManager() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="donations">Donasi</TabsTrigger>
+          <TabsTrigger value="campaigns">Program</TabsTrigger>
           <TabsTrigger value="accounts">Rekening</TabsTrigger>
           <TabsTrigger value="settings">Pengaturan</TabsTrigger>
         </TabsList>
@@ -348,6 +468,9 @@ export function DonationsManager() {
                         <tr key={d.id} className="hover:bg-accent/10 transition-colors">
                           <td className="py-4 px-6">
                             <div className="font-bold">{donorName}</div>
+                            {d.campaign_title ? (
+                              <div className="text-[10px] text-muted-foreground">Program: {d.campaign_title}</div>
+                            ) : null}
                             <div className="text-[10px] text-muted-foreground">{d.sender_bank || d.sender_name ? `${d.sender_bank || ""} ${d.sender_name || ""}`.trim() : ""}</div>
                             {d.whatsapp_number ? (
                               <div className="text-[10px] text-muted-foreground">WA: {d.whatsapp_number}</div>
@@ -389,6 +512,95 @@ export function DonationsManager() {
                                 Reject
                               </Button>
                               <Button size="sm" variant="ghost" onClick={() => deleteDonation(d.id)}>
+                                Hapus
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="campaigns" className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-sm font-bold">Program Donasi</div>
+            <Button onClick={openCreateCampaign}>Tambah Program</Button>
+          </div>
+
+          <div className="bg-card rounded-2xl border overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/30">
+                    <th className="text-left py-4 px-6 font-bold uppercase tracking-wider text-[10px] text-muted-foreground">Program</th>
+                    <th className="text-left py-4 px-6 font-bold uppercase tracking-wider text-[10px] text-muted-foreground">Target</th>
+                    <th className="text-left py-4 px-6 font-bold uppercase tracking-wider text-[10px] text-muted-foreground">Terkumpul</th>
+                    <th className="text-left py-4 px-6 font-bold uppercase tracking-wider text-[10px] text-muted-foreground">Aktif</th>
+                    <th className="text-left py-4 px-6 font-bold uppercase tracking-wider text-[10px] text-muted-foreground">Urutan</th>
+                    <th className="text-right py-4 px-6 font-bold uppercase tracking-wider text-[10px] text-muted-foreground">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {loading ? (
+                    <tr>
+                      <td colSpan={6} className="py-12 px-6 text-center text-muted-foreground">
+                        Memuat...
+                      </td>
+                    </tr>
+                  ) : campaigns.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-12 px-6 text-center text-muted-foreground">
+                        Belum ada program
+                      </td>
+                    </tr>
+                  ) : (
+                    campaigns.map((c) => {
+                      const pct = Math.max(0, Math.min(100, Number(c.progress_percent) || 0));
+                      return (
+                        <tr key={c.id} className="hover:bg-accent/10 transition-colors">
+                          <td className="py-4 px-6">
+                            <div className="font-bold">{c.title}</div>
+                            {c.description ? <div className="text-[10px] text-muted-foreground line-clamp-2">{c.description}</div> : null}
+                            <div className="mt-2 h-2 w-56 bg-muted rounded-full overflow-hidden">
+                              <div className="h-full bg-primary" style={{ width: `${pct}%` }} />
+                            </div>
+                            <div className="text-[10px] text-muted-foreground mt-1">{pct.toFixed(0)}%</div>
+                          </td>
+                          <td className="py-4 px-6 font-semibold">
+                            Rp {Number(c.target_amount || 0).toLocaleString("id-ID")}
+                          </td>
+                          <td className="py-4 px-6 font-black text-primary">
+                            Rp {Number(c.raised_amount || 0).toLocaleString("id-ID")}
+                          </td>
+                          <td className="py-4 px-6">
+                            <Switch
+                              checked={!!c.is_active}
+                              onCheckedChange={async (v) => {
+                                try {
+                                  await api.put(`/admin/donation-campaigns/${c.id}`, { is_active: v });
+                                  fetchCampaigns();
+                                } catch (err: any) {
+                                  toast({
+                                    title: "Gagal",
+                                    description: err.response?.data?.error || err.message,
+                                    variant: "destructive",
+                                  });
+                                }
+                              }}
+                            />
+                          </td>
+                          <td className="py-4 px-6">{c.sort_order || 0}</td>
+                          <td className="py-4 px-6 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <Button variant="outline" size="sm" onClick={() => openEditCampaign(c)}>
+                                Edit
+                              </Button>
+                              <Button variant="ghost" size="sm" onClick={() => deleteCampaign(c.id)}>
                                 Hapus
                               </Button>
                             </div>
@@ -564,6 +776,57 @@ export function DonationsManager() {
             </Button>
             <Button onClick={saveAccount} disabled={accountSaving}>
               {accountSaving ? "Menyimpan..." : "Simpan"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={campaignDialogOpen} onOpenChange={setCampaignDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editingCampaignId ? "Edit Program" : "Tambah Program"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Judul</Label>
+              <Input value={campaignForm.title} onChange={(e) => setCampaignForm((p) => ({ ...p, title: e.target.value }))} />
+            </div>
+            <div className="space-y-2">
+              <Label>Deskripsi (opsional)</Label>
+              <Textarea value={campaignForm.description} onChange={(e) => setCampaignForm((p) => ({ ...p, description: e.target.value }))} />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Target (Rp)</Label>
+                <Input
+                  inputMode="numeric"
+                  value={String(campaignForm.target_amount)}
+                  onChange={(e) => setCampaignForm((p) => ({ ...p, target_amount: Number(e.target.value) || 0 }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Urutan</Label>
+                <Input
+                  inputMode="numeric"
+                  value={String(campaignForm.sort_order)}
+                  onChange={(e) => setCampaignForm((p) => ({ ...p, sort_order: Number(e.target.value) || 0 }))}
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-between gap-4 rounded-xl border p-4">
+              <div className="space-y-0.5">
+                <div className="font-bold">Aktif</div>
+                <div className="text-xs text-muted-foreground">Jika dimatikan, tidak muncul di halaman donasi.</div>
+              </div>
+              <Switch checked={campaignForm.is_active} onCheckedChange={(v) => setCampaignForm((p) => ({ ...p, is_active: v }))} />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setCampaignDialogOpen(false)} disabled={campaignSaving}>
+              Batal
+            </Button>
+            <Button onClick={saveCampaign} disabled={campaignSaving}>
+              {campaignSaving ? "Menyimpan..." : "Simpan"}
             </Button>
           </DialogFooter>
         </DialogContent>

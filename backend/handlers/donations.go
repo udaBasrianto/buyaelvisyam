@@ -5,6 +5,7 @@ import (
 	"backend/models"
 	"backend/service"
 	"errors"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -85,6 +86,7 @@ func CreateDonation(c *fiber.Ctx) error {
 		ProofURL            string `json:"proof_url"`
 		TransferDate        string `json:"transfer_date"`
 		BankAccountID       string `json:"bank_account_id"`
+		CampaignID          string `json:"campaign_id"`
 		SenderName          string `json:"sender_name"`
 		SenderBank          string `json:"sender_bank"`
 		SenderAccountNumber string `json:"sender_account_number"`
@@ -101,6 +103,7 @@ func CreateDonation(c *fiber.Ctx) error {
 	input.ProofURL = strings.TrimSpace(input.ProofURL)
 	input.TransferDate = strings.TrimSpace(input.TransferDate)
 	input.BankAccountID = strings.TrimSpace(input.BankAccountID)
+	input.CampaignID = strings.TrimSpace(input.CampaignID)
 	input.SenderName = strings.TrimSpace(input.SenderName)
 	input.SenderBank = strings.TrimSpace(input.SenderBank)
 	input.SenderAccountNumber = strings.TrimSpace(input.SenderAccountNumber)
@@ -112,6 +115,12 @@ func CreateDonation(c *fiber.Ctx) error {
 	if input.BankAccountID != "" {
 		if _, err := uuid.Parse(input.BankAccountID); err != nil {
 			return c.Status(400).JSON(fiber.Map{"error": "Rekening tujuan tidak valid"})
+		}
+	}
+
+	if input.CampaignID != "" {
+		if _, err := uuid.Parse(input.CampaignID); err != nil {
+			return c.Status(400).JSON(fiber.Map{"error": "Program donasi tidak valid"})
 		}
 	}
 
@@ -127,6 +136,12 @@ func CreateDonation(c *fiber.Ctx) error {
 	if input.BankAccountID != "" {
 		parsed := uuid.MustParse(input.BankAccountID)
 		bankAccountID = &parsed
+	}
+
+	var campaignID *uuid.UUID
+	if input.CampaignID != "" {
+		parsed := uuid.MustParse(input.CampaignID)
+		campaignID = &parsed
 	}
 
 	var transferAt *time.Time
@@ -158,6 +173,7 @@ func CreateDonation(c *fiber.Ctx) error {
 		ID:                  uuid.New(),
 		UserID:              userID,
 		BankAccountID:       bankAccountID,
+		CampaignID:          campaignID,
 		Amount:              input.Amount,
 		Currency:            "IDR",
 		DonorName:           input.DonorName,
@@ -224,6 +240,61 @@ func GetPublicDonations(c *fiber.Ctx) error {
 	return c.JSON(out)
 }
 
+func GetPublicDonationCampaigns(c *fiber.Ctx) error {
+	db := database.DB
+
+	var campaigns []models.DonationCampaign
+	db.Where("is_active = ?", true).
+		Order("sort_order asc, created_at desc").
+		Find(&campaigns)
+
+	type RaisedRow struct {
+		CampaignID uuid.UUID
+		Raised     int64
+	}
+	var raisedRows []RaisedRow
+	db.Table("donations").
+		Select("campaign_id, COALESCE(sum(amount), 0) as raised").
+		Where("status = ? AND campaign_id IS NOT NULL", "approved").
+		Group("campaign_id").
+		Scan(&raisedRows)
+
+	raisedByCampaignID := make(map[uuid.UUID]int64, len(raisedRows))
+	for _, r := range raisedRows {
+		raisedByCampaignID[r.CampaignID] = r.Raised
+	}
+
+	out := make([]fiber.Map, 0, len(campaigns))
+	for _, cpn := range campaigns {
+		raised := raisedByCampaignID[cpn.ID]
+		progress := 0.0
+		if cpn.TargetAmount > 0 {
+			progress = (float64(raised) / float64(cpn.TargetAmount)) * 100.0
+			if math.IsNaN(progress) || math.IsInf(progress, 0) {
+				progress = 0
+			}
+			progress = math.Max(0, math.Min(100, progress))
+		}
+		out = append(out, fiber.Map{
+			"id":               cpn.ID,
+			"title":            cpn.Title,
+			"description":      cpn.Description,
+			"target_amount":    cpn.TargetAmount,
+			"raised_amount":    raised,
+			"currency":         cpn.Currency,
+			"progress_percent": progress,
+			"is_active":        cpn.IsActive,
+			"sort_order":       cpn.SortOrder,
+			"start_at":         cpn.StartAt,
+			"end_at":           cpn.EndAt,
+			"created_at":       cpn.CreatedAt,
+			"updated_at":       cpn.UpdatedAt,
+		})
+	}
+
+	return c.JSON(out)
+}
+
 func AdminGetDonations(c *fiber.Ctx) error {
 	db := database.DB
 
@@ -256,13 +327,15 @@ func AdminGetDonations(c *fiber.Ctx) error {
 		BankName        *string `json:"bank_name"`
 		AccountNumber   *string `json:"account_number"`
 		AccountHolder   *string `json:"account_holder"`
+		CampaignTitle   *string `json:"campaign_title"`
 	}
 
 	var rows []DonationRow
 	query.Table("donations").
-		Select("donations.*, profiles.email as user_email, profiles.display_name as user_display_name, bank_accounts.bank_name, bank_accounts.account_number, bank_accounts.account_holder").
+		Select("donations.*, profiles.email as user_email, profiles.display_name as user_display_name, bank_accounts.bank_name, bank_accounts.account_number, bank_accounts.account_holder, donation_campaigns.title as campaign_title").
 		Joins("left join profiles on profiles.user_id = donations.user_id").
 		Joins("left join bank_accounts on bank_accounts.id = donations.bank_account_id").
+		Joins("left join donation_campaigns on donation_campaigns.id = donations.campaign_id").
 		Order("donations.created_at desc").
 		Limit(limit).
 		Offset(offset).
@@ -556,4 +629,244 @@ func AdminDeleteBankAccount(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{"message": "Rekening dihapus"})
+}
+
+func AdminGetDonationCampaigns(c *fiber.Ctx) error {
+	db := database.DB
+
+	var campaigns []models.DonationCampaign
+	db.Order("sort_order asc, created_at desc").Find(&campaigns)
+
+	type RaisedRow struct {
+		CampaignID uuid.UUID
+		Raised     int64
+	}
+	var raisedRows []RaisedRow
+	db.Table("donations").
+		Select("campaign_id, COALESCE(sum(amount), 0) as raised").
+		Where("status = ? AND campaign_id IS NOT NULL", "approved").
+		Group("campaign_id").
+		Scan(&raisedRows)
+
+	raisedByCampaignID := make(map[uuid.UUID]int64, len(raisedRows))
+	for _, r := range raisedRows {
+		raisedByCampaignID[r.CampaignID] = r.Raised
+	}
+
+	out := make([]fiber.Map, 0, len(campaigns))
+	for _, cpn := range campaigns {
+		raised := raisedByCampaignID[cpn.ID]
+		progress := 0.0
+		if cpn.TargetAmount > 0 {
+			progress = (float64(raised) / float64(cpn.TargetAmount)) * 100.0
+			if math.IsNaN(progress) || math.IsInf(progress, 0) {
+				progress = 0
+			}
+			progress = math.Max(0, math.Min(100, progress))
+		}
+		out = append(out, fiber.Map{
+			"id":               cpn.ID,
+			"title":            cpn.Title,
+			"description":      cpn.Description,
+			"target_amount":    cpn.TargetAmount,
+			"raised_amount":    raised,
+			"currency":         cpn.Currency,
+			"progress_percent": progress,
+			"is_active":        cpn.IsActive,
+			"sort_order":       cpn.SortOrder,
+			"start_at":         cpn.StartAt,
+			"end_at":           cpn.EndAt,
+			"created_at":       cpn.CreatedAt,
+			"updated_at":       cpn.UpdatedAt,
+		})
+	}
+
+	return c.JSON(out)
+}
+
+func AdminCreateDonationCampaign(c *fiber.Ctx) error {
+	type Input struct {
+		Title        string  `json:"title"`
+		Description  string  `json:"description"`
+		TargetAmount int64   `json:"target_amount"`
+		IsActive     *bool   `json:"is_active"`
+		SortOrder    *int    `json:"sort_order"`
+		StartAt      *string `json:"start_at"`
+		EndAt        *string `json:"end_at"`
+	}
+
+	var input Input
+	if err := c.BodyParser(&input); err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid body"})
+	}
+
+	title := strings.TrimSpace(input.Title)
+	if title == "" {
+		return c.Status(400).JSON(fiber.Map{"error": "Judul program wajib diisi"})
+	}
+
+	if input.TargetAmount < 0 {
+		return c.Status(400).JSON(fiber.Map{"error": "Target tidak valid"})
+	}
+
+	isActive := true
+	if input.IsActive != nil {
+		isActive = *input.IsActive
+	}
+
+	sortOrder := 0
+	if input.SortOrder != nil {
+		sortOrder = *input.SortOrder
+	}
+
+	parseTime := func(s *string) (*time.Time, error) {
+		if s == nil {
+			return nil, nil
+		}
+		val := strings.TrimSpace(*s)
+		if val == "" {
+			return nil, nil
+		}
+		if t, err := time.Parse(time.RFC3339, val); err == nil {
+			return &t, nil
+		}
+		if t, err := time.Parse("2006-01-02", val); err == nil {
+			return &t, nil
+		}
+		return nil, errors.New("invalid time")
+	}
+
+	startAt, err := parseTime(input.StartAt)
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "StartAt tidak valid"})
+	}
+	endAt, err := parseTime(input.EndAt)
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "EndAt tidak valid"})
+	}
+
+	cpn := models.DonationCampaign{
+		ID:           uuid.New(),
+		Title:        title,
+		Description:  strings.TrimSpace(input.Description),
+		TargetAmount: input.TargetAmount,
+		Currency:     "IDR",
+		IsActive:     isActive,
+		SortOrder:    sortOrder,
+		StartAt:      startAt,
+		EndAt:        endAt,
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
+	}
+
+	if err := database.DB.Create(&cpn).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Gagal membuat program donasi"})
+	}
+
+	return c.JSON(cpn)
+}
+
+func AdminUpdateDonationCampaign(c *fiber.Ctx) error {
+	id := strings.TrimSpace(c.Params("id"))
+	campaignID, err := uuid.Parse(id)
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "ID program tidak valid"})
+	}
+
+	type Input struct {
+		Title        *string `json:"title"`
+		Description  *string `json:"description"`
+		TargetAmount *int64  `json:"target_amount"`
+		IsActive     *bool   `json:"is_active"`
+		SortOrder    *int    `json:"sort_order"`
+		StartAt      *string `json:"start_at"`
+		EndAt        *string `json:"end_at"`
+	}
+	var input Input
+	if err := c.BodyParser(&input); err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid body"})
+	}
+
+	var cpn models.DonationCampaign
+	if err := database.DB.Where("id = ?", campaignID).First(&cpn).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return c.Status(404).JSON(fiber.Map{"error": "Program donasi tidak ditemukan"})
+		}
+		return c.Status(500).JSON(fiber.Map{"error": "Gagal memuat program donasi"})
+	}
+
+	parseTime := func(s *string) (*time.Time, error) {
+		if s == nil {
+			return nil, nil
+		}
+		val := strings.TrimSpace(*s)
+		if val == "" {
+			return nil, nil
+		}
+		if t, err := time.Parse(time.RFC3339, val); err == nil {
+			return &t, nil
+		}
+		if t, err := time.Parse("2006-01-02", val); err == nil {
+			return &t, nil
+		}
+		return nil, errors.New("invalid time")
+	}
+
+	if input.Title != nil {
+		val := strings.TrimSpace(*input.Title)
+		if val == "" {
+			return c.Status(400).JSON(fiber.Map{"error": "Judul program wajib diisi"})
+		}
+		cpn.Title = val
+	}
+	if input.Description != nil {
+		cpn.Description = strings.TrimSpace(*input.Description)
+	}
+	if input.TargetAmount != nil {
+		if *input.TargetAmount < 0 {
+			return c.Status(400).JSON(fiber.Map{"error": "Target tidak valid"})
+		}
+		cpn.TargetAmount = *input.TargetAmount
+	}
+	if input.IsActive != nil {
+		cpn.IsActive = *input.IsActive
+	}
+	if input.SortOrder != nil {
+		cpn.SortOrder = *input.SortOrder
+	}
+	if input.StartAt != nil {
+		t, err := parseTime(input.StartAt)
+		if err != nil {
+			return c.Status(400).JSON(fiber.Map{"error": "StartAt tidak valid"})
+		}
+		cpn.StartAt = t
+	}
+	if input.EndAt != nil {
+		t, err := parseTime(input.EndAt)
+		if err != nil {
+			return c.Status(400).JSON(fiber.Map{"error": "EndAt tidak valid"})
+		}
+		cpn.EndAt = t
+	}
+
+	cpn.UpdatedAt = time.Now()
+	if err := database.DB.Save(&cpn).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Gagal memperbarui program donasi"})
+	}
+
+	return c.JSON(cpn)
+}
+
+func AdminDeleteDonationCampaign(c *fiber.Ctx) error {
+	id := strings.TrimSpace(c.Params("id"))
+	campaignID, err := uuid.Parse(id)
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "ID program tidak valid"})
+	}
+
+	if err := database.DB.Where("id = ?", campaignID).Delete(&models.DonationCampaign{}).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Gagal menghapus program donasi"})
+	}
+
+	return c.JSON(fiber.Map{"message": "Program donasi dihapus"})
 }

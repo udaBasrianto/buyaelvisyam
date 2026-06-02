@@ -275,6 +275,7 @@ type Donation struct {
 	ID           uuid.UUID  `gorm:"type:uuid;primaryKey" json:"id"`
 	UserID       *uuid.UUID `gorm:"type:uuid" json:"user_id"`
 	BankAccountID *uuid.UUID `gorm:"type:uuid" json:"bank_account_id"`
+	CampaignID   *uuid.UUID `gorm:"type:uuid;index" json:"campaign_id"`
 	Amount       int64      `gorm:"not null" json:"amount"`
 	Currency     string     `gorm:"default:'IDR'" json:"currency"`
 	DonorName    string     `json:"donor_name"`
@@ -288,6 +289,20 @@ type Donation struct {
 	TransferDate *time.Time `json:"transfer_date"`
 	Status       string     `gorm:"default:'pending'" json:"status"`
 	AdminNote    string     `json:"admin_note"`
+	CreatedAt    time.Time  `json:"created_at"`
+	UpdatedAt    time.Time  `json:"updated_at"`
+}
+
+type DonationCampaign struct {
+	ID           uuid.UUID  `gorm:"type:uuid;primaryKey" json:"id"`
+	Title        string     `gorm:"not null" json:"title"`
+	Description  string     `json:"description"`
+	TargetAmount int64      `gorm:"not null;default:0" json:"target_amount"`
+	Currency     string     `gorm:"default:'IDR'" json:"currency"`
+	IsActive     bool       `gorm:"default:true" json:"is_active"`
+	SortOrder    int        `gorm:"default:0" json:"sort_order"`
+	StartAt      *time.Time `json:"start_at"`
+	EndAt        *time.Time `json:"end_at"`
 	CreatedAt    time.Time  `json:"created_at"`
 	UpdatedAt    time.Time  `json:"updated_at"`
 }

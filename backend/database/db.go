@@ -53,6 +53,7 @@ func ConnectDB() {
 		&models.Transaction{},
 		&models.Bookmark{},
 		&models.Donation{},
+		&models.DonationCampaign{},
 		&models.BankAccount{},
 		&models.WhatsAppToken{},
 		&models.WhatsAppSession{},

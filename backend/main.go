@@ -207,6 +207,7 @@ func main() {
 
 	// Donations
 	api.Get("/donations/settings", handlers.GetDonationSettings)
+	api.Get("/donations/campaigns", handlers.GetPublicDonationCampaigns)
 	api.Get("/donations", handlers.GetPublicDonations)
 	api.Post("/donations", handlers.CreateDonation)
 
@@ -253,6 +254,10 @@ func main() {
 	api.Post("/admin/bank-accounts", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.AdminCreateBankAccount)
 	api.Put("/admin/bank-accounts/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.AdminUpdateBankAccount)
 	api.Delete("/admin/bank-accounts/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.AdminDeleteBankAccount)
+	api.Get("/admin/donation-campaigns", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.AdminGetDonationCampaigns)
+	api.Post("/admin/donation-campaigns", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.AdminCreateDonationCampaign)
+	api.Put("/admin/donation-campaigns/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.AdminUpdateDonationCampaign)
+	api.Delete("/admin/donation-campaigns/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.AdminDeleteDonationCampaign)
 
 	// Widgets
 	api.Get("/widgets", handlers.GetWidgets)

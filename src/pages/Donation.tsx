@@ -37,6 +37,20 @@ type PublicDonation = {
   created_at: string;
 };
 
+type DonationCampaign = {
+  id: string;
+  title: string;
+  description: string;
+  target_amount: number;
+  raised_amount: number;
+  currency: string;
+  progress_percent: number;
+  is_active: boolean;
+  sort_order: number;
+  start_at?: string | null;
+  end_at?: string | null;
+};
+
 const FALLBACK_SETTINGS: DonationSettings = {
   site_name: "",
   donation_title: "Donasi",
@@ -51,6 +65,7 @@ export default function Donation() {
   const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState<DonationSettings | null>(null);
   const [donors, setDonors] = useState<PublicDonation[]>([]);
+  const [campaigns, setCampaigns] = useState<DonationCampaign[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -64,6 +79,7 @@ export default function Donation() {
     message: "",
     transfer_date: "",
     bank_account_id: "",
+    campaign_id: "",
     sender_name: "",
     sender_bank: "",
     sender_account_number: "",
@@ -85,17 +101,20 @@ export default function Donation() {
     setLoading(true);
     setLoadError(null);
     try {
-      const [{ data: s }, { data: d }] = await Promise.all([
+      const [{ data: s }, { data: d }, { data: c }] = await Promise.all([
         api.get("/donations/settings"),
         api.get("/donations?limit=20"),
+        api.get("/donations/campaigns"),
       ]);
       setSettings(s);
       setDonors(d || []);
+      setCampaigns(Array.isArray(c) ? c : []);
     } catch (err: any) {
       const msg = err?.response?.data?.error || err?.message || "Gagal memuat data donasi";
       setLoadError(msg);
       setSettings((prev) => prev || FALLBACK_SETTINGS);
       setDonors([]);
+      setCampaigns([]);
       toast({
         title: "Gagal memuat halaman donasi",
         description: msg,
@@ -148,6 +167,7 @@ export default function Donation() {
         message: form.message,
         transfer_date: form.transfer_date || "",
         bank_account_id: form.bank_account_id,
+        campaign_id: form.campaign_id || "",
         sender_name: form.sender_name,
         sender_bank: form.sender_bank,
         sender_account_number: form.sender_account_number,
@@ -163,6 +183,7 @@ export default function Donation() {
         message: "",
         transfer_date: "",
         bank_account_id: "",
+        campaign_id: "",
         sender_name: "",
         sender_bank: "",
         sender_account_number: "",
@@ -222,6 +243,56 @@ export default function Donation() {
                 <p className="text-muted-foreground">{settings.donation_description}</p>
               ) : null}
             </div>
+
+            {campaigns.length > 0 ? (
+              <Card className="p-6">
+                <div className="space-y-1 mb-4">
+                  <div className="text-lg font-black">Program Donasi</div>
+                  <div className="text-sm text-muted-foreground">Pilih salah satu target donasi (opsional).</div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {campaigns.map((c) => {
+                    const pct = Math.max(0, Math.min(100, Number(c.progress_percent) || 0));
+                    const selected = form.campaign_id === c.id;
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => setForm((p) => ({ ...p, campaign_id: selected ? "" : c.id }))}
+                        className={`text-left border rounded-2xl p-4 transition-colors ${
+                          selected ? "border-primary bg-primary/5" : "hover:bg-muted/30"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="font-black truncate">{c.title}</div>
+                            {c.description ? (
+                              <div className="text-sm text-muted-foreground mt-1 line-clamp-2">{c.description}</div>
+                            ) : null}
+                          </div>
+                          {selected ? (
+                            <div className="text-[10px] font-black uppercase tracking-widest text-primary">Dipilih</div>
+                          ) : null}
+                        </div>
+                        <div className="mt-4 space-y-2">
+                          <div className="h-2 bg-muted rounded-full overflow-hidden">
+                            <div className="h-full bg-primary" style={{ width: `${pct}%` }} />
+                          </div>
+                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <div>
+                              Terkumpul: <span className="font-bold text-foreground">Rp {Number(c.raised_amount || 0).toLocaleString("id-ID")}</span>
+                            </div>
+                            <div>
+                              Target: <span className="font-bold text-foreground">Rp {Number(c.target_amount || 0).toLocaleString("id-ID")}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </Card>
+            ) : null}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card className="p-6 space-y-5">
@@ -285,6 +356,22 @@ export default function Donation() {
                     {formattedAmount ? (
                       <div className="text-xs text-muted-foreground">Rp {formattedAmount}</div>
                     ) : null}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Program Donasi (opsional)</Label>
+                    <Select value={form.campaign_id} onValueChange={(v) => setForm((p) => ({ ...p, campaign_id: v }))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Pilih program (opsional)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {campaigns.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="space-y-2">
