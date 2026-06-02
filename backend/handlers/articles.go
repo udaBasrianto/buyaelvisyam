@@ -66,17 +66,74 @@ func GetArticles(c *fiber.Ctx) error {
 		query = query.Where("is_featured = ?", true)
 	}
 	
-	query.Find(&articles)
+	if err := query.Find(&articles).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Gagal memuat artikel"})
+	}
+
+	authorIDSet := make(map[uuid.UUID]struct{})
+	articleIDSet := make(map[uuid.UUID]struct{})
+	for i := range articles {
+		authorIDSet[articles[i].AuthorID] = struct{}{}
+		articleIDSet[articles[i].ID] = struct{}{}
+	}
+
+	authorIDs := make([]uuid.UUID, 0, len(authorIDSet))
+	for id := range authorIDSet {
+		authorIDs = append(authorIDs, id)
+	}
+
+	type AuthorRow struct {
+		UserID      uuid.UUID
+		DisplayName string
+	}
+	authorNameByUserID := make(map[uuid.UUID]string, len(authorIDs))
+	if len(authorIDs) > 0 {
+		var rows []AuthorRow
+		db.Model(&models.Profile{}).
+			Select("user_id, display_name").
+			Where("user_id IN ?", authorIDs).
+			Find(&rows)
+		for _, r := range rows {
+			if r.DisplayName != "" {
+				authorNameByUserID[r.UserID] = r.DisplayName
+			}
+		}
+	}
+
+	articleIDs := make([]uuid.UUID, 0, len(articleIDSet))
+	for id := range articleIDSet {
+		articleIDs = append(articleIDs, id)
+	}
+
+	type CommentCountRow struct {
+		ArticleID uuid.UUID
+		Count     int64
+	}
+	commentCountByArticleID := make(map[uuid.UUID]int64, len(articleIDs))
+	if len(articleIDs) > 0 {
+		var rows []CommentCountRow
+		db.Model(&models.Comment{}).
+			Select("article_id, count(*) as count").
+			Where("article_id IN ?", articleIDs).
+			Group("article_id").
+			Scan(&rows)
+		for _, r := range rows {
+			commentCountByArticleID[r.ArticleID] = r.Count
+		}
+	}
 
 	// Fetch author names and comment counts
 	for i := range articles {
-		var p models.Profile
-		db.Where("user_id = ?", articles[i].AuthorID).First(&p)
-		articles[i].AuthorName = p.DisplayName
-
-		var count int64
-		db.Model(&models.Comment{}).Where("article_id = ?", articles[i].ID).Count(&count)
-		articles[i].CommentCount = count
+		if n, ok := authorNameByUserID[articles[i].AuthorID]; ok {
+			articles[i].AuthorName = n
+		} else {
+			articles[i].AuthorName = "Ustadz"
+		}
+		if c, ok := commentCountByArticleID[articles[i].ID]; ok {
+			articles[i].CommentCount = c
+		} else {
+			articles[i].CommentCount = 0
+		}
 	}
 
 	return c.JSON(articles)
