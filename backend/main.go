@@ -13,6 +13,7 @@ import (
 	"backend/models"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	fiberRecover "github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/golang-jwt/jwt/v4"
@@ -89,6 +90,38 @@ func main() {
 		log.Println("WhatsApp initialization warning:", err)
 	}
 
+	go func() {
+		t := time.NewTicker(30 * time.Second)
+		defer t.Stop()
+		for range t.C {
+			now := time.Now()
+			var due []models.Article
+			database.DB.
+				Where("status = ? AND scheduled_publish_at IS NOT NULL AND scheduled_publish_at <= ?", "review", now).
+				Find(&due)
+			for _, a := range due {
+				if a.ScheduledPublishAt == nil {
+					continue
+				}
+				res := database.DB.Model(&models.Article{}).
+					Where("id = ? AND status = ?", a.ID, "review").
+					Updates(map[string]any{
+						"status":              "published",
+						"scheduled_publish_at": nil,
+						"created_at":          *a.ScheduledPublishAt,
+					})
+				if res.Error == nil && res.RowsAffected > 0 {
+					article := a
+					article.Status = "published"
+					go func(art models.Article) {
+						defer func() { recover() }()
+						handlers.NotifyWhatsAppNewArticle(art)
+					}(article)
+				}
+			}
+		}
+	}()
+
 	app := fiber.New(fiber.Config{
 		ProxyHeader: "X-Forwarded-For",
 		BodyLimit:   10 * 1024 * 1024,
@@ -154,35 +187,43 @@ func main() {
 	// Routes
 	api := app.Group("/api")
 	api.Get("/ping", func(c *fiber.Ctx) error { return c.SendString("pong") })
+	api.Get("/health", handlers.Health)
 	api.Get("/stats", handlers.GetPublicStats)
 
 	// Auth
 	auth := api.Group("/auth")
 	auth.Post("/register", handlers.Register)
-	auth.Post("/login", handlers.Login)
-	auth.Post("/google", handlers.GoogleLogin)
+	authLimiter := limiter.New(limiter.Config{Max: 25, Expiration: 15 * time.Minute})
+	otpLimiter := limiter.New(limiter.Config{Max: 15, Expiration: 15 * time.Minute})
+	auth.Post("/login", authLimiter, handlers.Login)
+	auth.Post("/google", authLimiter, handlers.GoogleLogin)
 	auth.Get("/me", middleware.Protected(), handlers.Me)
 	auth.Put("/profile", middleware.Protected(), handlers.UpdateProfile)
 	auth.Post("/profile", middleware.Protected(), handlers.UpdateProfile)
 	
 	// WhatsApp Auth (for pembaca registration & login)
-	auth.Post("/whatsapp/request-token", handlers.RequestWhatsAppToken)
-	auth.Post("/whatsapp/verify-token", handlers.VerifyWhatsAppToken)
-	auth.Post("/whatsapp/login/request", handlers.RequestWhatsAppLogin)
-	auth.Post("/whatsapp/login/verify", handlers.VerifyWhatsAppLogin)
+	auth.Post("/whatsapp/request-token", otpLimiter, handlers.RequestWhatsAppToken)
+	auth.Post("/whatsapp/verify-token", otpLimiter, handlers.VerifyWhatsAppToken)
+	auth.Post("/whatsapp/login/request", otpLimiter, handlers.RequestWhatsAppLogin)
+	auth.Post("/whatsapp/login/verify", otpLimiter, handlers.VerifyWhatsAppLogin)
 	auth.Get("/whatsapp/status", handlers.GetWhatsAppStatus)
-	auth.Post("/whatsapp/connect", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.ConnectWhatsApp)
-	auth.Post("/whatsapp/disconnect", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.DisconnectWhatsApp)
+	auth.Post("/whatsapp/connect", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.ConnectWhatsApp)
+	auth.Post("/whatsapp/disconnect", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.DisconnectWhatsApp)
+	adminWhatsAppLimiter := limiter.New(limiter.Config{Max: 2, Expiration: 10 * time.Minute})
+	api.Post("/admin/whatsapp/broadcast", middleware.Protected(), middleware.RequireAnyRole("admin"), adminWhatsAppLimiter, middleware.AuditAdminActions(), handlers.AdminBroadcastWhatsApp)
 
 	// Articles - Bulk Operations (Registered first to avoid param conflicts)
-	api.Post("/articles/bulk-image-update", middleware.Protected(), middleware.RequireAnyRole("admin", "kontributor"), handlers.BulkUpdateArticleImage)
-	api.Post("/articles/bulk-delete", middleware.Protected(), middleware.RequireAnyRole("admin", "kontributor"), handlers.BulkDeleteArticles)
+	api.Post("/articles/bulk-image-update", middleware.Protected(), middleware.RequireAnyRole("admin", "kontributor"), middleware.AuditAdminActions(), handlers.BulkUpdateArticleImage)
+	api.Post("/articles/bulk-delete", middleware.Protected(), middleware.RequireAnyRole("admin", "kontributor"), middleware.AuditAdminActions(), handlers.BulkDeleteArticles)
 	
 	api.Get("/articles", handlers.GetArticles)
+	api.Get("/articles/:id/related", handlers.GetRelatedArticles)
 	api.Get("/articles/:id", handlers.GetArticle)
-	api.Post("/articles", middleware.Protected(), middleware.RequireAnyRole("admin", "kontributor"), handlers.CreateArticle)
-	api.Put("/articles/:id", middleware.Protected(), middleware.RequireAnyRole("admin", "kontributor"), handlers.UpdateArticle)
-	api.Delete("/articles/:id", middleware.Protected(), middleware.RequireAnyRole("admin", "kontributor"), handlers.DeleteArticle)
+	api.Post("/articles", middleware.Protected(), middleware.RequireAnyRole("admin", "kontributor"), middleware.AuditAdminActions(), handlers.CreateArticle)
+	api.Put("/articles/:id", middleware.Protected(), middleware.RequireAnyRole("admin", "kontributor"), middleware.AuditAdminActions(), handlers.UpdateArticle)
+	api.Get("/articles/:id/revisions", middleware.Protected(), middleware.RequireAnyRole("admin", "kontributor"), handlers.GetArticleRevisions)
+	api.Post("/articles/:id/revisions/:revId/restore", middleware.Protected(), middleware.RequireAnyRole("admin", "kontributor"), middleware.AuditAdminActions(), handlers.RestoreArticleRevision)
+	api.Delete("/articles/:id", middleware.Protected(), middleware.RequireAnyRole("admin", "kontributor"), middleware.AuditAdminActions(), handlers.DeleteArticle)
 
 	// Public Export API (for importing to other websites)
 	export := api.Group("/export/v1")
@@ -226,8 +267,10 @@ func main() {
 	api.Post("/koleksi/toggle/:articleId", middleware.Protected(), handlers.ToggleBookmark)
 	api.Get("/koleksi", middleware.Protected(), handlers.GetUserBookmarks)
 	api.Get("/koleksi/check/:articleId", handlers.CheckBookmark)
+	api.Post("/reading-progress", middleware.Protected(), handlers.UpsertReadingProgress)
+	api.Get("/reading-progress/continue", middleware.Protected(), handlers.GetContinueReading)
 	
-	api.Put("/settings", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.UpdateSiteSettings)
+	api.Put("/settings", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.UpdateSiteSettings)
 
 	// Features
 	api.Get("/features", handlers.GetFeatures)
@@ -237,28 +280,31 @@ func main() {
 
 	// Comments
 	api.Get("/comments", handlers.GetComments)
-	api.Post("/comments", middleware.Protected(), handlers.CreateComment)
+	commentLimiter := limiter.New(limiter.Config{Max: 8, Expiration: 1 * time.Minute})
+	api.Post("/comments", middleware.Protected(), commentLimiter, handlers.CreateComment)
 	api.Put("/comments/:id", middleware.Protected(), handlers.UpdateComment)
 	api.Delete("/comments/:id", middleware.Protected(), handlers.DeleteComment)
+	api.Put("/comments/:id/status", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.AdminUpdateCommentStatus)
 
 	// Utils
 	api.Post("/upload", middleware.Protected(), handlers.UploadImage)
+	api.Get("/admin/assets", middleware.Protected(), middleware.RequireAnyRole("admin", "kontributor"), handlers.AdminListUploadAssets)
 	api.Post("/import-wordpress", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.ImportWordPress)
 	api.Post("/import-export", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.ImportExportV1)
 	api.Post("/analytics/track", handlers.TrackVisit)
-	api.Get("/admin/analytics", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.GetAnalytics)
-	api.Get("/admin/donations", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.AdminGetDonations)
-	api.Put("/admin/donations/settings", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.AdminUpdateDonationSettings)
-	api.Put("/admin/donations/:id/status", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.AdminUpdateDonationStatus)
-	api.Delete("/admin/donations/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.AdminDeleteDonation)
-	api.Get("/admin/bank-accounts", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.AdminGetBankAccounts)
-	api.Post("/admin/bank-accounts", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.AdminCreateBankAccount)
-	api.Put("/admin/bank-accounts/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.AdminUpdateBankAccount)
-	api.Delete("/admin/bank-accounts/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.AdminDeleteBankAccount)
-	api.Get("/admin/donation-campaigns", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.AdminGetDonationCampaigns)
-	api.Post("/admin/donation-campaigns", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.AdminCreateDonationCampaign)
-	api.Put("/admin/donation-campaigns/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.AdminUpdateDonationCampaign)
-	api.Delete("/admin/donation-campaigns/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.AdminDeleteDonationCampaign)
+	api.Get("/admin/analytics", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.GetAnalytics)
+	api.Get("/admin/donations", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.AdminGetDonations)
+	api.Put("/admin/donations/settings", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.AdminUpdateDonationSettings)
+	api.Put("/admin/donations/:id/status", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.AdminUpdateDonationStatus)
+	api.Delete("/admin/donations/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.AdminDeleteDonation)
+	api.Get("/admin/bank-accounts", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.AdminGetBankAccounts)
+	api.Post("/admin/bank-accounts", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.AdminCreateBankAccount)
+	api.Put("/admin/bank-accounts/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.AdminUpdateBankAccount)
+	api.Delete("/admin/bank-accounts/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.AdminDeleteBankAccount)
+	api.Get("/admin/donation-campaigns", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.AdminGetDonationCampaigns)
+	api.Post("/admin/donation-campaigns", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.AdminCreateDonationCampaign)
+	api.Put("/admin/donation-campaigns/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.AdminUpdateDonationCampaign)
+	api.Delete("/admin/donation-campaigns/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.AdminDeleteDonationCampaign)
 
 	// Widgets
 	api.Get("/widgets", handlers.GetWidgets)
@@ -267,11 +313,11 @@ func main() {
 	api.Delete("/widgets/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.DeleteWidget)
 
 	// Users
-	api.Get("/users", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.GetUsers)
-	api.Post("/users", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.CreateUser)
-	api.Put("/users/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.UpdateUser)
-	api.Put("/users/:id/role", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.UpdateUserRole)
-	api.Delete("/users/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.DeleteUser)
+	api.Get("/users", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.GetUsers)
+	api.Post("/users", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.CreateUser)
+	api.Put("/users/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.UpdateUser)
+	api.Put("/users/:id/role", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.UpdateUserRole)
+	api.Delete("/users/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.DeleteUser)
 
 	// SEO
 	app.Get("/sitemap.xml", handlers.GetSitemap)
@@ -290,6 +336,9 @@ func main() {
 	api.Post("/modules", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.CreateModule)
 	api.Get("/modules/:moduleId/lessons", handlers.GetLessons)
 	api.Get("/courses/lesson/:slug", middleware.Protected(), handlers.GetLessonBySlug)
+	api.Get("/courses/:id/progress", middleware.Protected(), handlers.GetMyCourseProgress)
+	api.Post("/lessons/:lessonId/complete", middleware.Protected(), handlers.MarkLessonComplete)
+	api.Delete("/lessons/:lessonId/complete", middleware.Protected(), handlers.UnmarkLessonComplete)
 	api.Post("/lessons", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.CreateLesson)
 	
 	// Enrollment

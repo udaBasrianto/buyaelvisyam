@@ -114,24 +114,49 @@ func GetSitemap(c *fiber.Ctx) error {
 	var articles []models.Article
 	var pages []models.Page
 	var categories []models.Category
+	var courses []models.Course
+	var lessons []models.Lesson
 
 	db.Where("status = ?", "published").Find(&articles)
-	db.Find(&pages)
+	db.Where("status = ?", "published").Find(&pages)
 	db.Find(&categories)
+	db.Where("is_published = ?", true).Find(&courses)
+	db.Where("is_free = ?", true).Find(&lessons)
 
-	baseURL := "https://blogustad.com" // Update this as needed
+	baseURL := strings.TrimRight(strings.TrimSpace(os.Getenv("PUBLIC_BASE_URL")), "/")
+	if baseURL == "" {
+		baseURL = strings.TrimRight(strings.TrimSpace(os.Getenv("SITE_URL")), "/")
+	}
+	if baseURL == "" {
+		baseURL = strings.TrimRight(c.Protocol()+"://"+c.Hostname(), "/")
+	}
 
-	xml := `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`
+	var b strings.Builder
+	b.WriteString(`<?xml version="1.0" encoding="UTF-8"?>` + "\n")
+	b.WriteString(`<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`)
 
 	// Homepage
-	xml += fmt.Sprintf(`
+	b.WriteString(fmt.Sprintf(`
   <url>
     <loc>%s/</loc>
     <lastmod>%s</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
-  </url>`, baseURL, time.Now().Format("2006-01-02"))
+  </url>`, baseURL, time.Now().Format("2006-01-02")))
+
+	b.WriteString(fmt.Sprintf(`
+  <url>
+    <loc>%s/donasi</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>`, baseURL))
+
+	b.WriteString(fmt.Sprintf(`
+  <url>
+    <loc>%s/lms</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>`, baseURL))
 
 	// Articles
 	for _, a := range articles {
@@ -139,37 +164,69 @@ func GetSitemap(c *fiber.Ctx) error {
 		if slug == "" {
 			slug = a.ID.String()
 		}
-		xml += fmt.Sprintf(`
+		b.WriteString(fmt.Sprintf(`
   <url>
     <loc>%s/artikel/%s</loc>
     <lastmod>%s</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
-  </url>`, baseURL, slug, a.UpdatedAt.Format("2006-01-02"))
+  </url>`, baseURL, slug, a.UpdatedAt.Format("2006-01-02")))
 	}
 
 	// Categories
 	for _, cat := range categories {
-		xml += fmt.Sprintf(`
+		b.WriteString(fmt.Sprintf(`
   <url>
     <loc>%s/kategori/%s</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
-  </url>`, baseURL, cat.Slug)
+  </url>`, baseURL, cat.Slug))
 	}
 
 	// Dynamic Pages
 	for _, p := range pages {
-		xml += fmt.Sprintf(`
+		b.WriteString(fmt.Sprintf(`
   <url>
     <loc>%s/p/%s</loc>
+    <lastmod>%s</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
-  </url>`, baseURL, p.Slug)
+  </url>`, baseURL, p.Slug, p.UpdatedAt.Format("2006-01-02")))
 	}
 
-	xml += "\n</urlset>"
+	for _, cse := range courses {
+		b.WriteString(fmt.Sprintf(`
+  <url>
+    <loc>%s/lms/course/%s</loc>
+    <lastmod>%s</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>`, baseURL, cse.Slug, cse.UpdatedAt.Format("2006-01-02")))
+	}
+
+	for _, l := range lessons {
+		b.WriteString(fmt.Sprintf(`
+  <url>
+    <loc>%s/lms/lesson/%s</loc>
+    <lastmod>%s</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
+  </url>`, baseURL, l.Slug, l.CreatedAt.Format("2006-01-02")))
+	}
+
+	b.WriteString("\n</urlset>")
 
 	c.Set("Content-Type", "application/xml")
-	return c.SendString(xml)
+	return c.SendString(b.String())
+}
+
+func Health(c *fiber.Ctx) error {
+	sqlDB, err := database.DB.DB()
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"status": "error", "db": "unavailable"})
+	}
+	if err := sqlDB.Ping(); err != nil {
+		return c.Status(500).JSON(fiber.Map{"status": "error", "db": "down"})
+	}
+	return c.JSON(fiber.Map{"status": "ok"})
 }

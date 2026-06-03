@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"os"
 	"strings"
 	"time"
 
@@ -18,12 +19,32 @@ func GetComments(c *fiber.Ctx) error {
 	articleID := c.Query("article_id")
 	userID := c.Query("user_id")
 
+	isAdmin := false
+	authHeader := c.Get("Authorization")
+	if strings.HasPrefix(authHeader, "Bearer ") {
+		tokenString := strings.TrimSpace(strings.TrimPrefix(authHeader, "Bearer "))
+		token, _ := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+			return []byte(os.Getenv("JWT_SECRET")), nil
+		})
+		if token != nil && token.Valid {
+			if claims, ok := token.Claims.(jwt.MapClaims); ok {
+				role, _ := claims["role"].(string)
+				if strings.TrimSpace(role) == "admin" {
+					isAdmin = true
+				}
+			}
+		}
+	}
+
 	query := db.Order("created_at desc")
 	if articleID != "" {
 		query = query.Where("article_id = ?", articleID)
 	}
 	if userID != "" {
 		query = query.Where("user_id = ?", userID)
+	}
+	if !isAdmin {
+		query = query.Where("(status = ? OR status = '')", "approved")
 	}
 
 	if err := query.Find(&comments).Error; err != nil {
@@ -56,6 +77,24 @@ func GetComments(c *fiber.Ctx) error {
 		for _, r := range rows {
 			if r.DisplayName != "" {
 				displayNameByUserID[r.UserID] = r.DisplayName
+			}
+		}
+	}
+
+	type RoleRow struct {
+		UserID uuid.UUID
+		Role   string
+	}
+	roleByUserID := make(map[uuid.UUID]string, len(userIDs))
+	if len(userIDs) > 0 {
+		var rows []RoleRow
+		db.Model(&models.UserRole{}).
+			Select("user_id, role").
+			Where("user_id IN ?", userIDs).
+			Find(&rows)
+		for _, r := range rows {
+			if strings.TrimSpace(r.Role) != "" {
+				roleByUserID[r.UserID] = strings.TrimSpace(r.Role)
 			}
 		}
 	}
@@ -102,6 +141,10 @@ func GetComments(c *fiber.Ctx) error {
 		}
 
 		comments[i].ArticleTitle = titleByArticleID[comments[i].ArticleID]
+		comments[i].UserRole = roleByUserID[comments[i].UserID]
+		if comments[i].UserRole == "admin" || comments[i].UserRole == "kontributor" {
+			comments[i].IsStaff = true
+		}
 	}
 
 	return c.JSON(comments)
@@ -111,6 +154,8 @@ func CreateComment(c *fiber.Ctx) error {
 	user := c.Locals("user").(*jwt.Token)
 	claims := user.Claims.(jwt.MapClaims)
 	userIDStr := claims["user_id"].(string)
+	role, _ := claims["role"].(string)
+	role = strings.TrimSpace(role)
 
 	var comment models.Comment
 	if err := c.BodyParser(&comment); err != nil {
@@ -134,12 +179,52 @@ func CreateComment(c *fiber.Ctx) error {
 	comment.UserID = userID
 	comment.CreatedAt = time.Now()
 	comment.UpdatedAt = time.Now()
+	if role == "admin" || role == "kontributor" {
+		comment.Status = "approved"
+	} else {
+		comment.Status = "pending"
+	}
 
 	db := database.DB
+	var recent int64
+	db.Model(&models.Comment{}).
+		Where("user_id = ? AND article_id = ? AND content = ? AND created_at >= ?", comment.UserID, comment.ArticleID, comment.Content, time.Now().Add(-30*time.Second)).
+		Count(&recent)
+	if recent > 0 {
+		return c.Status(429).JSON(fiber.Map{"error": "Terlalu cepat. Coba lagi sebentar."})
+	}
+
 	if err := db.Create(&comment).Error; err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": "Could not create comment"})
 	}
 
+	return c.JSON(comment)
+}
+
+func AdminUpdateCommentStatus(c *fiber.Ctx) error {
+	id := strings.TrimSpace(c.Params("id"))
+	db := database.DB
+
+	type Input struct {
+		Status string `json:"status"`
+	}
+	var input Input
+	if err := c.BodyParser(&input); err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid body"})
+	}
+	status := strings.TrimSpace(strings.ToLower(input.Status))
+	if status != "approved" && status != "pending" && status != "spam" && status != "rejected" {
+		return c.Status(400).JSON(fiber.Map{"error": "Status tidak valid"})
+	}
+
+	var comment models.Comment
+	if err := db.Where("id = ?", id).First(&comment).Error; err != nil {
+		return c.Status(404).JSON(fiber.Map{"error": "Comment not found"})
+	}
+
+	if err := db.Model(&comment).Update("status", status).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Gagal memperbarui status komentar"})
+	}
 	return c.JSON(comment)
 }
 

@@ -67,7 +67,7 @@ export function ScrollToTop() {
   const isBasic = settings.scroll_to_top_version === "basic";
 
   return (
-    <div className="fixed bottom-6 left-6 z-[60] flex flex-col items-center">
+    <div className="fixed left-6 z-[60] flex flex-col items-center bottom-[calc(env(safe-area-inset-bottom,0px)+4rem+1.5rem)] md:bottom-6">
       {settings.scroll_to_top_version === "animated" && (
         <style>{`
           @keyframes rocket-shake {

@@ -8,9 +8,11 @@ interface SEOProps {
   description?: string;
   image?: string;
   article?: boolean;
+  canonical?: string;
+  jsonLd?: any | any[];
 }
 
-export function SEO({ title, description, image, article }: SEOProps) {
+export function SEO({ title, description, image, article, canonical, jsonLd }: SEOProps) {
   const { pathname } = useLocation();
   const { settings } = useSiteSettings();
   const siteName = settings?.site_name || "BlogUstad";
@@ -22,7 +24,7 @@ export function SEO({ title, description, image, article }: SEOProps) {
     const seoTitle = title ? `${title} | ${siteName}` : `${siteName} - Berbagi Ilmu Agama Islam`;
     const seoDescription = description || defaultDescription;
     const seoImage = image || `${baseURL}${defaultImage}`;
-    const seoURL = `${baseURL}${pathname}`;
+    const seoURL = canonical || `${baseURL}${pathname}`;
 
     // Update Title
     document.title = seoTitle;
@@ -57,15 +59,29 @@ export function SEO({ title, description, image, article }: SEOProps) {
     updateMeta("twitter:image", seoImage);
 
     // Canonical
-    let canonical = document.querySelector('link[rel="canonical"]');
-    if (!canonical) {
-      canonical = document.createElement("link");
-      canonical.setAttribute("rel", "canonical");
-      document.head.appendChild(canonical);
+    let canonicalEl = document.querySelector('link[rel="canonical"]');
+    if (!canonicalEl) {
+      canonicalEl = document.createElement("link");
+      canonicalEl.setAttribute("rel", "canonical");
+      document.head.appendChild(canonicalEl);
     }
-    canonical.setAttribute("href", seoURL);
+    canonicalEl.setAttribute("href", seoURL);
 
-  }, [title, description, image, article, pathname, baseURL, settings]);
+    const existingJsonLd = document.querySelectorAll('script[type="application/ld+json"][data-seo="jsonld"]');
+    existingJsonLd.forEach((n) => n.parentNode?.removeChild(n));
+
+    if (jsonLd) {
+      const list = Array.isArray(jsonLd) ? jsonLd : [jsonLd];
+      for (const item of list) {
+        if (!item) continue;
+        const el = document.createElement("script");
+        el.setAttribute("type", "application/ld+json");
+        el.setAttribute("data-seo", "jsonld");
+        el.text = JSON.stringify(item);
+        document.head.appendChild(el);
+      }
+    }
+  }, [title, description, image, article, canonical, jsonLd, pathname, baseURL, settings]);
 
   return null;
 }

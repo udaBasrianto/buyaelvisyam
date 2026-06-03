@@ -1,5 +1,5 @@
 import { useParams, Link } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Eye, Calendar, User, Share2, BookmarkPlus, Bookmark, AArrowDown, AArrowUp, RotateCcw, Clock, MessageCircle, MapPin, ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/Navbar";
@@ -58,6 +58,7 @@ export default function ArticleDetail() {
   const MIN_FONT = 14;
   const MAX_FONT = 26;
   const DEFAULT_FONT = 18;
+  const lastProgressSent = useRef<{ t: number; p: number }>({ t: 0, p: 0 });
 
   useEffect(() => {
     if (user && article) checkBookmarkStatus();
@@ -133,9 +134,8 @@ export default function ArticleDetail() {
         if (data) {
           setArticle(data as DbArticle);
           
-          // Related articles
-          const { data: relData } = await api.get("/articles", { params: { limit: 3 } });
-          setRelated((relData || []).filter((a: any) => a.id !== data.id));
+          const { data: relData } = await api.get(`/articles/${id}/related`, { params: { limit: 6 } });
+          setRelated(Array.isArray(relData) ? relData : []);
         }
       } catch (err) {
         console.error("Fetch article failed", err);
@@ -145,6 +145,31 @@ export default function ArticleDetail() {
     }
     if (id) load();
   }, [id]);
+
+  useEffect(() => {
+    if (!user || !article) return;
+
+    const send = () => {
+      const doc = document.documentElement;
+      const scrollTop = window.scrollY || doc.scrollTop || 0;
+      const max = Math.max(1, (doc.scrollHeight || 0) - window.innerHeight);
+      const p = Math.max(0, Math.min(1, scrollTop / max));
+      const now = Date.now();
+      const last = lastProgressSent.current;
+      if (now-last.t < 5000 && Math.abs(p-last.p) < 0.02) return;
+      lastProgressSent.current = { t: now, p };
+      api.post("/reading-progress", { article_id: article.id, progress: p }).catch(() => {});
+    };
+
+    const onScroll = () => send();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    const interval = window.setInterval(send, 8000);
+    send();
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.clearInterval(interval);
+    };
+  }, [user?.id, article?.id]);
 
   if (loading) {
     return (
@@ -189,6 +214,62 @@ export default function ArticleDetail() {
 
   const youtubeThumbnail = youtubeVideoId ? `https://img.youtube.com/vi/${youtubeVideoId}/hqdefault.jpg` : "";
   const shareImage = youtubeThumbnail || article.cover_image || DEFAULT_POST_IMAGE;
+  const canonicalPath = `/${article.slug || article.id}`;
+  const canonicalURL = `${window.location.origin}${canonicalPath}`;
+  const categorySlug = categories[0] ? categories[0].toLowerCase().replace(/\s+/g, "-") : "umum";
+
+  const jsonLdArticle = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": canonicalURL,
+    },
+    "headline": article.title,
+    "description": article.excerpt || plainText.substring(0, 160),
+    "image": [shareImage],
+    "datePublished": article.created_at,
+    "dateModified": article.created_at,
+    "author": [
+      {
+        "@type": "Person",
+        "name": article.author || "Ustadz",
+      },
+    ],
+    "publisher": {
+      "@type": "Organization",
+      "name": window.location.hostname,
+      "logo": {
+        "@type": "ImageObject",
+        "url": `${window.location.origin}/og-image.jpg`,
+      },
+    },
+  };
+
+  const jsonLdBreadcrumb = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Beranda",
+        "item": `${window.location.origin}/`,
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": categories[0] || "Kategori",
+        "item": `${window.location.origin}/kategori/${categorySlug}`,
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": article.title,
+        "item": canonicalURL,
+      },
+    ],
+  };
 
   return (
     <div className="min-h-screen bg-background max-w-full overflow-x-hidden">
@@ -197,21 +278,9 @@ export default function ArticleDetail() {
         description={article.excerpt || plainText.substring(0, 160)} 
         image={youtubeThumbnail || article.cover_image || undefined} 
         article 
+        canonical={canonicalURL}
+        jsonLd={[jsonLdBreadcrumb, jsonLdArticle]}
       />
-      <script type="application/ld+json">
-        {JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "BlogPosting",
-          "headline": article.title,
-          "image": [shareImage],
-          "datePublished": article.created_at,
-          "author": [{
-            "@type": "Person",
-            "name": article.author || "Ustadz",
-            "url": window.location.origin
-          }]
-        })}
-      </script>
       <ReadingProgress />
       <Navbar />
       <main className="bottom-nav-safe pb-20">

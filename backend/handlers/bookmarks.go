@@ -3,6 +3,9 @@ package handlers
 import (
 	"backend/database"
 	"backend/models"
+	"strings"
+	"time"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
@@ -67,4 +70,111 @@ func CheckBookmark(c *fiber.Ctx) error {
 	database.DB.Model(&models.Bookmark{}).Where("user_id = ? AND article_id = ?", userID, articleID).Count(&count)
 
 	return c.JSON(fiber.Map{"is_bookmarked": count > 0})
+}
+
+func UpsertReadingProgress(c *fiber.Ctx) error {
+	userToken := c.Locals("user").(*jwt.Token)
+	claims := userToken.Claims.(jwt.MapClaims)
+	userID, _ := uuid.Parse(claims["user_id"].(string))
+
+	var body struct {
+		ArticleID string  `json:"article_id"`
+		Progress  float64 `json:"progress"`
+	}
+	if err := c.BodyParser(&body); err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid body"})
+	}
+
+	aid, err := uuid.Parse(strings.TrimSpace(body.ArticleID))
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid article ID"})
+	}
+
+	p := body.Progress
+	if p < 0 {
+		p = 0
+	}
+	if p > 1 {
+		p = 1
+	}
+
+	db := database.DB
+	var rp models.ReadingProgress
+	if err := db.Where("user_id = ? AND article_id = ?", userID, aid).First(&rp).Error; err == nil {
+		if p < rp.Progress {
+			p = rp.Progress
+		}
+		rp.Progress = p
+		rp.UpdatedAt = time.Now()
+		db.Save(&rp)
+		return c.JSON(rp)
+	}
+
+	rp = models.ReadingProgress{
+		ID:        uuid.New(),
+		UserID:    userID,
+		ArticleID: aid,
+		Progress:  p,
+		UpdatedAt: time.Now(),
+	}
+	db.Create(&rp)
+	return c.JSON(rp)
+}
+
+func GetContinueReading(c *fiber.Ctx) error {
+	userToken := c.Locals("user").(*jwt.Token)
+	claims := userToken.Claims.(jwt.MapClaims)
+	userID, _ := uuid.Parse(claims["user_id"].(string))
+
+	limit := c.QueryInt("limit", 6)
+	if limit <= 0 {
+		limit = 6
+	}
+	if limit > 20 {
+		limit = 20
+	}
+
+	type Row struct {
+		ArticleID uuid.UUID
+		Progress  float64
+		UpdatedAt time.Time
+	}
+	var rows []Row
+	if err := database.DB.Model(&models.ReadingProgress{}).
+		Select("article_id, progress, updated_at").
+		Where("user_id = ?", userID).
+		Order("updated_at desc").
+		Limit(limit).
+		Scan(&rows).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Gagal memuat progres"})
+	}
+
+	articleIDs := make([]uuid.UUID, 0, len(rows))
+	for _, r := range rows {
+		articleIDs = append(articleIDs, r.ArticleID)
+	}
+
+	articleByID := map[uuid.UUID]models.Article{}
+	if len(articleIDs) > 0 {
+		var articles []models.Article
+		database.DB.Where("id IN ?", articleIDs).Find(&articles)
+		for _, a := range articles {
+			articleByID[a.ID] = a
+		}
+	}
+
+	out := make([]fiber.Map, 0, len(rows))
+	for _, r := range rows {
+		a, ok := articleByID[r.ArticleID]
+		if !ok {
+			continue
+		}
+		out = append(out, fiber.Map{
+			"article":    a,
+			"progress":   r.Progress,
+			"updated_at": r.UpdatedAt,
+		})
+	}
+
+	return c.JSON(out)
 }

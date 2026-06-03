@@ -148,6 +148,8 @@ type Article struct {
 	Categories pq.StringArray `gorm:"type:text[]" json:"categories"`
 	Tags       pq.StringArray `gorm:"type:text[]" json:"tags"`
 	Status     string         `gorm:"default:'draft'" json:"status"`
+	TemplateType string       `gorm:"default:'kajian'" json:"template_type"`
+	ScheduledPublishAt *time.Time `json:"scheduled_publish_at"`
 	Views      int            `gorm:"default:0" json:"views"`
 	IsFeatured bool           `gorm:"default:false" json:"is_featured"`
 	LocationName string       `json:"location_name"`
@@ -160,6 +162,23 @@ type Article struct {
 	UpdatedAt  time.Time      `json:"updated_at"`
 	AuthorName string         `gorm:"-" json:"author"`        // For response
 	CommentCount int64        `gorm:"-" json:"comment_count"` // For response
+}
+
+type ArticleRevision struct {
+	ID           uuid.UUID      `gorm:"type:uuid;primaryKey" json:"id"`
+	ArticleID    uuid.UUID      `gorm:"type:uuid;index" json:"article_id"`
+	Title        string         `json:"title"`
+	Content      string         `json:"content"`
+	Excerpt      string         `json:"excerpt"`
+	CoverImage   string         `json:"cover_image"`
+	Category     string         `json:"category"`
+	Categories   pq.StringArray `gorm:"type:text[]" json:"categories"`
+	Tags         pq.StringArray `gorm:"type:text[]" json:"tags"`
+	Status       string         `json:"status"`
+	TemplateType string         `json:"template_type"`
+	ScheduledPublishAt *time.Time `json:"scheduled_publish_at"`
+	SavedBy      uuid.UUID      `gorm:"type:uuid" json:"saved_by"`
+	CreatedAt    time.Time      `json:"created_at"`
 }
 
 type Page struct {
@@ -187,6 +206,12 @@ type SiteSettings struct {
 	FaviconURL          string    `json:"favicon_url"`
 	FooterText          string    `json:"footer_text"`
 	GoogleClientID      string    `json:"google_client_id"`
+	WhatsAppNotificationsEnabled bool   `gorm:"default:false" json:"whatsapp_notifications_enabled"`
+	WhatsAppNotifyNewArticle     bool   `gorm:"default:true" json:"whatsapp_notify_new_article"`
+	WhatsAppNotifyNewCourse      bool   `gorm:"default:true" json:"whatsapp_notify_new_course"`
+	WhatsAppNotifyMaxRecipients  int    `gorm:"default:200" json:"whatsapp_notify_max_recipients"`
+	WhatsAppTemplateNewArticle   string `json:"whatsapp_template_new_article"`
+	WhatsAppTemplateNewCourse    string `json:"whatsapp_template_new_course"`
 	HomepageVersion     string    `gorm:"default:'v1'" json:"homepage_version"`
 	ScrollToTopVersion  string    `gorm:"default:'animated'" json:"scroll_to_top_version"`
 	AdminToken          string    `gorm:"default:'090124'" json:"admin_token"`
@@ -254,11 +279,45 @@ type Comment struct {
 	UserID    uuid.UUID `gorm:"type:uuid;not null" json:"user_id"`
 	Content   string    `gorm:"not null" json:"content"`
 	ParentID  *uuid.UUID `gorm:"type:uuid" json:"parent_id"`
+	Status    string    `gorm:"default:'approved'" json:"status"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 	DisplayName string  `gorm:"-" json:"display_name"`
 	Initials    string  `gorm:"-" json:"initials"`
 	ArticleTitle string `gorm:"-" json:"article_title"`
+	IsStaff    bool     `gorm:"-" json:"is_staff"`
+	UserRole   string   `gorm:"-" json:"user_role"`
+}
+
+type UploadAsset struct {
+	ID        uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
+	URL       string    `gorm:"not null" json:"url"`
+	Filename  string    `json:"filename"`
+	MimeType  string    `json:"mime_type"`
+	SizeBytes int64     `json:"size_bytes"`
+	UploaderID uuid.UUID `gorm:"type:uuid" json:"uploader_id"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type AdminAuditLog struct {
+	ID         uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
+	UserID     uuid.UUID `gorm:"type:uuid;index" json:"user_id"`
+	Role       string    `json:"role"`
+	Method     string    `json:"method"`
+	Path       string    `json:"path"`
+	StatusCode int       `json:"status_code"`
+	IP         string    `json:"ip"`
+	UserAgent  string    `json:"user_agent"`
+	CreatedAt  time.Time `json:"created_at"`
+}
+
+type WhatsAppBroadcastLog struct {
+	ID            uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
+	CreatedBy     uuid.UUID `gorm:"type:uuid;index" json:"created_by"`
+	Message       string    `gorm:"type:text;not null" json:"message"`
+	MaxRecipients int       `gorm:"default:200" json:"max_recipients"`
+	SentCount     int       `gorm:"default:0" json:"sent_count"`
+	CreatedAt     time.Time `json:"created_at"`
 }
 
 type Transaction struct {
@@ -394,6 +453,13 @@ type Lesson struct {
 	CreatedAt   time.Time `json:"created_at"`
 }
 
+type LessonProgress struct {
+	ID          uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
+	UserID      uuid.UUID `gorm:"type:uuid;not null;index:idx_user_lesson,unique" json:"user_id"`
+	LessonID    uuid.UUID `gorm:"type:uuid;not null;index:idx_user_lesson,unique" json:"lesson_id"`
+	CompletedAt time.Time `json:"completed_at"`
+}
+
 type Enrollment struct {
 	ID        uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
 	UserID    uuid.UUID `gorm:"type:uuid;not null" json:"user_id"`
@@ -419,4 +485,12 @@ type Bookmark struct {
 	UserID    uuid.UUID `gorm:"type:uuid;not null;index:idx_user_article" json:"user_id"`
 	ArticleID uuid.UUID `gorm:"type:uuid;not null;index:idx_user_article" json:"article_id"`
 	CreatedAt time.Time `json:"created_at"`
+}
+
+type ReadingProgress struct {
+	ID        uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
+	UserID    uuid.UUID `gorm:"type:uuid;not null;index:idx_reading_user_article,unique" json:"user_id"`
+	ArticleID uuid.UUID `gorm:"type:uuid;not null;index:idx_reading_user_article,unique" json:"article_id"`
+	Progress  float64   `gorm:"default:0" json:"progress"`
+	UpdatedAt time.Time `json:"updated_at"`
 }

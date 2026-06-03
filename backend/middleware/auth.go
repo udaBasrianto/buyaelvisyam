@@ -1,12 +1,16 @@
 package middleware
 
 import (
+	"backend/database"
+	"backend/models"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	jwtware "github.com/gofiber/jwt/v3"
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/google/uuid"
 )
 
 // Protected check token
@@ -61,4 +65,43 @@ func jwtError(c *fiber.Ctx, err error) error {
 	}
 	return c.Status(fiber.StatusUnauthorized).
 		JSON(fiber.Map{"status": "error", "message": "Invalid or expired JWT", "data": nil})
+}
+
+func AuditAdminActions() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		user := c.Locals("user")
+		token, ok := user.(*jwt.Token)
+		if !ok || token == nil {
+			return c.Next()
+		}
+
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if !ok {
+			return c.Next()
+		}
+
+		userIDStr, _ := claims["user_id"].(string)
+		role, _ := claims["role"].(string)
+		uid, err := uuid.Parse(strings.TrimSpace(userIDStr))
+		if err != nil {
+			return c.Next()
+		}
+
+		errNext := c.Next()
+
+		log := models.AdminAuditLog{
+			ID:         uuid.New(),
+			UserID:     uid,
+			Role:       strings.TrimSpace(role),
+			Method:     c.Method(),
+			Path:       c.OriginalURL(),
+			StatusCode: c.Response().StatusCode(),
+			IP:         c.IP(),
+			UserAgent:  c.Get("User-Agent"),
+			CreatedAt:  time.Now(),
+		}
+		database.DB.Create(&log)
+
+		return errNext
+	}
 }

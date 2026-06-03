@@ -28,12 +28,16 @@ interface Comment {
   display_name: string;
   initials: string;
   article_title: string;
+  status?: string;
+  is_staff?: boolean;
+  user_role?: string;
 }
 
 export function CommentsManager() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "approved" | "spam" | "rejected">("all");
   const [replyIndex, setReplyIndex] = useState<Comment | null>(null);
   const [editTarget, setEditTarget] = useState<Comment | null>(null);
   const [replyContent, setReplyContent] = useState("");
@@ -66,6 +70,16 @@ export function CommentsManager() {
       toast({ title: "Komentar berhasil dihapus" });
     } catch (err) {
       toast({ title: "Gagal menghapus komentar", variant: "destructive" });
+    }
+  };
+
+  const handleUpdateStatus = async (id: string, status: "pending" | "approved" | "spam" | "rejected") => {
+    try {
+      await api.put(`/comments/${id}/status`, { status });
+      toast({ title: "Status komentar diperbarui" });
+      fetchComments();
+    } catch (err) {
+      toast({ title: "Gagal memperbarui status", variant: "destructive" });
     }
   };
 
@@ -104,7 +118,9 @@ export function CommentsManager() {
     }
   };
 
-  const filteredComments = comments.filter(c => 
+  const filteredComments = comments
+    .filter((c) => (statusFilter === "all" ? true : (c.status || "approved") === statusFilter))
+    .filter(c => 
     c.content.toLowerCase().includes(search.toLowerCase()) ||
     c.display_name.toLowerCase().includes(search.toLowerCase()) ||
     c.article_title.toLowerCase().includes(search.toLowerCase())
@@ -122,9 +138,30 @@ export function CommentsManager() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <div className="flex gap-2 w-full md:w-auto">
-          <Button variant="outline" size="sm" className="rounded-xl gap-2 font-bold uppercase text-[10px] tracking-widest h-10 w-full md:w-auto">
-            <Filter className="h-3.5 w-3.5" /> Filter
+        <div className="flex gap-2 w-full md:w-auto flex-wrap">
+          <Button
+            onClick={() => setStatusFilter("all")}
+            variant={statusFilter === "all" ? "default" : "outline"}
+            size="sm"
+            className="rounded-xl gap-2 font-bold uppercase text-[10px] tracking-widest h-10"
+          >
+            <Filter className="h-3.5 w-3.5" /> Semua
+          </Button>
+          <Button
+            onClick={() => setStatusFilter("pending")}
+            variant={statusFilter === "pending" ? "default" : "outline"}
+            size="sm"
+            className="rounded-xl gap-2 font-bold uppercase text-[10px] tracking-widest h-10"
+          >
+            Pending
+          </Button>
+          <Button
+            onClick={() => setStatusFilter("approved")}
+            variant={statusFilter === "approved" ? "default" : "outline"}
+            size="sm"
+            className="rounded-xl gap-2 font-bold uppercase text-[10px] tracking-widest h-10"
+          >
+            Approved
           </Button>
           <Button 
             onClick={fetchComments}
@@ -159,7 +196,14 @@ export function CommentsManager() {
                          {c.initials}
                       </div>
                       <div className="min-w-0">
-                         <p className="text-sm font-black truncate">{c.display_name}</p>
+                         <div className="flex items-center gap-2">
+                           <p className="text-sm font-black truncate">{c.display_name}</p>
+                           {c.is_staff && (
+                             <Badge variant="secondary" className="rounded-lg text-[9px] font-black uppercase tracking-widest h-5">
+                               {c.user_role === "admin" ? "Admin" : "Ustadz"}
+                             </Badge>
+                           )}
+                         </div>
                          <div className="flex items-center gap-1.5 text-muted-foreground mt-0.5">
                             <Calendar className="h-3 w-3" />
                             <span className="text-[10px] font-bold uppercase tracking-tighter">
@@ -176,6 +220,18 @@ export function CommentsManager() {
                             {c.article_title}
                          </Badge>
                          {c.parent_id && <Badge variant="secondary" className="rounded-lg text-[9px] font-black uppercase tracking-widest h-5">Balasan</Badge>}
+                         <Badge
+                           variant="outline"
+                           className={`rounded-lg text-[9px] font-black uppercase tracking-widest h-5 ${
+                             (c.status || "approved") === "pending"
+                               ? "bg-amber-50 text-amber-700 border-amber-200"
+                               : (c.status || "approved") === "approved"
+                               ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                               : "bg-muted text-muted-foreground border-border"
+                           }`}
+                         >
+                           {(c.status || "approved") === "pending" ? "Pending" : (c.status || "approved") === "approved" ? "Approved" : (c.status || "approved")}
+                         </Badge>
                       </div>
                       
                       <div className="text-sm leading-relaxed text-foreground bg-background/50 p-4 rounded-3xl border border-border/30">
@@ -183,6 +239,26 @@ export function CommentsManager() {
                       </div>
 
                       <div className="flex items-center gap-3">
+                         {(c.status || "approved") !== "approved" && (
+                           <Button
+                             onClick={() => handleUpdateStatus(c.id, "approved")}
+                             variant="ghost"
+                             size="sm"
+                             className="h-9 rounded-xl text-xs font-bold gap-2 text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50"
+                           >
+                             <CheckCircle2 className="h-4 w-4" /> Approve
+                           </Button>
+                         )}
+                         {(c.status || "approved") !== "rejected" && (
+                           <Button
+                             onClick={() => handleUpdateStatus(c.id, "rejected")}
+                             variant="ghost"
+                             size="sm"
+                             className="h-9 rounded-xl text-xs font-bold gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/5"
+                           >
+                             <XCircle className="h-4 w-4" /> Reject
+                           </Button>
+                         )}
                          <Button 
                            onClick={() => setReplyIndex(c)}
                            variant="ghost" 

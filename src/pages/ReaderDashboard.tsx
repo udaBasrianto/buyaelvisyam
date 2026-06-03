@@ -52,6 +52,12 @@ interface LeaderboardEntry {
   total_quizzes: number;
 }
 
+interface ContinueReadingItem {
+  article: any;
+  progress: number;
+  updated_at: string;
+}
+
 export default function ReaderDashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -65,6 +71,7 @@ export default function ReaderDashboard() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [bookmarks, setBookmarks] = useState<any[]>([]);
+  const [continueReading, setContinueReading] = useState<ContinueReadingItem[]>([]);
   const [showTopUp, setShowTopUp] = useState(false);
   const [topUpAmount, setTopUpAmount] = useState("");
   const [proofUrl, setProofUrl] = useState("");
@@ -93,6 +100,9 @@ export default function ReaderDashboard() {
 
       const { data: bookmarkData } = await api.get("/koleksi");
       setBookmarks(bookmarkData || []);
+
+      const { data: continueData } = await api.get("/reading-progress/continue", { params: { limit: 6 } });
+      setContinueReading((continueData || []) as ContinueReadingItem[]);
     } catch (err: any) {
       console.error(err);
     } finally {
@@ -177,6 +187,20 @@ export default function ReaderDashboard() {
     .toUpperCase()
     .slice(0, 2);
 
+  const toPostCard = (a: any) => ({
+    id: a.id,
+    slug: a.slug || "",
+    title: a.title,
+    excerpt: a.excerpt || "",
+    image: a.cover_image || "",
+    category: a.category || "Umum",
+    tags: a.tags || [],
+    author: a.author || "Ustadz",
+    date: new Date(a.created_at).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric'}),
+    views: a.views || 0,
+    commentCount: a.comment_count || 0,
+  });
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -205,6 +229,32 @@ export default function ReaderDashboard() {
                    Edit Profil
                 </Button>
              </div>
+
+             {continueReading.length > 0 ? (
+               <div className="bg-card border border-border/50 rounded-[2.5rem] p-8 shadow-sm space-y-4">
+                 <div className="flex items-center justify-between gap-3">
+                   <div className="flex items-center gap-2">
+                     <History className="h-4 w-4 text-primary" />
+                     <h3 className="text-sm font-black uppercase tracking-wider">Lanjutkan Membaca</h3>
+                   </div>
+                 </div>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                   {continueReading.map((it) => (
+                     <Link key={it.article?.id} to={`/${it.article?.slug || it.article?.id}`}>
+                       <div className="space-y-2">
+                         <PostCardV2 post={toPostCard(it.article)} />
+                         <div className="h-2 rounded-full bg-muted overflow-hidden">
+                           <div className="h-2 bg-primary" style={{ width: `${Math.round((it.progress || 0) * 100)}%` }} />
+                         </div>
+                         <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                           {Math.round((it.progress || 0) * 100)}%
+                         </div>
+                       </div>
+                     </Link>
+                   ))}
+                 </div>
+               </div>
+             ) : null}
 
              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-primary rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-2xl shadow-primary/20 group">

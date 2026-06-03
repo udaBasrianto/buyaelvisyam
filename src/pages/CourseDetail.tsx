@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { BottomNav } from "@/components/BottomNav";
 import { SEO } from "@/components/SEO";
-import { Play, Lock, BookOpen, Clock, ChevronRight, ArrowLeft, Star, Users, Wallet } from "lucide-react";
+import { Play, Lock, BookOpen, Clock, ChevronRight, ArrowLeft, Star, Users, Wallet, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import api from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
@@ -42,6 +42,15 @@ type Lesson = {
   is_free: boolean;
 };
 
+type CourseProgress = {
+  course_id: string;
+  total_lessons: number;
+  completed_lessons: number;
+  progress_percent: number;
+  completed_lesson_ids: string[];
+  next_lesson_slug: string;
+};
+
 export default function CourseDetail() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
@@ -55,6 +64,8 @@ export default function CourseDetail() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [enrolling, setEnrolling] = useState(false);
   const [userBalance, setUserBalance] = useState(0);
+  const [progress, setProgress] = useState<CourseProgress | null>(null);
+  const completedLessonIDs = new Set(progress?.completed_lesson_ids || []);
 
   const fetchEnrollmentStatus = async (courseId: string) => {
     if (!user) return;
@@ -69,6 +80,14 @@ export default function CourseDetail() {
     } catch (err) {
       console.error("Scale enrollment check failed", err);
     }
+  };
+
+  const fetchProgress = async (courseId: string) => {
+    if (!user) return;
+    try {
+      const { data } = await api.get(`/courses/${courseId}/progress`);
+      setProgress(data as CourseProgress);
+    } catch {}
   };
 
   const handlePayWithWallet = async () => {
@@ -94,6 +113,7 @@ export default function CourseDetail() {
         setCourse(c);
         
         fetchEnrollmentStatus(c.id);
+        fetchProgress(c.id);
 
         const { data: mods } = await api.get(`/courses/${c.id}/modules`);
         setModules(mods);
@@ -199,28 +219,34 @@ export default function CourseDetail() {
                         </div>
                         <div className="divide-y divide-border/30">
                            {lessons[m.id]?.length > 0 ? (
-                             lessons[m.id].map((l, j) => (
-                               <Link 
-                                 key={l.id} 
-                                 to={`/lms/lesson/${l.slug}`}
-                                 className="flex items-center justify-between px-8 py-4 hover:bg-primary/5 transition-colors group cursor-pointer"
-                               >
-                                  <div className="flex items-center gap-4">
-                                     <div className="h-8 w-8 rounded-xl bg-background border border-border/50 flex items-center justify-center font-bold text-xs group-hover:bg-primary group-hover:text-white transition-colors shadow-sm">
-                                        {j+1}
-                                     </div>
-                                     <p className="text-sm font-bold">{l.title}</p>
-                                  </div>
-                                  <div className="flex items-center gap-3">
-                                     {l.is_free ? (
-                                       <span className="text-[9px] font-black uppercase px-2 py-0.5 bg-emerald-500/10 text-emerald-600 rounded">Gratis</span>
-                                     ) : (
-                                       <Lock className="h-3 w-3 text-muted-foreground" />
-                                     )}
-                                     <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                                  </div>
-                               </Link>
-                             ))
+                             lessons[m.id].map((l, j) => {
+                               const isCompleted = completedLessonIDs.has(l.id);
+                               return (
+                                 <Link 
+                                   key={l.id} 
+                                   to={`/lms/lesson/${l.slug}`}
+                                   className="flex items-center justify-between px-8 py-4 hover:bg-primary/5 transition-colors group cursor-pointer"
+                                 >
+                                    <div className="flex items-center gap-4">
+                                       <div className="h-8 w-8 rounded-xl bg-background border border-border/50 flex items-center justify-center font-bold text-xs group-hover:bg-primary group-hover:text-white transition-colors shadow-sm">
+                                          {j+1}
+                                       </div>
+                                       <p className="text-sm font-bold">{l.title}</p>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                       {isCompleted ? (
+                                         <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                                       ) : null}
+                                       {l.is_free ? (
+                                         <span className="text-[9px] font-black uppercase px-2 py-0.5 bg-emerald-500/10 text-emerald-600 rounded">Gratis</span>
+                                       ) : (
+                                         <Lock className="h-3 w-3 text-muted-foreground" />
+                                       )}
+                                       <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                                    </div>
+                                 </Link>
+                               );
+                             })
                            ) : (
                              <div className="px-8 py-6 text-center text-xs text-muted-foreground italic">Belum ada materi di modul ini.</div>
                            )}
@@ -264,14 +290,34 @@ export default function CourseDetail() {
                     ) : (
                       <Button 
                         onClick={() => {
+                          const nextSlug = progress?.next_lesson_slug;
+                          if (nextSlug) {
+                            navigate(`/lms/lesson/${nextSlug}`);
+                            return;
+                          }
                           const firstLesson = Object.values(lessons).flat()[0];
                           if (firstLesson) navigate(`/lms/lesson/${firstLesson.slug}`);
                         }}
                         className="w-full h-14 rounded-2xl font-black uppercase tracking-widest text-base shadow-lg shadow-emerald-200 bg-emerald-500 hover:bg-emerald-600"
                       >
-                         Mulai Belajar
+                         {progress?.next_lesson_slug ? "Lanjutkan Belajar" : "Mulai Belajar"}
                       </Button>
                     )}
+
+                    {progress ? (
+                      <div className="space-y-2 pt-2">
+                        <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                          <span>Progress</span>
+                          <span>{Math.round(progress.progress_percent || 0)}%</span>
+                        </div>
+                        <div className="h-2 rounded-full bg-muted overflow-hidden">
+                          <div className="h-2 bg-primary" style={{ width: `${Math.round(progress.progress_percent || 0)}%` }} />
+                        </div>
+                        <div className="text-[10px] text-muted-foreground">
+                          {progress.completed_lessons || 0}/{progress.total_lessons || 0} materi selesai
+                        </div>
+                      </div>
+                    ) : null}
 
                     <p className="text-[10px] text-center text-muted-foreground px-4 leading-normal font-medium">
                        Akses seumur hidup • Video kualitas HD • Sertifikat setelah selesai (Segera hadir)

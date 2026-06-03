@@ -16,10 +16,13 @@ interface CommentWithProfile {
   display_name: string;
   initials: string;
   parent_id?: string | null;
+  is_staff?: boolean;
+  user_role?: string;
+  status?: string;
 }
 
 export function CommentSection({ articleId }: { articleId: string }) {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const { toast } = useToast();
   const [comments, setComments] = useState<CommentWithProfile[]>([]);
   const [newComment, setNewComment] = useState("");
@@ -47,13 +50,16 @@ export function CommentSection({ articleId }: { articleId: string }) {
     }
 
     try {
-      await api.post("/comments", {
+      const { data } = await api.post("/comments", {
         article_id: articleId,
         content: newComment.trim(),
         parent_id: replyTo?.id || null,
       });
       setNewComment("");
       setReplyTo(null);
+      if (data?.status === "pending") {
+        toast({ title: "Komentar terkirim", description: "Komentar menunggu moderasi admin." });
+      }
       fetchComments();
     } catch (error: any) {
       toast({ title: "Gagal", description: error.response?.data?.error || error.message, variant: "destructive" });
@@ -86,6 +92,11 @@ export function CommentSection({ articleId }: { articleId: string }) {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-sm font-black text-foreground">{c.display_name}</span>
+                {c.is_staff && (
+                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                    {c.user_role === "admin" ? "Admin" : "Ustadz"}
+                  </span>
+                )}
                 <span className="text-[10px] uppercase font-bold text-muted-foreground">{formatDate(c.created_at)}</span>
               </div>
               <p className="text-sm text-foreground/80 leading-relaxed bg-background/50 p-3 rounded-2xl border border-border/30 inline-block max-w-full">
@@ -101,7 +112,7 @@ export function CommentSection({ articleId }: { articleId: string }) {
                 >
                   Balas
                 </button>
-                {user?.id === c.user_id && (
+                {(user?.id === c.user_id || role === "admin") && (
                   <button 
                     onClick={() => handleDelete(c.id)} 
                     className="text-[10px] font-black uppercase text-destructive hover:underline"
@@ -184,4 +195,3 @@ export function CommentSection({ articleId }: { articleId: string }) {
     </div>
   );
 }
-

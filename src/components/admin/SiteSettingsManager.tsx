@@ -20,6 +20,12 @@ interface Settings {
   favicon_url: string | null;
   footer_text: string;
   google_client_id?: string;
+  whatsapp_notifications_enabled?: boolean;
+  whatsapp_notify_new_article?: boolean;
+  whatsapp_notify_new_course?: boolean;
+  whatsapp_notify_max_recipients?: number;
+  whatsapp_template_new_article?: string;
+  whatsapp_template_new_course?: string;
   homepage_version: string;
   slider_style: string;
   scroll_to_top_version: string;
@@ -158,6 +164,12 @@ export function SiteSettingsManager() {
         favicon_url: settings.favicon_url,
         footer_text: settings.footer_text.trim(),
         google_client_id: settings.google_client_id?.trim() || "",
+        whatsapp_notifications_enabled: settings.whatsapp_notifications_enabled ?? false,
+        whatsapp_notify_new_article: settings.whatsapp_notify_new_article ?? true,
+        whatsapp_notify_new_course: settings.whatsapp_notify_new_course ?? true,
+        whatsapp_notify_max_recipients: Number(settings.whatsapp_notify_max_recipients) || 200,
+        whatsapp_template_new_article: settings.whatsapp_template_new_article || "",
+        whatsapp_template_new_course: settings.whatsapp_template_new_course || "",
         homepage_version: settings.homepage_version,
         slider_style: settings.slider_style,
         scroll_to_top_version: settings.scroll_to_top_version,
@@ -487,6 +499,80 @@ export function SiteSettingsManager() {
             onChange={(e) => setSettings({ ...settings, google_client_id: e.target.value })} 
             placeholder="xxxxx.apps.googleusercontent.com"
           />
+        </div>
+
+        <div className="pt-6 border-t space-y-4">
+          <Label className="text-sm font-bold block">Notifikasi WhatsApp</Label>
+          <div className="text-[10px] text-muted-foreground">
+            Mengirim broadcast saat artikel/kursus dipublikasikan. Syarat: WhatsApp service harus enabled & connected, dan user sudah verifikasi nomor.
+          </div>
+
+          <div className="flex items-center justify-between gap-4 rounded-xl border p-4">
+            <div className="space-y-0.5">
+              <div className="font-bold">Aktifkan Notifikasi</div>
+              <div className="text-xs text-muted-foreground">Jika dimatikan, tidak akan mengirim broadcast.</div>
+            </div>
+            <Switch
+              checked={settings.whatsapp_notifications_enabled ?? false}
+              onCheckedChange={(v) => setSettings({ ...settings, whatsapp_notifications_enabled: v })}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="flex items-center justify-between gap-4 rounded-xl border p-4">
+              <div className="space-y-0.5">
+                <div className="font-bold">Artikel Baru</div>
+                <div className="text-xs text-muted-foreground">Broadcast saat artikel publish.</div>
+              </div>
+              <Switch
+                checked={settings.whatsapp_notify_new_article ?? true}
+                onCheckedChange={(v) => setSettings({ ...settings, whatsapp_notify_new_article: v })}
+              />
+            </div>
+            <div className="flex items-center justify-between gap-4 rounded-xl border p-4">
+              <div className="space-y-0.5">
+                <div className="font-bold">Kursus Baru</div>
+                <div className="text-xs text-muted-foreground">Broadcast saat kursus publish.</div>
+              </div>
+              <Switch
+                checked={settings.whatsapp_notify_new_course ?? true}
+                onCheckedChange={(v) => setSettings({ ...settings, whatsapp_notify_new_course: v })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[10px]">Maks Penerima</Label>
+              <Input
+                type="number"
+                value={String(settings.whatsapp_notify_max_recipients ?? 200)}
+                onChange={(e) => setSettings({ ...settings, whatsapp_notify_max_recipients: Number(e.target.value) || 0 })}
+                placeholder="200"
+              />
+              <div className="text-[10px] text-muted-foreground">Batasi broadcast agar tidak membebani server.</div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="text-[10px]">Template Artikel</Label>
+              <Textarea
+                value={settings.whatsapp_template_new_article || ""}
+                onChange={(e) => setSettings({ ...settings, whatsapp_template_new_article: e.target.value })}
+                placeholder="Assalamu'alaikum, ada artikel baru di {site}: {title}\n\nBaca: {url}"
+                rows={4}
+              />
+              <div className="text-[10px] text-muted-foreground">Placeholder: {`{site} {title} {url}`}</div>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[10px]">Template Kursus</Label>
+              <Textarea
+                value={settings.whatsapp_template_new_course || ""}
+                onChange={(e) => setSettings({ ...settings, whatsapp_template_new_course: e.target.value })}
+                placeholder="Assalamu'alaikum, ada kursus baru di {site}: {title}\n\nLihat: {url}"
+                rows={4}
+              />
+              <div className="text-[10px] text-muted-foreground">Placeholder: {`{site} {title} {url}`}</div>
+            </div>
+          </div>
         </div>
 
         <div className="pt-6 border-t space-y-4">

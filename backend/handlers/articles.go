@@ -362,10 +362,129 @@ func GetArticle(c *fiber.Ctx) error {
 	return c.JSON(article)
 }
 
+func GetRelatedArticles(c *fiber.Ctx) error {
+	id := strings.TrimSpace(c.Params("id"))
+	limit := c.QueryInt("limit", 6)
+	if limit <= 0 {
+		limit = 6
+	}
+	if limit > 12 {
+		limit = 12
+	}
+
+	db := database.DB
+
+	var current models.Article
+	if _, err := uuid.Parse(id); err == nil {
+		if err := db.Where("id = ?", id).First(&current).Error; err != nil {
+			return c.Status(404).JSON(fiber.Map{"error": "Article not found"})
+		}
+	} else {
+		if err := db.Where("slug = ?", id).First(&current).Error; err != nil {
+			var matches []models.Article
+			if err := db.Where("slug LIKE ?", id+"-%").Limit(2).Find(&matches).Error; err != nil || len(matches) != 1 {
+				return c.Status(404).JSON(fiber.Map{"error": "Article not found"})
+			}
+			current = matches[0]
+		}
+	}
+
+	category := strings.TrimSpace(current.Category)
+	tags := []string(current.Tags)
+
+	var articles []models.Article
+	query := db.Model(&models.Article{}).
+		Where("status = ? AND id <> ?", "published", current.ID)
+
+	switch {
+	case category != "" && len(tags) > 0:
+		query = query.Where("(category = ? OR tags && ?)", category, pq.Array(tags))
+	case category != "":
+		query = query.Where("category = ?", category)
+	case len(tags) > 0:
+		query = query.Where("tags && ?", pq.Array(tags))
+	default:
+		query = query.Where("category <> ''")
+	}
+
+	if err := query.Order("created_at desc").Limit(limit).Find(&articles).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Gagal memuat artikel terkait"})
+	}
+
+	authorIDSet := make(map[uuid.UUID]struct{})
+	articleIDSet := make(map[uuid.UUID]struct{})
+	for i := range articles {
+		authorIDSet[articles[i].AuthorID] = struct{}{}
+		articleIDSet[articles[i].ID] = struct{}{}
+	}
+
+	authorIDs := make([]uuid.UUID, 0, len(authorIDSet))
+	for aid := range authorIDSet {
+		authorIDs = append(authorIDs, aid)
+	}
+
+	type AuthorRow struct {
+		UserID      uuid.UUID
+		DisplayName string
+	}
+	authorNameByUserID := make(map[uuid.UUID]string, len(authorIDs))
+	if len(authorIDs) > 0 {
+		var rows []AuthorRow
+		db.Model(&models.Profile{}).
+			Select("user_id, display_name").
+			Where("user_id IN ?", authorIDs).
+			Find(&rows)
+		for _, r := range rows {
+			if r.DisplayName != "" {
+				authorNameByUserID[r.UserID] = r.DisplayName
+			}
+		}
+	}
+
+	articleIDs := make([]uuid.UUID, 0, len(articleIDSet))
+	for aID := range articleIDSet {
+		articleIDs = append(articleIDs, aID)
+	}
+
+	type CommentCountRow struct {
+		ArticleID uuid.UUID
+		Count     int64
+	}
+	commentCountByArticleID := make(map[uuid.UUID]int64, len(articleIDs))
+	if len(articleIDs) > 0 {
+		var rows []CommentCountRow
+		db.Model(&models.Comment{}).
+			Select("article_id, count(*) as count").
+			Where("article_id IN ?", articleIDs).
+			Group("article_id").
+			Scan(&rows)
+		for _, r := range rows {
+			commentCountByArticleID[r.ArticleID] = r.Count
+		}
+	}
+
+	for i := range articles {
+		if n, ok := authorNameByUserID[articles[i].AuthorID]; ok {
+			articles[i].AuthorName = n
+		} else {
+			articles[i].AuthorName = "Ustadz"
+		}
+		if cc, ok := commentCountByArticleID[articles[i].ID]; ok {
+			articles[i].CommentCount = cc
+		} else {
+			articles[i].CommentCount = 0
+		}
+	}
+
+	return c.JSON(articles)
+}
+
 func CreateArticle(c *fiber.Ctx) error {
 	user := c.Locals("user").(*jwt.Token)
 	claims := user.Claims.(jwt.MapClaims)
 	authorIDStr := claims["user_id"].(string)
+	role, _ := claims["role"].(string)
+	role = strings.TrimSpace(role)
 
 	var article models.Article
 	if err := c.BodyParser(&article); err != nil {
@@ -379,6 +498,8 @@ func CreateArticle(c *fiber.Ctx) error {
 	article.AuthorID = authorID
 
 	article.Title = strings.TrimSpace(article.Title)
+	article.TemplateType = normalizeTemplateType(article.TemplateType)
+	article.Status = strings.TrimSpace(article.Status)
 	if article.Slug == "" {
 		article.Slug = slugify(article.Title)
 	} else {
@@ -393,6 +514,15 @@ func CreateArticle(c *fiber.Ctx) error {
 	} else {
 		article.Category = "Umum"
 		article.Categories = []string{"Umum"}
+	}
+
+	if role != "admin" {
+		article.Status = "draft"
+		article.ScheduledPublishAt = nil
+	} else {
+		if article.Status == "" {
+			article.Status = "draft"
+		}
 	}
 
 	db := database.DB
@@ -418,6 +548,15 @@ func UpdateArticle(c *fiber.Ctx) error {
 		return c.Status(404).JSON(fiber.Map{"error": "Article not found"})
 	}
 
+	prevStatus := strings.TrimSpace(article.Status)
+
+	userToken := c.Locals("user").(*jwt.Token)
+	claims := userToken.Claims.(jwt.MapClaims)
+	userIDStr, _ := claims["user_id"].(string)
+	role, _ := claims["role"].(string)
+	role = strings.TrimSpace(role)
+	userID, _ := uuid.Parse(strings.TrimSpace(userIDStr))
+
 	var input struct {
 		Title        *string         `json:"title"`
 		Slug         *string         `json:"slug"`
@@ -427,12 +566,14 @@ func UpdateArticle(c *fiber.Ctx) error {
 		Categories   *pq.StringArray `json:"categories"`
 		CoverImage   *string         `json:"cover_image"`
 		Status       *string         `json:"status"`
+		TemplateType *string         `json:"template_type"`
 		IsFeatured   *bool           `json:"is_featured"`
 		LocationName *string         `json:"location_name"`
 		Latitude     *float64        `json:"latitude"`
 		Longitude    *float64        `json:"longitude"`
 		YoutubeURL   *string         `json:"youtube_url"`
-		PublishedAt  *string         `json:"published_at"` // ISO string from frontend
+		PublishedAt  *string         `json:"published_at"` // legacy: datetime for schedule/publish
+		ScheduledPublishAt *string   `json:"scheduled_publish_at"`
 		Tags         *pq.StringArray `json:"tags"`
 	}
 
@@ -440,18 +581,65 @@ func UpdateArticle(c *fiber.Ctx) error {
 		return c.Status(400).JSON(fiber.Map{"error": "Invalid body"})
 	}
 
+	desiredStatus := strings.TrimSpace(article.Status)
+	if input.Status != nil {
+		desiredStatus = strings.TrimSpace(*input.Status)
+	}
+	if desiredStatus == "" {
+		desiredStatus = "draft"
+	}
+
+	if role != "admin" && desiredStatus == "published" {
+		return c.Status(403).JSON(fiber.Map{"error": "Hanya admin yang boleh mempublikasikan artikel"})
+	}
+
+	var nextScheduledAt *time.Time
+	scheduledRaw := ""
+	if input.ScheduledPublishAt != nil {
+		scheduledRaw = strings.TrimSpace(*input.ScheduledPublishAt)
+	} else if input.PublishedAt != nil {
+		scheduledRaw = strings.TrimSpace(*input.PublishedAt)
+	}
+	if scheduledRaw != "" {
+		parsed, err := time.Parse(time.RFC3339, scheduledRaw)
+		if err != nil {
+			parsed, err = time.ParseInLocation("2006-01-02T15:04", scheduledRaw, time.Local)
+		}
+		if err == nil {
+			nextScheduledAt = &parsed
+		}
+	}
+
+	if role != "admin" {
+		nextScheduledAt = nil
+	}
+
+	if role == "admin" && desiredStatus == "published" && nextScheduledAt != nil && nextScheduledAt.After(time.Now().Add(10*time.Second)) {
+		desiredStatus = "review"
+	}
+
+	if role != "admin" && article.AuthorID != userID {
+		return c.Status(403).JSON(fiber.Map{"error": "Forbidden"})
+	}
+
+	if err := saveArticleRevision(db, article, userID); err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Gagal menyimpan revisi"})
+	}
+
 	if input.Title != nil { article.Title = *input.Title }
 	if input.Slug != nil { article.Slug = *input.Slug }
 	if input.Content != nil { article.Content = *input.Content }
 	if input.Excerpt != nil { article.Excerpt = *input.Excerpt }
 	if input.CoverImage != nil { article.CoverImage = *input.CoverImage }
-	if input.Status != nil { article.Status = *input.Status }
+	article.Status = desiredStatus
+	if input.TemplateType != nil { article.TemplateType = normalizeTemplateType(*input.TemplateType) }
 	if input.IsFeatured != nil { article.IsFeatured = *input.IsFeatured }
 	if input.LocationName != nil { article.LocationName = *input.LocationName }
 	if input.Latitude != nil { article.Latitude = *input.Latitude }
 	if input.Longitude != nil { article.Longitude = *input.Longitude }
 	if input.YoutubeURL != nil { article.YoutubeURL = *input.YoutubeURL }
 	if input.Tags != nil { article.Tags = *input.Tags }
+	article.ScheduledPublishAt = nextScheduledAt
 
 	// Handle multi-category synchronization
 	if input.Categories != nil {
@@ -468,20 +656,121 @@ func UpdateArticle(c *fiber.Ctx) error {
 		return c.Status(500).JSON(fiber.Map{"error": "Could not update article"})
 	}
 
-	// Update created_at separately if provided (GORM doesn't update it via Save)
-	if input.PublishedAt != nil && *input.PublishedAt != "" {
-		parsed, err := time.Parse(time.RFC3339, *input.PublishedAt)
-		if err != nil {
-			// try without timezone
-			parsed, err = time.ParseInLocation("2006-01-02T15:04", *input.PublishedAt, time.Local)
-		}
-		if err == nil {
-			db.Exec("UPDATE articles SET created_at = ? WHERE id = ?", parsed, article.ID)
-			article.CreatedAt = parsed
-		}
+	if prevStatus != "published" && article.Status == "published" {
+		go func(a models.Article) {
+			defer func() { recover() }()
+			NotifyWhatsAppNewArticle(a)
+		}(article)
 	}
 
 	return c.JSON(article)
+}
+
+func GetArticleRevisions(c *fiber.Ctx) error {
+	articleIDStr := strings.TrimSpace(c.Params("id"))
+	aid, err := uuid.Parse(articleIDStr)
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid article ID"})
+	}
+
+	limit := c.QueryInt("limit", 30)
+	if limit <= 0 {
+		limit = 30
+	}
+	if limit > 200 {
+		limit = 200
+	}
+
+	var revs []models.ArticleRevision
+	if err := database.DB.Where("article_id = ?", aid).Order("created_at desc").Limit(limit).Find(&revs).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Gagal memuat revisi"})
+	}
+	return c.JSON(revs)
+}
+
+func RestoreArticleRevision(c *fiber.Ctx) error {
+	articleIDStr := strings.TrimSpace(c.Params("id"))
+	revIDStr := strings.TrimSpace(c.Params("revId"))
+	aid, err := uuid.Parse(articleIDStr)
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid article ID"})
+	}
+	rid, err := uuid.Parse(revIDStr)
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid revision ID"})
+	}
+
+	userToken := c.Locals("user").(*jwt.Token)
+	claims := userToken.Claims.(jwt.MapClaims)
+	userIDStr, _ := claims["user_id"].(string)
+	role, _ := claims["role"].(string)
+	role = strings.TrimSpace(role)
+	userID, _ := uuid.Parse(strings.TrimSpace(userIDStr))
+
+	db := database.DB
+
+	var article models.Article
+	if err := db.Where("id = ?", aid).First(&article).Error; err != nil {
+		return c.Status(404).JSON(fiber.Map{"error": "Article not found"})
+	}
+	if role != "admin" && article.AuthorID != userID {
+		return c.Status(403).JSON(fiber.Map{"error": "Forbidden"})
+	}
+
+	var rev models.ArticleRevision
+	if err := db.Where("id = ? AND article_id = ?", rid, aid).First(&rev).Error; err != nil {
+		return c.Status(404).JSON(fiber.Map{"error": "Revision not found"})
+	}
+
+	if err := saveArticleRevision(db, article, userID); err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Gagal menyimpan revisi"})
+	}
+
+	article.Title = rev.Title
+	article.Content = rev.Content
+	article.Excerpt = rev.Excerpt
+	article.CoverImage = rev.CoverImage
+	article.Category = rev.Category
+	article.Categories = rev.Categories
+	article.Tags = rev.Tags
+	article.Status = rev.Status
+	article.TemplateType = normalizeTemplateType(rev.TemplateType)
+	article.ScheduledPublishAt = rev.ScheduledPublishAt
+
+	if err := db.Save(&article).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Gagal merestore revisi"})
+	}
+	return c.JSON(article)
+}
+
+func saveArticleRevision(db *gorm.DB, a models.Article, savedBy uuid.UUID) error {
+	rev := models.ArticleRevision{
+		ID:                uuid.New(),
+		ArticleID:          a.ID,
+		Title:              a.Title,
+		Content:            a.Content,
+		Excerpt:            a.Excerpt,
+		CoverImage:         a.CoverImage,
+		Category:           a.Category,
+		Categories:         a.Categories,
+		Tags:               a.Tags,
+		Status:             a.Status,
+		TemplateType:       a.TemplateType,
+		ScheduledPublishAt: a.ScheduledPublishAt,
+		SavedBy:            savedBy,
+		CreatedAt:          time.Now(),
+	}
+	return db.Create(&rev).Error
+}
+
+func normalizeTemplateType(v string) string {
+	s := strings.TrimSpace(strings.ToLower(v))
+	switch s {
+	case "kajian", "berita", "quote", "tanya_jawab":
+		return s
+	default:
+		return "kajian"
+	}
 }
 
 func DeleteArticle(c *fiber.Ctx) error {

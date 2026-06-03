@@ -7,6 +7,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/golang-jwt/jwt/v4"
+	"strings"
+	"time"
 )
 
 // --- Enrollment Handlers ---
@@ -135,10 +137,47 @@ func UpdateCourse(c *fiber.Ctx) error {
 	if err := database.DB.Where("id = ?", id).First(&course).Error; err != nil {
 		return c.Status(404).JSON(fiber.Map{"error": "Kursus tidak ditemukan"})
 	}
-	if err := c.BodyParser(&course); err != nil {
+
+	prevPublished := course.IsPublished
+
+	var input struct {
+		Title       *string  `json:"title"`
+		Slug        *string  `json:"slug"`
+		Description *string  `json:"description"`
+		Thumbnail   *string  `json:"thumbnail"`
+		Price       *float64 `json:"price"`
+		Instructor  *string  `json:"instructor"`
+		Level       *string  `json:"level"`
+		Category    *string  `json:"category"`
+		IsPublished *bool    `json:"is_published"`
+	}
+	if err := c.BodyParser(&input); err != nil {
 		return c.Status(400).JSON(fiber.Map{"error": "Format data salah"})
 	}
-	database.DB.Save(&course)
+
+	updates := map[string]any{}
+	if input.Title != nil { updates["title"] = strings.TrimSpace(*input.Title) }
+	if input.Slug != nil { updates["slug"] = strings.TrimSpace(*input.Slug) }
+	if input.Description != nil { updates["description"] = *input.Description }
+	if input.Thumbnail != nil { updates["thumbnail"] = strings.TrimSpace(*input.Thumbnail) }
+	if input.Price != nil { updates["price"] = *input.Price }
+	if input.Instructor != nil { updates["instructor"] = strings.TrimSpace(*input.Instructor) }
+	if input.Level != nil { updates["level"] = strings.TrimSpace(*input.Level) }
+	if input.Category != nil { updates["category"] = strings.TrimSpace(*input.Category) }
+	if input.IsPublished != nil { updates["is_published"] = *input.IsPublished }
+
+	if err := database.DB.Model(&course).Updates(updates).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Gagal memperbarui kursus"})
+	}
+
+	database.DB.Where("id = ?", id).First(&course)
+	if !prevPublished && course.IsPublished {
+		go func(cs models.Course) {
+			defer func() { recover() }()
+			NotifyWhatsAppNewCourse(cs)
+		}(course)
+	}
+
 	return c.JSON(course)
 }
 
@@ -218,20 +257,19 @@ func GetLessonBySlug(c *fiber.Ctx) error {
 	var course models.Course
 	database.DB.Select("price").Where("id = ?", module.CourseID).First(&course)
 
-	if course.Price > 0 {
-		// Verify Login
-		userToken, ok := c.Locals("user").(*jwt.Token)
-		if !ok {
-			return c.Status(401).JSON(fiber.Map{"error": "Login diperlukan untuk akses materi berbayar", "locked": true})
-		}
-		
-		claims := userToken.Claims.(jwt.MapClaims)
-		userID, _ := uuid.Parse(claims["user_id"].(string))
-		role := claims["role"].(string)
+	userToken, ok := c.Locals("user").(*jwt.Token)
+	if !ok || userToken == nil {
+		return c.Status(401).JSON(fiber.Map{"error": "Login diperlukan", "locked": true})
+	}
+	claims := userToken.Claims.(jwt.MapClaims)
+	userID, _ := uuid.Parse(claims["user_id"].(string))
+	role, _ := claims["role"].(string)
+	role = strings.TrimSpace(role)
 
+	if course.Price > 0 {
 		// Admin/Superadmin bypass
 		if role == "admin" || role == "superadmin" {
-			return c.JSON(lesson)
+			return c.JSON(extendLessonResponse(module.CourseID, lesson, userID))
 		}
 
 		// Check enrollment for normal users
@@ -241,5 +279,226 @@ func GetLessonBySlug(c *fiber.Ctx) error {
 		}
 	}
 
-	return c.JSON(lesson)
+	return c.JSON(extendLessonResponse(module.CourseID, lesson, userID))
+}
+
+func extendLessonResponse(courseID uuid.UUID, lesson models.Lesson, userID uuid.UUID) fiber.Map {
+	var course models.Course
+	database.DB.Select("id, slug, title").Where("id = ?", courseID).First(&course)
+
+	var modules []models.CourseModule
+	database.DB.Where("course_id = ?", courseID).Order("sort_order asc, created_at asc").Find(&modules)
+
+	var moduleIDs []uuid.UUID
+	for _, m := range modules {
+		moduleIDs = append(moduleIDs, m.ID)
+	}
+
+	var allLessons []models.Lesson
+	if len(moduleIDs) > 0 {
+		database.DB.Where("module_id IN ?", moduleIDs).Order("sort_order asc, created_at asc").Find(&allLessons)
+	}
+
+	type LessonNavItem struct {
+		ID       uuid.UUID
+		Slug     string
+		ModuleID uuid.UUID
+	}
+	nav := make([]LessonNavItem, 0, len(allLessons))
+	for _, l := range allLessons {
+		nav = append(nav, LessonNavItem{ID: l.ID, Slug: l.Slug, ModuleID: l.ModuleID})
+	}
+
+	prevSlug := ""
+	nextSlug := ""
+	for i := range nav {
+		if nav[i].ID == lesson.ID {
+			if i > 0 {
+				prevSlug = nav[i-1].Slug
+			}
+			if i < len(nav)-1 {
+				nextSlug = nav[i+1].Slug
+			}
+			break
+		}
+	}
+
+	completed := false
+	var count int64
+	database.DB.Model(&models.LessonProgress{}).
+		Where("user_id = ? AND lesson_id = ?", userID, lesson.ID).
+		Count(&count)
+	completed = count > 0
+
+	return fiber.Map{
+		"id":           lesson.ID,
+		"module_id":     lesson.ModuleID,
+		"title":        lesson.Title,
+		"slug":         lesson.Slug,
+		"content_type":  lesson.ContentType,
+		"content":      lesson.Content,
+		"duration":     lesson.Duration,
+		"sort_order":   lesson.SortOrder,
+		"is_free":      lesson.IsFree,
+		"created_at":   lesson.CreatedAt,
+		"course_id":    course.ID,
+		"course_slug":  course.Slug,
+		"course_title": course.Title,
+		"prev_slug":    prevSlug,
+		"next_slug":    nextSlug,
+		"is_completed": completed,
+	}
+}
+
+func MarkLessonComplete(c *fiber.Ctx) error {
+	userToken := c.Locals("user").(*jwt.Token)
+	claims := userToken.Claims.(jwt.MapClaims)
+	userID, _ := uuid.Parse(claims["user_id"].(string))
+
+	lessonIDStr := strings.TrimSpace(c.Params("lessonId"))
+	lessonID, err := uuid.Parse(lessonIDStr)
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid lesson ID"})
+	}
+
+	var lesson models.Lesson
+	if err := database.DB.Where("id = ?", lessonID).First(&lesson).Error; err != nil {
+		return c.Status(404).JSON(fiber.Map{"error": "Materi tidak ditemukan"})
+	}
+
+	var module models.CourseModule
+	database.DB.Select("course_id").Where("id = ?", lesson.ModuleID).First(&module)
+
+	var course models.Course
+	database.DB.Select("price").Where("id = ?", module.CourseID).First(&course)
+
+	role, _ := claims["role"].(string)
+	role = strings.TrimSpace(role)
+	if course.Price > 0 && role != "admin" && role != "superadmin" {
+		var enrollment models.Enrollment
+		if err := database.DB.Where("user_id = ? AND course_id = ? AND status = ?", userID, module.CourseID, "active").First(&enrollment).Error; err != nil {
+			return c.Status(403).JSON(fiber.Map{"error": "Akses ditolak", "locked": true})
+		}
+	}
+
+	db := database.DB
+	var existing models.LessonProgress
+	if err := db.Where("user_id = ? AND lesson_id = ?", userID, lessonID).First(&existing).Error; err == nil {
+		return c.JSON(existing)
+	}
+
+	lp := models.LessonProgress{
+		ID:          uuid.New(),
+		UserID:      userID,
+		LessonID:    lessonID,
+		CompletedAt: time.Now(),
+	}
+	if err := db.Create(&lp).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Gagal menyimpan progres"})
+	}
+	return c.JSON(lp)
+}
+
+func UnmarkLessonComplete(c *fiber.Ctx) error {
+	userToken := c.Locals("user").(*jwt.Token)
+	claims := userToken.Claims.(jwt.MapClaims)
+	userID, _ := uuid.Parse(claims["user_id"].(string))
+
+	lessonIDStr := strings.TrimSpace(c.Params("lessonId"))
+	lessonID, err := uuid.Parse(lessonIDStr)
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid lesson ID"})
+	}
+
+	database.DB.Where("user_id = ? AND lesson_id = ?", userID, lessonID).Delete(&models.LessonProgress{})
+	return c.JSON(fiber.Map{"message": "OK"})
+}
+
+func GetMyCourseProgress(c *fiber.Ctx) error {
+	userToken := c.Locals("user").(*jwt.Token)
+	claims := userToken.Claims.(jwt.MapClaims)
+	userID, _ := uuid.Parse(claims["user_id"].(string))
+
+	courseIDStr := strings.TrimSpace(c.Params("id"))
+	courseID, err := uuid.Parse(courseIDStr)
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid course ID"})
+	}
+
+	var course models.Course
+	if err := database.DB.Where("id = ?", courseID).First(&course).Error; err != nil {
+		return c.Status(404).JSON(fiber.Map{"error": "Kursus tidak ditemukan"})
+	}
+
+	role, _ := claims["role"].(string)
+	role = strings.TrimSpace(role)
+	if course.Price > 0 && role != "admin" && role != "superadmin" {
+		var enrollment models.Enrollment
+		if err := database.DB.Where("user_id = ? AND course_id = ? AND status = ?", userID, courseID, "active").First(&enrollment).Error; err != nil {
+			return c.Status(403).JSON(fiber.Map{"error": "Akses ditolak", "locked": true})
+		}
+	}
+
+	var modules []models.CourseModule
+	database.DB.Where("course_id = ?", courseID).Order("sort_order asc, created_at asc").Find(&modules)
+
+	moduleIDs := make([]uuid.UUID, 0, len(modules))
+	for _, m := range modules {
+		moduleIDs = append(moduleIDs, m.ID)
+	}
+
+	var allLessons []models.Lesson
+	if len(moduleIDs) > 0 {
+		database.DB.Where("module_id IN ?", moduleIDs).Order("sort_order asc, created_at asc").Find(&allLessons)
+	}
+
+	lessonIDs := make([]uuid.UUID, 0, len(allLessons))
+	for _, l := range allLessons {
+		lessonIDs = append(lessonIDs, l.ID)
+	}
+
+	type Row struct {
+		LessonID uuid.UUID
+	}
+	var rows []Row
+	if len(lessonIDs) > 0 {
+		database.DB.Model(&models.LessonProgress{}).
+			Select("lesson_id").
+			Where("user_id = ? AND lesson_id IN ?", userID, lessonIDs).
+			Find(&rows)
+	}
+
+	completedSet := map[uuid.UUID]struct{}{}
+	for _, r := range rows {
+		completedSet[r.LessonID] = struct{}{}
+	}
+
+	completedIDs := make([]string, 0, len(completedSet))
+	for id := range completedSet {
+		completedIDs = append(completedIDs, id.String())
+	}
+
+	total := len(lessonIDs)
+	completedCount := len(completedSet)
+	percent := 0.0
+	if total > 0 {
+		percent = float64(completedCount) / float64(total) * 100
+	}
+
+	nextSlug := ""
+	for _, l := range allLessons {
+		if _, ok := completedSet[l.ID]; !ok {
+			nextSlug = l.Slug
+			break
+		}
+	}
+
+	return c.JSON(fiber.Map{
+		"course_id":        courseID,
+		"total_lessons":    total,
+		"completed_lessons": completedCount,
+		"progress_percent": percent,
+		"completed_lesson_ids": completedIDs,
+		"next_lesson_slug": nextSlug,
+	})
 }

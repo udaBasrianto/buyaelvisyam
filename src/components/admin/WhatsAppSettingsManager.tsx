@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { MessageCircle, QrCode, Loader2, CheckCircle2, AlertCircle, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
 
@@ -22,6 +24,9 @@ export function WhatsAppSettingsManager() {
   const [connecting, setConnecting] = useState(false);
   const [showQR, setShowQR] = useState(false);
   const [qrCode, setQrCode] = useState<string>("");
+  const [broadcastMessage, setBroadcastMessage] = useState("");
+  const [broadcastMaxRecipients, setBroadcastMaxRecipients] = useState(200);
+  const [broadcastSending, setBroadcastSending] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -113,6 +118,37 @@ export function WhatsAppSettingsManager() {
         description: err.response?.data?.error || "Terjadi kesalahan",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleBroadcast = async () => {
+    const msg = broadcastMessage.trim();
+    if (!msg) {
+      toast({ title: "Pesan kosong", description: "Isi pesan broadcast dulu.", variant: "destructive" });
+      return;
+    }
+    if (!confirm("Kirim broadcast WhatsApp sekarang?")) return;
+
+    setBroadcastSending(true);
+    try {
+      const { data } = await api.post("/admin/whatsapp/broadcast", {
+        message: msg,
+        max_recipients: Number(broadcastMaxRecipients) || 0,
+      });
+      toast({
+        title: "Broadcast dijalankan",
+        description: `Queued. Estimasi penerima: ${data?.estimated ?? 0}`,
+      });
+      setBroadcastMessage("");
+      fetchStatus();
+    } catch (err: any) {
+      toast({
+        title: "Gagal broadcast",
+        description: err.response?.data?.error || "Terjadi kesalahan",
+        variant: "destructive",
+      });
+    } finally {
+      setBroadcastSending(false);
     }
   };
 
@@ -254,6 +290,57 @@ export function WhatsAppSettingsManager() {
           </ol>
         </div>
       </div>
+
+      {status.connected ? (
+        <div className="bg-card border rounded-xl p-6 shadow-sm space-y-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h3 className="font-semibold text-foreground mb-1">Broadcast Pengumuman</h3>
+              <p className="text-sm text-muted-foreground">Kirim pesan ke user yang sudah verifikasi nomor WhatsApp.</p>
+            </div>
+            <MessageCircle className="h-6 w-6 text-green-600" />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="md:col-span-2 space-y-2">
+              <Textarea
+                value={broadcastMessage}
+                onChange={(e) => setBroadcastMessage(e.target.value)}
+                rows={4}
+                placeholder="Tulis pengumuman…"
+              />
+              <div className="text-[10px] text-muted-foreground">
+                Disarankan ringkas. Jangan kirim terlalu sering.
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="space-y-1">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Maks Penerima</div>
+                <Input
+                  type="number"
+                  value={String(broadcastMaxRecipients)}
+                  onChange={(e) => setBroadcastMaxRecipients(Number(e.target.value) || 0)}
+                  placeholder="200"
+                />
+              </div>
+              <Button
+                onClick={handleBroadcast}
+                disabled={broadcastSending}
+                className="w-full bg-green-600 hover:bg-green-700"
+              >
+                {broadcastSending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Mengirim...
+                  </>
+                ) : (
+                  "Kirim Broadcast"
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {/* QR Code Display */}
       {showQR && (

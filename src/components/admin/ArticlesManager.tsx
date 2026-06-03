@@ -24,6 +24,8 @@ interface Article {
   category: string;
   cover_image: string | null;
   status: string;
+  template_type?: string;
+  scheduled_publish_at?: string | null;
   views: number;
   is_featured: boolean;
   author_id: string;
@@ -35,6 +37,27 @@ interface Article {
   longitude?: number;
   youtube_url?: string;
   categories?: string[];
+}
+
+interface UploadAsset {
+  id: string;
+  url: string;
+  filename: string;
+  mime_type: string;
+  size_bytes: number;
+  uploader_id: string;
+  created_at: string;
+}
+
+interface ArticleRevision {
+  id: string;
+  article_id: string;
+  title: string;
+  excerpt: string;
+  status: string;
+  template_type?: string;
+  scheduled_publish_at?: string | null;
+  created_at: string;
 }
 
 const statusColor: Record<string, string> = {
@@ -85,10 +108,17 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
 
   const [form, setForm] = useState({
     title: "", excerpt: "", content: "", category: "Umum", categories: [] as string[], cover_image: "", status: "draft", is_featured: false,
-    location_name: "", latitude: 0, longitude: 0, youtube_url: "", published_at: "",
+    template_type: "kajian",
+    location_name: "", latitude: 0, longitude: 0, youtube_url: "", scheduled_publish_at: "",
   });
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [mediaDialogOpen, setMediaDialogOpen] = useState(false);
+  const [mediaSearch, setMediaSearch] = useState("");
+  const [mediaLoading, setMediaLoading] = useState(false);
+  const [mediaItems, setMediaItems] = useState<UploadAsset[]>([]);
+  const [revisions, setRevisions] = useState<ArticleRevision[]>([]);
+  const [revisionsLoading, setRevisionsLoading] = useState(false);
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [bulkDeleteFilters, setBulkDeleteFilters] = useState({
     category: "all",
@@ -201,6 +231,30 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
 
   useEffect(() => { fetchArticles(); }, []);
 
+  const fetchMedia = async (q?: string) => {
+    setMediaLoading(true);
+    try {
+      const { data } = await api.get("/admin/assets", { params: { q: (q ?? mediaSearch).trim(), limit: 100 } });
+      setMediaItems((data?.items || []) as UploadAsset[]);
+    } catch (error: any) {
+      toast({ title: "Gagal memuat media", description: error.response?.data?.error || error.message, variant: "destructive" });
+    } finally {
+      setMediaLoading(false);
+    }
+  };
+
+  const fetchRevisions = async (articleId: string) => {
+    setRevisionsLoading(true);
+    try {
+      const { data } = await api.get(`/articles/${articleId}/revisions`, { params: { limit: 50 } });
+      setRevisions((data || []) as ArticleRevision[]);
+    } catch (error: any) {
+      toast({ title: "Gagal memuat revisi", description: error.response?.data?.error || error.message, variant: "destructive" });
+    } finally {
+      setRevisionsLoading(false);
+    }
+  };
+
   const generateSlug = (title: string) =>
     title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 
@@ -240,17 +294,20 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
         cover_image: article.cover_image || "",
         status: article.status,
         is_featured: article.is_featured || false,
+        template_type: article.template_type || "kajian",
         location_name: article.location_name || "",
         latitude: article.latitude || 0,
         longitude: article.longitude || 0,
         youtube_url: article.youtube_url || "",
-        published_at: article.created_at ? new Date(article.created_at).toISOString().slice(0, 16) : "",
+        scheduled_publish_at: article.scheduled_publish_at ? new Date(article.scheduled_publish_at).toISOString().slice(0, 16) : "",
       });
       setPreviewUrl(article.cover_image || null);
+      fetchRevisions(article.id).catch(() => {});
     } else {
       setEditing(null);
-      setForm({ title: "", excerpt: "", content: "", category: "Umum", categories: ["Umum"], cover_image: "", status: "draft", is_featured: false, location_name: "", latitude: -6.2088, longitude: 106.8456, youtube_url: "", published_at: new Date().toISOString().slice(0, 16) });
+      setForm({ title: "", excerpt: "", content: "", category: "Umum", categories: ["Umum"], cover_image: "", status: "draft", is_featured: false, template_type: "kajian", location_name: "", latitude: -6.2088, longitude: 106.8456, youtube_url: "", scheduled_publish_at: "" });
       setPreviewUrl(null);
+      setRevisions([]);
     }
     setEditorOpen(true);
   };
@@ -269,12 +326,13 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
       categories: form.categories.length > 0 ? form.categories : ["Umum"],
       cover_image: form.cover_image.trim() || "",
       status,
+      template_type: form.template_type,
       is_featured: form.is_featured,
       location_name: form.location_name.trim(),
       latitude: Number(form.latitude) || 0,
       longitude: Number(form.longitude) || 0,
       youtube_url: form.youtube_url.trim(),
-      published_at: form.published_at ? new Date(form.published_at).toISOString() : undefined,
+      scheduled_publish_at: form.scheduled_publish_at ? new Date(form.scheduled_publish_at).toISOString() : undefined,
     };
     
     try {
@@ -288,6 +346,37 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
       fetchArticles();
     } catch (error: any) {
       toast({ title: "Gagal", description: error.response?.data?.error || "Gagal menyimpan artikel", variant: "destructive" });
+    }
+  };
+
+  const handleRestoreRevision = async (revId: string) => {
+    if (!editing) return;
+    if (!confirm("Restore revisi ini? Perubahan terbaru akan disimpan sebagai revisi baru.")) return;
+    try {
+      const { data } = await api.post(`/articles/${editing.id}/revisions/${revId}/restore`);
+      setEditing(data as Article);
+      setForm({
+        title: data.title || "",
+        excerpt: data.excerpt || "",
+        content: data.content || "",
+        category: data.category || "Umum",
+        categories: data.categories || (data.category ? [data.category] : ["Umum"]),
+        cover_image: data.cover_image || "",
+        status: data.status || "draft",
+        is_featured: !!data.is_featured,
+        template_type: data.template_type || "kajian",
+        location_name: data.location_name || "",
+        latitude: data.latitude || 0,
+        longitude: data.longitude || 0,
+        youtube_url: data.youtube_url || "",
+        scheduled_publish_at: data.scheduled_publish_at ? new Date(data.scheduled_publish_at).toISOString().slice(0, 16) : "",
+      });
+      setPreviewUrl(data.cover_image || null);
+      toast({ title: "Berhasil", description: "Revisi berhasil direstore" });
+      fetchRevisions(editing.id).catch(() => {});
+      fetchArticles();
+    } catch (error: any) {
+      toast({ title: "Gagal restore revisi", description: error.response?.data?.error || error.message, variant: "destructive" });
     }
   };
 
@@ -810,9 +899,10 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
             <DialogTitle>{editing ? "Edit Artikel" : "Tambah Artikel Baru"}</DialogTitle>
           </DialogHeader>
           <Tabs defaultValue="content" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-4">
+            <TabsList className="grid w-full grid-cols-3 mb-4">
               <TabsTrigger value="content">Konten Artikel</TabsTrigger>
               <TabsTrigger value="quiz" disabled={!editing}>Kuis Artikel</TabsTrigger>
+              <TabsTrigger value="revisions" disabled={!editing}>Revisi</TabsTrigger>
             </TabsList>
 
             <TabsContent value="content" className="space-y-4">
@@ -822,15 +912,29 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
               </div>
               <div>
                 <Label className="flex items-center gap-1.5">
-                  <Calendar className="h-3.5 w-3.5 text-primary" /> Tanggal & Waktu Postingan
+                  <Calendar className="h-3.5 w-3.5 text-primary" /> Jadwalkan Publish (Opsional)
                 </Label>
                 <Input
                   type="datetime-local"
-                  value={form.published_at}
-                  onChange={(e) => setForm({ ...form, published_at: e.target.value })}
+                  value={form.scheduled_publish_at}
+                  onChange={(e) => setForm({ ...form, scheduled_publish_at: e.target.value })}
                   className="h-9"
                 />
-                <p className="text-[10px] text-muted-foreground mt-1">Ubah tanggal & waktu postingan artikel ini.</p>
+                <p className="text-[10px] text-muted-foreground mt-1">Jika diisi dan status artikel “Review”, sistem akan publish otomatis sesuai jadwal.</p>
+              </div>
+              <div>
+                <Label>Template Artikel</Label>
+                <Select value={form.template_type} onValueChange={(v) => setForm({ ...form, template_type: v })}>
+                  <SelectTrigger className="h-10">
+                    <SelectValue placeholder="Pilih template" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="kajian">Kajian</SelectItem>
+                    <SelectItem value="berita">Berita</SelectItem>
+                    <SelectItem value="quote">Quote</SelectItem>
+                    <SelectItem value="tanya_jawab">Tanya Jawab</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <Label>Ringkasan</Label>
@@ -961,6 +1065,15 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
                     {uploading ? "Mengupload..." : "Upload Gambar Cover"}
                   </Button>
                 )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full mt-2 gap-2"
+                  onClick={() => { setMediaDialogOpen(true); fetchMedia("").catch(() => {}); }}
+                >
+                  <Image className="h-4 w-4" />
+                  Pilih dari Media Library
+                </Button>
               </div>
               <div>
                 <Label>Konten</Label>
@@ -994,7 +1107,86 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
                 </div>
               )}
             </TabsContent>
+
+            <TabsContent value="revisions" className="space-y-4">
+              {!editing ? (
+                <div className="py-8 text-center text-muted-foreground">
+                  Simpan artikel terlebih dahulu untuk melihat revisi.
+                </div>
+              ) : revisionsLoading ? (
+                <div className="py-8 text-center text-muted-foreground">Memuat revisi...</div>
+              ) : revisions.length === 0 ? (
+                <div className="py-8 text-center text-muted-foreground">Belum ada revisi.</div>
+              ) : (
+                <div className="space-y-3">
+                  {revisions.map((r) => (
+                    <div key={r.id} className="rounded-2xl border bg-background/50 p-4 flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="text-sm font-bold truncate">{r.title || "Tanpa Judul"}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {new Date(r.created_at).toLocaleString("id-ID")} · {statusLabel[r.status] || r.status}
+                        </div>
+                      </div>
+                      <Button variant="outline" size="sm" onClick={() => handleRestoreRevision(r.id)}>
+                        Restore
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
           </Tabs>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={mediaDialogOpen} onOpenChange={setMediaDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Media Library</DialogTitle>
+          </DialogHeader>
+          <div className="flex items-center gap-2">
+            <Input
+              value={mediaSearch}
+              onChange={(e) => setMediaSearch(e.target.value)}
+              placeholder="Cari URL / nama file..."
+            />
+            <Button variant="outline" onClick={() => fetchMedia().catch(() => {})} disabled={mediaLoading}>
+              Cari
+            </Button>
+          </div>
+          {mediaLoading ? (
+            <div className="py-10 text-center text-muted-foreground">Memuat media...</div>
+          ) : mediaItems.length === 0 ? (
+            <div className="py-10 text-center text-muted-foreground">Belum ada media.</div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 py-2">
+              {mediaItems.map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  className="rounded-2xl border overflow-hidden text-left hover:bg-muted/30 transition-colors"
+                  onClick={() => {
+                    setForm((f) => ({ ...f, cover_image: m.url }));
+                    setPreviewUrl(m.url);
+                    setMediaDialogOpen(false);
+                  }}
+                >
+                  <div className="w-full h-28 bg-muted/20">
+                    <img src={m.url} alt={m.filename || "media"} className="w-full h-28 object-cover" />
+                  </div>
+                  <div className="p-3">
+                    <div className="text-xs font-bold truncate">{m.filename || m.url}</div>
+                    <div className="text-[10px] text-muted-foreground truncate">{m.url}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setMediaDialogOpen(false)}>
+              Tutup
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

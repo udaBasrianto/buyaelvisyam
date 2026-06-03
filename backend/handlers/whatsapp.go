@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"strings"
 	"time"
 
 	"backend/database"
@@ -163,6 +164,255 @@ func SendWhatsAppMessage(phoneNumber string, token string) error {
 	
 	fmt.Printf("[WhatsApp Message to %s]: %s\n", phoneNumber, message)
 	return nil
+}
+
+func getPublicBaseURL() string {
+	baseURL := strings.TrimRight(strings.TrimSpace(os.Getenv("PUBLIC_BASE_URL")), "/")
+	if baseURL == "" {
+		baseURL = strings.TrimRight(strings.TrimSpace(os.Getenv("SITE_URL")), "/")
+	}
+	return baseURL
+}
+
+func applyTemplate(tpl string, values map[string]string) string {
+	out := tpl
+	for k, v := range values {
+		out = strings.ReplaceAll(out, "{"+k+"}", v)
+	}
+	return out
+}
+
+func broadcastWhatsApp(message string, maxRecipients int) {
+	if strings.TrimSpace(message) == "" {
+		return
+	}
+	if maxRecipients <= 0 {
+		maxRecipients = 200
+	}
+	if maxRecipients > 1000 {
+		maxRecipients = 1000
+	}
+
+	if !whatsappConfig.Enabled {
+		return
+	}
+	ws := service.GetWhatsAppService()
+	status := ws.GetStatus()
+	connected, _ := status["connected"].(bool)
+	if !connected {
+		return
+	}
+
+	type Row struct {
+		WhatsAppNumber *string
+	}
+	var rows []Row
+	database.DB.Model(&models.Profile{}).
+		Select("whats_app_number as whats_app_number").
+		Where("whats_app_verified = ? AND whats_app_number IS NOT NULL AND whats_app_number <> ''", true).
+		Order("created_at desc").
+		Limit(maxRecipients).
+		Find(&rows)
+
+	go func() {
+		defer func() { recover() }()
+		sent := 0
+		for _, r := range rows {
+			if r.WhatsAppNumber == nil {
+				continue
+			}
+			phone := strings.TrimSpace(*r.WhatsAppNumber)
+			if phone == "" {
+				continue
+			}
+			_ = ws.SendMessage(phone, message)
+			sent++
+			if sent%20 == 0 {
+				time.Sleep(1200 * time.Millisecond)
+			} else {
+				time.Sleep(250 * time.Millisecond)
+			}
+		}
+	}()
+}
+
+func NotifyWhatsAppNewArticle(article models.Article) {
+	if strings.TrimSpace(article.Title) == "" || strings.TrimSpace(article.Slug) == "" {
+		return
+	}
+
+	var settings models.SiteSettings
+	if err := database.DB.First(&settings).Error; err != nil {
+		return
+	}
+	if !settings.WhatsAppNotificationsEnabled || !settings.WhatsAppNotifyNewArticle {
+		return
+	}
+
+	baseURL := getPublicBaseURL()
+	if baseURL == "" {
+		return
+	}
+
+	url := baseURL + "/" + strings.TrimSpace(article.Slug)
+	siteName := strings.TrimSpace(settings.SiteName)
+	if siteName == "" {
+		siteName = "BlogUstad"
+	}
+
+	tpl := strings.TrimSpace(settings.WhatsAppTemplateNewArticle)
+	if tpl == "" {
+		tpl = "Assalamu'alaikum, ada artikel baru di {site}: {title}\n\nBaca: {url}"
+	}
+
+	msg := applyTemplate(tpl, map[string]string{
+		"site":  siteName,
+		"title": strings.TrimSpace(article.Title),
+		"url":   url,
+	})
+
+	broadcastWhatsApp(msg, settings.WhatsAppNotifyMaxRecipients)
+}
+
+func NotifyWhatsAppNewCourse(course models.Course) {
+	if strings.TrimSpace(course.Title) == "" || strings.TrimSpace(course.Slug) == "" {
+		return
+	}
+
+	var settings models.SiteSettings
+	if err := database.DB.First(&settings).Error; err != nil {
+		return
+	}
+	if !settings.WhatsAppNotificationsEnabled || !settings.WhatsAppNotifyNewCourse {
+		return
+	}
+
+	baseURL := getPublicBaseURL()
+	if baseURL == "" {
+		return
+	}
+
+	url := baseURL + "/lms/course/" + strings.TrimSpace(course.Slug)
+	siteName := strings.TrimSpace(settings.SiteName)
+	if siteName == "" {
+		siteName = "BlogUstad"
+	}
+
+	tpl := strings.TrimSpace(settings.WhatsAppTemplateNewCourse)
+	if tpl == "" {
+		tpl = "Assalamu'alaikum, ada kursus baru di {site}: {title}\n\nLihat: {url}"
+	}
+
+	msg := applyTemplate(tpl, map[string]string{
+		"site":  siteName,
+		"title": strings.TrimSpace(course.Title),
+		"url":   url,
+	})
+
+	broadcastWhatsApp(msg, settings.WhatsAppNotifyMaxRecipients)
+}
+
+func AdminBroadcastWhatsApp(c *fiber.Ctx) error {
+	if !whatsappConfig.Enabled {
+		return c.Status(400).JSON(fiber.Map{"error": "WhatsApp tidak aktif di server"})
+	}
+
+	ws := service.GetWhatsAppService()
+	status := ws.GetStatus()
+	connected, _ := status["connected"].(bool)
+	if !connected {
+		return c.Status(400).JSON(fiber.Map{"error": "WhatsApp belum terhubung"})
+	}
+
+	var settings models.SiteSettings
+	if err := database.DB.First(&settings).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Gagal memuat pengaturan"})
+	}
+	if !settings.WhatsAppNotificationsEnabled {
+		return c.Status(400).JSON(fiber.Map{"error": "Notifikasi WhatsApp sedang dimatikan di Pengaturan"})
+	}
+
+	type Input struct {
+		Message       string `json:"message"`
+		MaxRecipients int    `json:"max_recipients"`
+	}
+	var input Input
+	if err := c.BodyParser(&input); err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid body"})
+	}
+	msg := strings.TrimSpace(input.Message)
+	if msg == "" {
+		return c.Status(400).JSON(fiber.Map{"error": "Pesan wajib diisi"})
+	}
+	if len(msg) > 2000 {
+		return c.Status(400).JSON(fiber.Map{"error": "Pesan terlalu panjang (maks 2000 karakter)"})
+	}
+
+	maxRecipients := input.MaxRecipients
+	if maxRecipients <= 0 {
+		maxRecipients = settings.WhatsAppNotifyMaxRecipients
+	}
+	if maxRecipients <= 0 {
+		maxRecipients = 200
+	}
+	if maxRecipients > 1000 {
+		maxRecipients = 1000
+	}
+
+	userToken := c.Locals("user").(*jwt.Token)
+	claims := userToken.Claims.(jwt.MapClaims)
+	userIDStr, _ := claims["user_id"].(string)
+	createdBy, _ := uuid.Parse(strings.TrimSpace(userIDStr))
+
+	type Row struct {
+		WhatsAppNumber *string
+	}
+	var rows []Row
+	database.DB.Model(&models.Profile{}).
+		Select("whats_app_number as whats_app_number").
+		Where("whats_app_verified = ? AND whats_app_number IS NOT NULL AND whats_app_number <> ''", true).
+		Order("created_at desc").
+		Limit(maxRecipients).
+		Find(&rows)
+
+	log := models.WhatsAppBroadcastLog{
+		ID:            uuid.New(),
+		CreatedBy:     createdBy,
+		Message:       msg,
+		MaxRecipients: maxRecipients,
+		SentCount:     0,
+		CreatedAt:     time.Now(),
+	}
+	database.DB.Create(&log)
+
+	go func(lid uuid.UUID, recipients []Row, message string) {
+		defer func() { recover() }()
+		sent := 0
+		for _, r := range recipients {
+			if r.WhatsAppNumber == nil {
+				continue
+			}
+			phone := strings.TrimSpace(*r.WhatsAppNumber)
+			if phone == "" {
+				continue
+			}
+			if err := ws.SendMessage(phone, message); err == nil {
+				sent++
+			}
+			if sent%20 == 0 {
+				time.Sleep(1200 * time.Millisecond)
+			} else {
+				time.Sleep(250 * time.Millisecond)
+			}
+		}
+		database.DB.Model(&models.WhatsAppBroadcastLog{}).Where("id = ?", lid).Update("sent_count", sent)
+	}(log.ID, rows, msg)
+
+	return c.JSON(fiber.Map{
+		"queued":         true,
+		"max_recipients": maxRecipients,
+		"estimated":      len(rows),
+	})
 }
 
 // VerifyWhatsAppToken verifies the token and creates user account

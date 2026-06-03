@@ -3,15 +3,19 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { BottomNav } from "@/components/BottomNav";
 import { SEO } from "@/components/SEO";
-import { ArrowLeft, PlayCircle, BookOpen, ChevronRight, FileText, LayoutList } from "lucide-react";
+import { ArrowLeft, PlayCircle, BookOpen, ChevronRight, FileText, LayoutList, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import api from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 export default function LessonView() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [lesson, setLesson] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [completing, setCompleting] = useState(false);
+  const [uncompleting, setUncompleting] = useState(false);
 
   useEffect(() => {
     api.get(`/courses/lesson/${slug}`).then(({ data }) => {
@@ -24,6 +28,39 @@ export default function LessonView() {
 
   if (loading) return <div className="min-h-screen flex items-center justify-center">Memuat materi...</div>;
   if (!lesson) return <div className="min-h-screen flex items-center justify-center">Materi tidak ditemukan</div>;
+
+  const handleCompleteAndNext = async () => {
+    if (!lesson?.id) return;
+    setCompleting(true);
+    try {
+      await api.post(`/lessons/${lesson.id}/complete`);
+      const next = lesson.next_slug ? `/lms/lesson/${lesson.next_slug}` : (lesson.course_slug ? `/lms/course/${lesson.course_slug}` : "/lms");
+      navigate(next);
+    } catch (err: any) {
+      toast({ title: "Gagal", description: err.response?.data?.error || "Gagal menyimpan progres", variant: "destructive" });
+    } finally {
+      setCompleting(false);
+    }
+  };
+
+  const handleNext = () => {
+    const next = lesson.next_slug ? `/lms/lesson/${lesson.next_slug}` : (lesson.course_slug ? `/lms/course/${lesson.course_slug}` : "/lms");
+    navigate(next);
+  };
+
+  const handleUnmarkComplete = async () => {
+    if (!lesson?.id) return;
+    setUncompleting(true);
+    try {
+      await api.delete(`/lessons/${lesson.id}/complete`);
+      setLesson((prev: any) => prev ? ({ ...prev, is_completed: false }) : prev);
+      toast({ title: "OK", description: "Status selesai dibatalkan." });
+    } catch (err: any) {
+      toast({ title: "Gagal", description: err.response?.data?.error || "Gagal membatalkan progres", variant: "destructive" });
+    } finally {
+      setUncompleting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -45,6 +82,11 @@ export default function LessonView() {
               <h1 className="text-3xl md:text-5xl font-black tracking-tighter uppercase leading-tight">
                  {lesson.title}
               </h1>
+              {lesson.course_title ? (
+                <div className="text-xs text-muted-foreground font-bold uppercase tracking-widest">
+                  {lesson.course_title}
+                </div>
+              ) : null}
            </div>
 
            {/* Video Player */}
@@ -77,15 +119,36 @@ export default function LessonView() {
                  </div>
                  <div>
                     <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Status Belajar</p>
-                    <p className="text-sm font-bold text-emerald-600">Terbuka Untuk Dipelajari</p>
+                    <p className="text-sm font-bold text-emerald-600">{lesson.is_completed ? "Sudah Selesai" : "Terbuka Untuk Dipelajari"}</p>
                  </div>
               </div>
               <div className="flex gap-3">
-                 <Button variant="outline" className="h-12 px-6 rounded-2xl font-bold gap-2">
+                 <Button
+                   variant="outline"
+                   className="h-12 px-6 rounded-2xl font-bold gap-2"
+                   onClick={() => {
+                     if (lesson.course_slug) navigate(`/lms/course/${lesson.course_slug}`);
+                     else navigate("/lms");
+                   }}
+                 >
                     <LayoutList className="h-4 w-4" /> Daftar Materi
                  </Button>
-                 <Button className="h-12 px-10 rounded-2xl font-black uppercase tracking-widest bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-500/20">
-                    Selesai & Lanjut <ChevronRight className="h-4 w-4" />
+                 {lesson.is_completed ? (
+                   <Button
+                     variant="outline"
+                     onClick={handleUnmarkComplete}
+                     disabled={uncompleting || completing}
+                     className="h-12 px-6 rounded-2xl font-bold gap-2"
+                   >
+                      {uncompleting ? "Memproses..." : "Batalkan Selesai"} <RotateCcw className="h-4 w-4" />
+                   </Button>
+                 ) : null}
+                 <Button
+                   onClick={lesson.is_completed ? handleNext : handleCompleteAndNext}
+                   disabled={completing || uncompleting}
+                   className="h-12 px-10 rounded-2xl font-black uppercase tracking-widest bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-500/20"
+                 >
+                    {lesson.is_completed ? "Lanjut" : (completing ? "Menyimpan..." : "Selesai & Lanjut")} <ChevronRight className="h-4 w-4" />
                  </Button>
               </div>
            </div>
