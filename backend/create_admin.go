@@ -13,16 +13,17 @@ import (
 )
 
 type Profile struct {
-	UserID      string `gorm:"primaryKey"`
-	Email       string
+	ID          uuid.UUID `gorm:"type:uuid;primaryKey"`
+	UserID      uuid.UUID `gorm:"type:uuid;unique;not null"`
+	Email       string    `gorm:"unique;not null"`
 	Password    string
 	DisplayName string
 }
 
 type UserRole struct {
-	ID     string `gorm:"primaryKey"`
-	UserID string
-	Role   string
+	ID     uuid.UUID `gorm:"type:uuid;primaryKey"`
+	UserID uuid.UUID `gorm:"type:uuid;not null"`
+	Role   string    `gorm:"not null;default:'pembaca'"`
 }
 
 func loadEnvFile(path string) {
@@ -91,10 +92,12 @@ func main() {
 		log.Fatalf("Failed to hash password: %v", err)
 	}
 
-	userID := uuid.New().String()
+	profileID := uuid.New()
+	userID := uuid.New()
 
 	// Create profile
 	profile := Profile{
+		ID:          profileID,
 		UserID:      userID,
 		Email:       email,
 		Password:    string(hashedPassword),
