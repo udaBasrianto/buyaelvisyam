@@ -110,7 +110,7 @@ func main() {
 
 	// Create user role
 	userRole := UserRole{
-		ID:     uuid.New().String(),
+		ID:     uuid.New(),
 		UserID: userID,
 		Role:   "admin",
 	}
