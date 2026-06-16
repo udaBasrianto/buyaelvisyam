@@ -20,6 +20,7 @@ export default function Auth() {
   const [loginMethod, setLoginMethod] = useState<"email" | "whatsapp">("email");
   const [loginStep, setLoginStep] = useState(1); // 1: Input number, 2: OTP
   const [settings, setSettings] = useState<any>(null);
+  const whatsappEnabled = import.meta.env.VITE_WHATSAPP_ENABLED !== "false";
   const { signIn, signInWithGoogle, signInWithWhatsApp } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -244,9 +245,11 @@ export default function Auth() {
             <TabsTrigger value="login" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
               <LogIn className="h-4 w-4 mr-2" /> Masuk
             </TabsTrigger>
-            <TabsTrigger value="register" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
-              <MessageSquare className="h-4 w-4 mr-2" /> Daftar (WA)
-            </TabsTrigger>
+            {whatsappEnabled ? (
+              <TabsTrigger value="register" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                <MessageSquare className="h-4 w-4 mr-2" /> Daftar (WA)
+              </TabsTrigger>
+            ) : null}
           </TabsList>
 
           <TabsContent value="login">
@@ -310,19 +313,23 @@ export default function Auth() {
                     {loading ? "Memproses..." : "Masuk Sekarang"}
                   </Button>
 
-                  <div className="relative py-2">
-                    <div className="absolute inset-0 flex items-center"><span className="w-full border-t"></span></div>
-                    <div className="relative flex justify-center text-xs uppercase"><span className="bg-white px-2 text-gray-500">Atau</span></div>
-                  </div>
+                  {whatsappEnabled ? (
+                    <>
+                      <div className="relative py-2">
+                        <div className="absolute inset-0 flex items-center"><span className="w-full border-t"></span></div>
+                        <div className="relative flex justify-center text-xs uppercase"><span className="bg-white px-2 text-gray-500">Atau</span></div>
+                      </div>
 
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    className="w-full h-11 border-green-100 text-green-700 hover:bg-green-50"
-                    onClick={() => setLoginMethod("whatsapp")}
-                  >
-                    <Phone className="h-4 w-4 mr-2" /> Masuk via WhatsApp
-                  </Button>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        className="w-full h-11 border-green-100 text-green-700 hover:bg-green-50"
+                        onClick={() => setLoginMethod("whatsapp")}
+                      >
+                        <Phone className="h-4 w-4 mr-2" /> Masuk via WhatsApp
+                      </Button>
+                    </>
+                  ) : null}
                 </form>
               ) : (
                 <div className="space-y-5">
