@@ -92,35 +92,51 @@ func main() {
 		log.Fatalf("Failed to hash password: %v", err)
 	}
 
-	profileID := uuid.New()
-	userID := uuid.New()
-
-	// Create profile
-	profile := Profile{
-		ID:          profileID,
-		UserID:      userID,
-		Email:       email,
-		Password:    string(hashedPassword),
-		DisplayName: displayName,
+	var profile Profile
+	existing := db.Where("email = ?", email).First(&profile)
+	if existing.Error != nil {
+		if existing.Error == gorm.ErrRecordNotFound {
+			profile = Profile{
+				ID:          uuid.New(),
+				UserID:      uuid.New(),
+				Email:       email,
+				Password:    string(hashedPassword),
+				DisplayName: displayName,
+			}
+			if err := db.Create(&profile).Error; err != nil {
+				log.Fatalf("Failed to create profile: %v", err)
+			}
+		} else {
+			log.Fatalf("Failed to query profile: %v", existing.Error)
+		}
+	} else {
+		profile.Password = string(hashedPassword)
+		profile.DisplayName = displayName
+		if err := db.Save(&profile).Error; err != nil {
+			log.Fatalf("Failed to update profile: %v", err)
+		}
 	}
 
-	if err := db.Create(&profile).Error; err != nil {
-		log.Fatalf("Failed to create profile: %v", err)
+	// Ensure admin role exists for this profile
+	var userRole UserRole
+	roleErr := db.Where("user_id = ? AND role = ?", profile.UserID, "admin").First(&userRole)
+	if roleErr.Error != nil {
+		if roleErr.Error == gorm.ErrRecordNotFound {
+			userRole = UserRole{
+				ID:     uuid.New(),
+				UserID: profile.UserID,
+				Role:   "admin",
+			}
+			if err := db.Create(&userRole).Error; err != nil {
+				log.Fatalf("Failed to create user role: %v", err)
+			}
+		} else {
+			log.Fatalf("Failed to query user role: %v", roleErr.Error)
+		}
 	}
 
-	// Create user role
-	userRole := UserRole{
-		ID:     uuid.New(),
-		UserID: userID,
-		Role:   "admin",
-	}
-
-	if err := db.Create(&userRole).Error; err != nil {
-		log.Fatalf("Failed to create user role: %v", err)
-	}
-
-	fmt.Printf("✅ Admin berhasil dibuat!\n")
+	fmt.Printf("✅ Admin berhasil dibuat atau diperbarui!\n")
 	fmt.Printf("📧 Email: %s\n", email)
 	fmt.Printf("🔑 Password: %s\n", password)
-	fmt.Printf("👤 User ID: %s\n", userID)
+	fmt.Printf("👤 User ID: %s\n", profile.UserID)
 }
