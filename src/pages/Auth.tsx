@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Mail, Lock } from "lucide-react";
+import { Mail, Lock, KeyRound } from "lucide-react";
 import api from "@/lib/api";
 
 export default function Auth() {
@@ -147,22 +147,27 @@ export default function Auth() {
               </div>
             </div>
 
-            {isAdminRoute && (
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-700">Token Administrator</label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                  <Input
-                    type="password"
-                    placeholder="Masukkan Token Admin"
-                    value={adminToken}
-                    onChange={(e) => setAdminToken(e.target.value)}
-                    className="pl-10 h-11 bg-gray-50 border-gray-100 focus:bg-white transition-all"
-                    required
-                  />
-                </div>
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-gray-700">
+                Token Administrator {isAdminRoute ? "" : "(opsional)"}
+              </label>
+              <div className="relative">
+                <KeyRound className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                <Input
+                  type="password"
+                  placeholder="Masukkan token admin jika login sebagai admin"
+                  value={adminToken}
+                  onChange={(e) => setAdminToken(e.target.value)}
+                  className="pl-10 h-11 bg-gray-50 border-gray-100 focus:bg-white transition-all"
+                  required={isAdminRoute}
+                />
               </div>
-            )}
+              <p className="text-xs leading-relaxed text-gray-500">
+                {isAdminRoute
+                  ? "Route admin terdeteksi. Token wajib diisi untuk akun admin."
+                  : "Isi token ini hanya jika Anda login sebagai admin. Untuk akun biasa bisa dikosongkan."}
+              </p>
+            </div>
 
             {(import.meta.env.VITE_GOOGLE_CLIENT_ID || settings?.google_client_id) && (
               <div className="pt-1">

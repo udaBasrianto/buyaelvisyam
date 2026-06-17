@@ -6,25 +6,12 @@ import (
 	"os"
 	"strings"
 
+	"backend/database"
+	"backend/models"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
-
-type Profile struct {
-	ID          uuid.UUID `gorm:"type:uuid;primaryKey"`
-	UserID      uuid.UUID `gorm:"type:uuid;unique;not null"`
-	Email       string    `gorm:"unique;not null"`
-	Password    string
-	DisplayName string
-}
-
-type UserRole struct {
-	ID     uuid.UUID `gorm:"type:uuid;primaryKey"`
-	UserID uuid.UUID `gorm:"type:uuid;not null"`
-	Role   string    `gorm:"not null;default:'pembaca'"`
-}
 
 func loadEnvFile(path string) {
 	data, err := os.ReadFile(path)
@@ -76,11 +63,13 @@ func main() {
 		dbName = "buya_backup"
 	}
 
-	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable", dbHost, dbUser, dbPassword, dbName, dbPort)
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
-	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
-	}
+	os.Setenv("DB_HOST", dbHost)
+	os.Setenv("DB_PORT", dbPort)
+	os.Setenv("DB_USER", dbUser)
+	os.Setenv("DB_PASSWORD", dbPassword)
+	os.Setenv("DB_NAME", dbName)
+	database.ConnectDB()
+	db := database.DB
 
 	email := "mas@abd.com"
 	password := "18Muharrom"
@@ -92,12 +81,11 @@ func main() {
 		log.Fatalf("Failed to hash password: %v", err)
 	}
 
-	var profile Profile
+	var profile models.Profile
 	existing := db.Where("email = ?", email).First(&profile)
 	if existing.Error != nil {
 		if existing.Error == gorm.ErrRecordNotFound {
-			profile = Profile{
-				ID:          uuid.New(),
+			profile = models.Profile{
 				UserID:      uuid.New(),
 				Email:       email,
 				Password:    string(hashedPassword),
@@ -110,20 +98,25 @@ func main() {
 			log.Fatalf("Failed to query profile: %v", existing.Error)
 		}
 	} else {
-		profile.Password = string(hashedPassword)
-		profile.DisplayName = displayName
-		if err := db.Save(&profile).Error; err != nil {
+		if err := db.Exec(
+			"UPDATE profiles SET password = ?, display_name = ? WHERE email = ?",
+			string(hashedPassword),
+			displayName,
+			email,
+		).Error; err != nil {
 			log.Fatalf("Failed to update profile: %v", err)
+		}
+		if err := db.Where("email = ?", email).First(&profile).Error; err != nil {
+			log.Fatalf("Failed to reload profile: %v", err)
 		}
 	}
 
 	// Ensure admin role exists for this profile
-	var userRole UserRole
+	var userRole models.UserRole
 	roleErr := db.Where("user_id = ? AND role = ?", profile.UserID, "admin").First(&userRole)
 	if roleErr.Error != nil {
 		if roleErr.Error == gorm.ErrRecordNotFound {
-			userRole = UserRole{
-				ID:     uuid.New(),
+			userRole = models.UserRole{
 				UserID: profile.UserID,
 				Role:   "admin",
 			}
