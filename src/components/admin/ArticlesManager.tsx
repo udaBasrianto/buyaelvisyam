@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from "react";
-import { Plus, Search, Edit, Trash2, Eye, Save, Send, ImagePlus, X, CheckCircle2, Download, Image, MapPin, Youtube, Calendar, FileText } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Eye, Save, Send, ImagePlus, X, CheckCircle2, Download, Image, Youtube, Calendar, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { RichTextEditor } from "@/components/RichTextEditor";
 import api from "@/lib/api";
@@ -32,9 +32,6 @@ interface Article {
   created_at: string;
   updated_at: string;
   author: string;
-  location_name?: string;
-  latitude?: number;
-  longitude?: number;
   youtube_url?: string;
   categories?: string[];
 }
@@ -83,6 +80,62 @@ interface ArticlesManagerProps {
   onWpImportClick?: () => void;
 }
 
+const normalizeStringList = (value: unknown, fallback: string[] = []): string[] => {
+  if (Array.isArray(value)) {
+    const normalized = value
+      .map((item) => (typeof item === "string" ? item.trim() : ""))
+      .filter(Boolean);
+    return normalized.length > 0 ? normalized : fallback;
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return fallback;
+
+    if (trimmed.startsWith("[")) {
+      try {
+        return normalizeStringList(JSON.parse(trimmed), fallback);
+      } catch {
+        return fallback;
+      }
+    }
+
+    const normalized = trimmed
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+    return normalized.length > 0 ? normalized : fallback;
+  }
+
+  return fallback;
+};
+
+const normalizeArticle = (article: any): Article => {
+  const category =
+    typeof article?.category === "string" && article.category.trim()
+      ? article.category.trim()
+      : "Umum";
+  const categories = normalizeStringList(article?.categories, [category]);
+
+  return {
+    ...article,
+    category,
+    categories,
+  };
+};
+
+const normalizeCategoryList = (value: unknown): DynamicCategory[] => {
+  if (!Array.isArray(value)) return [];
+
+  return value.filter(
+    (item): item is DynamicCategory =>
+      !!item &&
+      typeof item === "object" &&
+      typeof (item as DynamicCategory).id === "string" &&
+      typeof (item as DynamicCategory).name === "string",
+  );
+};
+
 export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -107,9 +160,9 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
   }, [search, filterCategory]);
 
   const [form, setForm] = useState({
-    title: "", excerpt: "", content: "", category: "Umum", categories: [] as string[], cover_image: "", status: "draft", is_featured: false,
+    title: "", excerpt: "", content: "", category: "Umum", categories: ["Umum"] as string[], cover_image: "", status: "draft", is_featured: false,
     template_type: "kajian",
-    location_name: "", latitude: 0, longitude: 0, youtube_url: "", scheduled_publish_at: "",
+    youtube_url: "", scheduled_publish_at: "",
   });
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -221,8 +274,8 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
         api.get("/categories")
       ]);
       
-      if (articlesRes.data) setArticles(articlesRes.data as Article[]);
-      if (categoriesRes.data) setDbCategories(categoriesRes.data as DynamicCategory[]);
+      setArticles(Array.isArray(articlesRes.data) ? articlesRes.data.map(normalizeArticle) : []);
+      setDbCategories(normalizeCategoryList(categoriesRes.data));
     } catch (error: any) {
       toast({ title: "Gagal memuat data", description: error.message, variant: "destructive" });
     }
@@ -235,7 +288,7 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
     setMediaLoading(true);
     try {
       const { data } = await api.get("/admin/assets", { params: { q: (q ?? mediaSearch).trim(), limit: 100 } });
-      setMediaItems((data?.items || []) as UploadAsset[]);
+      setMediaItems(Array.isArray(data?.items) ? (data.items as UploadAsset[]) : []);
     } catch (error: any) {
       toast({ title: "Gagal memuat media", description: error.response?.data?.error || error.message, variant: "destructive" });
     } finally {
@@ -247,7 +300,7 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
     setRevisionsLoading(true);
     try {
       const { data } = await api.get(`/articles/${articleId}/revisions`, { params: { limit: 50 } });
-      setRevisions((data || []) as ArticleRevision[]);
+      setRevisions(Array.isArray(data) ? (data as ArticleRevision[]) : []);
     } catch (error: any) {
       toast({ title: "Gagal memuat revisi", description: error.response?.data?.error || error.message, variant: "destructive" });
     } finally {
@@ -284,28 +337,26 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
 
   const openEditor = (article?: Article) => {
     if (article) {
-      setEditing(article);
+      const normalizedArticle = normalizeArticle(article);
+      setEditing(normalizedArticle);
       setForm({
-        title: article.title,
-        excerpt: article.excerpt || "",
-        content: article.content,
-        category: article.category,
-        categories: article.categories || (article.category ? [article.category] : []),
-        cover_image: article.cover_image || "",
-        status: article.status,
-        is_featured: article.is_featured || false,
-        template_type: article.template_type || "kajian",
-        location_name: article.location_name || "",
-        latitude: article.latitude || 0,
-        longitude: article.longitude || 0,
-        youtube_url: article.youtube_url || "",
-        scheduled_publish_at: article.scheduled_publish_at ? new Date(article.scheduled_publish_at).toISOString().slice(0, 16) : "",
+        title: normalizedArticle.title,
+        excerpt: normalizedArticle.excerpt || "",
+        content: normalizedArticle.content,
+        category: normalizedArticle.category,
+        categories: normalizeStringList(normalizedArticle.categories, [normalizedArticle.category]),
+        cover_image: normalizedArticle.cover_image || "",
+        status: normalizedArticle.status,
+        is_featured: normalizedArticle.is_featured || false,
+        template_type: normalizedArticle.template_type || "kajian",
+        youtube_url: normalizedArticle.youtube_url || "",
+        scheduled_publish_at: normalizedArticle.scheduled_publish_at ? new Date(normalizedArticle.scheduled_publish_at).toISOString().slice(0, 16) : "",
       });
-      setPreviewUrl(article.cover_image || null);
-      fetchRevisions(article.id).catch(() => {});
+      setPreviewUrl(normalizedArticle.cover_image || null);
+      fetchRevisions(normalizedArticle.id).catch(() => {});
     } else {
       setEditing(null);
-      setForm({ title: "", excerpt: "", content: "", category: "Umum", categories: ["Umum"], cover_image: "", status: "draft", is_featured: false, template_type: "kajian", location_name: "", latitude: -6.2088, longitude: 106.8456, youtube_url: "", scheduled_publish_at: "" });
+      setForm({ title: "", excerpt: "", content: "", category: "Umum", categories: ["Umum"], cover_image: "", status: "draft", is_featured: false, template_type: "kajian", youtube_url: "", scheduled_publish_at: "" });
       setPreviewUrl(null);
       setRevisions([]);
     }
@@ -328,9 +379,6 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
       status,
       template_type: form.template_type,
       is_featured: form.is_featured,
-      location_name: form.location_name.trim(),
-      latitude: Number(form.latitude) || 0,
-      longitude: Number(form.longitude) || 0,
       youtube_url: form.youtube_url.trim(),
       scheduled_publish_at: form.scheduled_publish_at ? new Date(form.scheduled_publish_at).toISOString() : undefined,
     };
@@ -354,24 +402,22 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
     if (!confirm("Restore revisi ini? Perubahan terbaru akan disimpan sebagai revisi baru.")) return;
     try {
       const { data } = await api.post(`/articles/${editing.id}/revisions/${revId}/restore`);
-      setEditing(data as Article);
+      const restoredArticle = normalizeArticle(data);
+      setEditing(restoredArticle);
       setForm({
-        title: data.title || "",
-        excerpt: data.excerpt || "",
-        content: data.content || "",
-        category: data.category || "Umum",
-        categories: data.categories || (data.category ? [data.category] : ["Umum"]),
-        cover_image: data.cover_image || "",
-        status: data.status || "draft",
-        is_featured: !!data.is_featured,
-        template_type: data.template_type || "kajian",
-        location_name: data.location_name || "",
-        latitude: data.latitude || 0,
-        longitude: data.longitude || 0,
-        youtube_url: data.youtube_url || "",
-        scheduled_publish_at: data.scheduled_publish_at ? new Date(data.scheduled_publish_at).toISOString().slice(0, 16) : "",
+        title: restoredArticle.title || "",
+        excerpt: restoredArticle.excerpt || "",
+        content: restoredArticle.content || "",
+        category: restoredArticle.category || "Umum",
+        categories: normalizeStringList(restoredArticle.categories, [restoredArticle.category || "Umum"]),
+        cover_image: restoredArticle.cover_image || "",
+        status: restoredArticle.status || "draft",
+        is_featured: !!restoredArticle.is_featured,
+        template_type: restoredArticle.template_type || "kajian",
+        youtube_url: restoredArticle.youtube_url || "",
+        scheduled_publish_at: restoredArticle.scheduled_publish_at ? new Date(restoredArticle.scheduled_publish_at).toISOString().slice(0, 16) : "",
       });
-      setPreviewUrl(data.cover_image || null);
+      setPreviewUrl(restoredArticle.cover_image || null);
       toast({ title: "Berhasil", description: "Revisi berhasil direstore" });
       fetchRevisions(editing.id).catch(() => {});
       fetchArticles();
@@ -814,6 +860,9 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Import Artikel dari Export API</DialogTitle>
+            <DialogDescription className="sr-only">
+              Import artikel dari endpoint export API eksternal.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
@@ -897,6 +946,9 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editing ? "Edit Artikel" : "Tambah Artikel Baru"}</DialogTitle>
+            <DialogDescription className="sr-only">
+              Form editor artikel untuk mengubah judul, kategori, konten, dan publikasi.
+            </DialogDescription>
           </DialogHeader>
           <Tabs defaultValue="content" className="w-full">
             <TabsList className="grid w-full grid-cols-3 mb-4">
@@ -997,30 +1049,6 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
                   checked={form.is_featured} 
                   onCheckedChange={(v) => setForm({ ...form, is_featured: v })} 
                 />
-              </div>
-
-              <div className="p-4 rounded-xl border bg-muted/30 space-y-4">
-                 <div className="flex items-center gap-2 mb-2">
-                    <MapPin className="h-4 w-4 text-primary" />
-                    <Label className="text-sm font-bold uppercase tracking-wider">Lokasi Kajian (Optional)</Label>
-                 </div>
-                 <div className="space-y-3">
-                    <div>
-                       <Label className="text-[10px] font-bold uppercase">Nama Tempat / Masjid</Label>
-                       <Input value={form.location_name} onChange={(e) => setForm({ ...form, location_name: e.target.value })} placeholder="Contoh: Masjid Istiqlal, Jakarta" className="h-9" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                       <div>
-                          <Label className="text-[10px] font-bold uppercase">Latitude</Label>
-                          <Input type="number" value={form.latitude} onChange={(e) => setForm({ ...form, latitude: parseFloat(e.target.value) || 0 })} placeholder="-6.123" className="h-9" />
-                       </div>
-                       <div>
-                          <Label className="text-[10px] font-bold uppercase">Longitude</Label>
-                          <Input type="number" value={form.longitude} onChange={(e) => setForm({ ...form, longitude: parseFloat(e.target.value) || 0 })} placeholder="106.123" className="h-9" />
-                       </div>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground italic">Tips: Gunakan Google Maps untuk mencari koordinat lat/long.</p>
-                 </div>
               </div>
 
               <div className="p-4 rounded-xl border bg-muted/30 space-y-3">
@@ -1143,6 +1171,9 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Media Library</DialogTitle>
+            <DialogDescription className="sr-only">
+              Pilih gambar dari media library untuk cover artikel.
+            </DialogDescription>
           </DialogHeader>
           <div className="flex items-center gap-2">
             <Input
@@ -1209,6 +1240,9 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Hapus Artikel Massal</DialogTitle>
+            <DialogDescription className="sr-only">
+              Hapus artikel secara massal berdasarkan filter kategori dan tanggal.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="bg-destructive/10 p-4 rounded-lg flex items-start gap-3">
@@ -1266,6 +1300,9 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
               <Image className="h-5 w-5 text-blue-600" />
               Ganti Gambar Massal per Kategori
             </DialogTitle>
+            <DialogDescription className="sr-only">
+              Terapkan satu gambar cover ke banyak artikel berdasarkan kategori.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-5 py-2">
             <div className="bg-blue-50 dark:bg-blue-500/10 p-4 rounded-xl border border-blue-200 dark:border-blue-500/20 text-sm text-blue-700 dark:text-blue-400">

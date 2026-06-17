@@ -1,6 +1,6 @@
 import { useParams, Link } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Eye, Calendar, User, Share2, BookmarkPlus, Bookmark, AArrowDown, AArrowUp, RotateCcw, Clock, MessageCircle, MapPin, ArrowUpRight } from "lucide-react";
+import { ArrowLeft, Eye, Calendar, User, Share2, BookmarkPlus, Bookmark, AArrowDown, AArrowUp, RotateCcw, Clock, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/Navbar";
 import { BottomNav } from "@/components/BottomNav";
@@ -10,7 +10,6 @@ import { ReadingProgress } from "@/components/ReadingProgress";
 import { Sidebar } from "@/components/Sidebar";
 import { SEO } from "@/components/SEO";
 import { Footer } from "@/components/Footer";
-import { LeafletMap } from "@/components/LeafletMap";
 import { ArticleQuiz } from "@/components/ArticleQuiz";
 import { latestPosts, type Post } from "@/data/mockData";
 import { useAuth } from "@/contexts/AuthContext";
@@ -35,11 +34,38 @@ interface DbArticle {
   author_id: string;
   author: string;
   comment_count: number;
-  location_name?: string;
-  latitude?: number;
-  longitude?: number;
   youtube_url?: string;
 }
+
+const normalizeStringList = (value: unknown, fallback: string[] = []): string[] => {
+  if (Array.isArray(value)) {
+    const normalized = value
+      .map((item) => (typeof item === "string" ? item.trim() : ""))
+      .filter(Boolean);
+    return normalized.length > 0 ? normalized : fallback;
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return fallback;
+
+    if (trimmed.startsWith("[")) {
+      try {
+        return normalizeStringList(JSON.parse(trimmed), fallback);
+      } catch {
+        return fallback;
+      }
+    }
+
+    const normalized = trimmed
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+    return normalized.length > 0 ? normalized : fallback;
+  }
+
+  return fallback;
+};
 
 export default function ArticleDetail() {
   const params = useParams<{ id?: string; slug?: string }>();
@@ -192,7 +218,7 @@ export default function ArticleDetail() {
 
   const formattedDate = new Date(article.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
   const coverImage = article.cover_image || DEFAULT_POST_IMAGE;
-  const categories = (article.categories && article.categories.length > 0 ? article.categories : [article.category])
+  const categories = normalizeStringList(article.categories, [article.category || "Umum"])
     .map((c) => String(c || "").trim())
     .filter(Boolean);
   const tags = article.tags || [];
@@ -342,16 +368,6 @@ export default function ArticleDetail() {
               <span className="flex items-center gap-1.5"><Calendar className="h-4 w-4 text-primary" />{formattedDate}</span>
               <span className="flex items-center gap-1.5"><Eye className="h-4 w-4 text-primary" />{article.views} views</span>
               <span className="flex items-center gap-1.5"><Clock className="h-4 w-4 text-primary" />{readingMinutes} menit baca</span>
-              {article.location_name && (
-                <a
-                  href="#lokasi-kajian"
-                  className="flex items-center gap-1.5 text-primary hover:underline transition-colors font-medium"
-                  title="Lihat lokasi kajian"
-                >
-                  <MapPin className="h-4 w-4 text-primary" />
-                  {article.location_name}
-                </a>
-              )}
             </div>
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1 mr-1 rounded-full border border-border bg-card px-1 py-0.5">
@@ -418,36 +434,6 @@ export default function ArticleDetail() {
                       allowFullScreen
                     />
                   </div>
-                </div>
-              )}
-
-              {/* Location Map Section */}
-              {article.location_name && (article.latitude !== 0 || article.longitude !== 0) && (
-                <div id="lokasi-kajian" className="max-w-3xl mx-auto lg:mx-0 my-10 p-6 rounded-[2rem] bg-card border border-border/50 shadow-xl shadow-black/5 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                   <div className="flex items-center gap-3 mb-4">
-                      <div className="h-10 w-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-                         <MapPin className="h-5 w-5" />
-                      </div>
-                      <div>
-                         <h3 className="font-bold text-foreground">Lokasi Kajian</h3>
-                         <p className="text-sm text-muted-foreground">{article.location_name}</p>
-                      </div>
-                   </div>
-                   <LeafletMap 
-                      lat={article.latitude} 
-                      lng={article.longitude} 
-                      locationName={article.location_name} 
-                   />
-                   <div className="mt-4 flex justify-end">
-                      <a 
-                        href={`https://www.google.com/maps/search/?api=1&query=${article.latitude},${article.longitude}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline flex items-center gap-1"
-                      >
-                        Buka di Google Maps <ArrowUpRight className="h-3 w-3" />
-                      </a>
-                   </div>
                 </div>
               )}
 

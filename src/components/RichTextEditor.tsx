@@ -1,6 +1,5 @@
 import { useEditor, EditorContent, Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import Link from "@tiptap/extension-link";
 import Image from "@tiptap/extension-image";
 import Placeholder from "@tiptap/extension-placeholder";
 import { useEffect, useRef, useMemo } from "react";
@@ -123,8 +122,10 @@ export function RichTextEditor({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const extensions = useMemo(() => [
-    StarterKit.configure({ heading: { levels: [2, 3] } }),
-    Link.configure({ openOnClick: false, HTMLAttributes: { class: "text-primary underline" } }),
+    StarterKit.configure({
+      heading: { levels: [2, 3] },
+      link: { openOnClick: false, HTMLAttributes: { class: "text-primary underline" } },
+    }),
     Image.configure({ HTMLAttributes: { class: "rounded-lg my-3 max-w-full h-auto" } }),
     Placeholder.configure({ placeholder }),
   ], [placeholder]);
