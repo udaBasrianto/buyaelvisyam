@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { TrendingUp, Tag, ChevronRight, MessageSquare, Info } from "lucide-react";
 import api from "@/lib/api";
@@ -41,6 +41,88 @@ export function Sidebar({ placement = "detail", articleContent }: SidebarProps) 
   const [categories, setCategories] = useState<CategorySummary[]>([]);
   const [dynamicWidgets, setDynamicWidgets] = useState<Widget[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeHeadingId, setActiveHeadingId] = useState<string>("");
+  const articleHeadings = useMemo(() => {
+    if (placement !== "detail" || !articleContent) return [];
+
+    const matches = [...articleContent.matchAll(/<h([23])[^>]*>([\s\S]*?)<\/h\1>/gi)];
+    const seen = new Map<string, number>();
+
+    return matches
+      .map((match) => {
+        const level = Number(match[1]);
+        const text = match[2]
+          .replace(/<[^>]+>/g, " ")
+          .replace(/&nbsp;/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+        if (!text) return null;
+
+        const base = text
+          .toLowerCase()
+          .normalize("NFKD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/(^-|-$)/g, "") || "bagian";
+        const nextCount = (seen.get(base) || 0) + 1;
+        seen.set(base, nextCount);
+
+        return {
+          id: nextCount > 1 ? `${base}-${nextCount}` : base,
+          text,
+          level,
+        };
+      })
+      .filter((item): item is { id: string; text: string; level: number } => Boolean(item))
+      .slice(0, 10);
+  }, [articleContent, placement]);
+
+  useEffect(() => {
+    if (placement !== "detail" || articleHeadings.length === 0) {
+      setActiveHeadingId("");
+      return;
+    }
+
+    const headings = articleHeadings
+      .map((heading) => document.getElementById(heading.id))
+      .filter((element): element is HTMLElement => Boolean(element));
+
+    if (headings.length === 0) return;
+
+    const updateActiveHeading = () => {
+      const current = headings.findLast((heading) => heading.getBoundingClientRect().top <= 140) || headings[0];
+      if (current?.id) setActiveHeadingId(current.id);
+    };
+
+    updateActiveHeading();
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visibleEntries = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+
+        if (visibleEntries[0]?.target instanceof HTMLElement) {
+          setActiveHeadingId(visibleEntries[0].target.id);
+          return;
+        }
+
+        updateActiveHeading();
+      },
+      {
+        rootMargin: "-110px 0px -55% 0px",
+        threshold: [0, 0.2, 0.6, 1],
+      }
+    );
+
+    headings.forEach((heading) => observer.observe(heading));
+    window.addEventListener("scroll", updateActiveHeading, { passive: true });
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("scroll", updateActiveHeading);
+    };
+  }, [articleHeadings, placement]);
 
   useEffect(() => {
     const loadSidebarData = async () => {
@@ -86,6 +168,34 @@ export function Sidebar({ placement = "detail", articleContent }: SidebarProps) 
 
   return (
     <aside className="space-y-8 w-full select-none">
+      {placement === "detail" && articleHeadings.length > 0 && (
+        <div className="bg-card/80 backdrop-blur-sm border border-border/50 rounded-[24px] p-6 shadow-sm ring-1 ring-black/[0.02]">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <ChevronRight className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h3 className="font-black text-sm text-foreground uppercase tracking-wider">Navigasi Artikel</h3>
+              <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight">Poin Penting</p>
+            </div>
+          </div>
+          <div className="space-y-2">
+            {articleHeadings.map((heading) => (
+              <a
+                key={heading.id}
+                href={`#${heading.id}`}
+                className={`group flex items-start gap-3 rounded-2xl px-3 py-2 transition ${heading.level === 3 ? "ml-4" : ""} ${activeHeadingId === heading.id ? "bg-primary/10 shadow-sm" : "hover:bg-muted/50"}`}
+              >
+                <span className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full transition ${activeHeadingId === heading.id ? "bg-primary scale-125" : "bg-primary/50 group-hover:bg-primary"}`} />
+                <span className={`text-[13px] font-semibold leading-snug transition ${activeHeadingId === heading.id ? "text-primary" : "text-muted-foreground group-hover:text-primary"}`}>
+                  {heading.text}
+                </span>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Latest Articles Widget */}
       <div className="bg-card/80 backdrop-blur-sm border border-border/50 rounded-[24px] p-6 shadow-sm ring-1 ring-black/[0.02]">
         <div className="flex items-center gap-3 mb-6">

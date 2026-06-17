@@ -1,6 +1,6 @@
 import { useParams, Link } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Eye, Calendar, User, Share2, BookmarkPlus, Bookmark, AArrowDown, AArrowUp, RotateCcw, Clock, MessageCircle } from "lucide-react";
+import { ArrowLeft, Eye, Calendar, User, Share2, Bookmark, AArrowDown, AArrowUp, RotateCcw, Clock, MessageCircle, Link2, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/Navbar";
 import { BottomNav } from "@/components/BottomNav";
@@ -85,6 +85,7 @@ export default function ArticleDetail() {
   const MAX_FONT = 26;
   const DEFAULT_FONT = 18;
   const lastProgressSent = useRef<{ t: number; p: number }>({ t: 0, p: 0 });
+  const articleBodyRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (user && article) checkBookmarkStatus();
@@ -144,6 +145,22 @@ export default function ArticleDetail() {
     }
   };
 
+  const handleCopyLink = async () => {
+    const baseFromTitle = (article?.title || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "");
+    const shouldShareBase =
+      !!article?.slug &&
+      !!baseFromTitle &&
+      article.slug.startsWith(baseFromTitle + "-") &&
+      /^[0-9a-z]+$/.test(article.slug.slice(baseFromTitle.length + 1));
+    const shareSlug = shouldShareBase ? baseFromTitle : (article?.slug || article?.id || "");
+
+    await navigator.clipboard.writeText(`${window.location.origin}/${shareSlug}`);
+    toast({ title: "Tautan artikel disalin" });
+  };
+
   useEffect(() => {
     localStorage.setItem("article-font-size", String(fontSize));
   }, [fontSize]);
@@ -196,6 +213,27 @@ export default function ArticleDetail() {
       window.clearInterval(interval);
     };
   }, [user?.id, article?.id]);
+
+  useEffect(() => {
+    const articleElement = articleBodyRef.current;
+    if (!articleElement) return;
+
+    const seen = new Map<string, number>();
+    articleElement.querySelectorAll("h2, h3").forEach((heading) => {
+      const text = heading.textContent?.trim();
+      if (!text) return;
+
+      const base = text
+        .toLowerCase()
+        .normalize("NFKD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "") || "bagian";
+      const nextCount = (seen.get(base) || 0) + 1;
+      seen.set(base, nextCount);
+      heading.id = nextCount > 1 ? `${base}-${nextCount}` : base;
+    });
+  }, [article?.content]);
 
   if (loading) {
     return (
@@ -461,11 +499,50 @@ export default function ArticleDetail() {
             </div>
           </div>
 
-          <div className="mx-auto mt-6 lg:grid lg:max-w-5xl lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-8">
+          <div className="mx-auto mt-6 lg:grid lg:max-w-5xl lg:grid-cols-[72px_minmax(0,1fr)_360px] lg:gap-8">
+            <div className="hidden lg:block">
+              <div className="sticky top-28 flex flex-col items-center gap-3">
+                <div className="rounded-[28px] border border-border/60 bg-card/80 p-2 shadow-sm backdrop-blur">
+                  <div className="flex flex-col gap-2">
+                    <button
+                      onClick={handleShare}
+                      className="group flex h-11 w-11 items-center justify-center rounded-2xl text-muted-foreground transition hover:bg-accent hover:text-primary"
+                      title="Bagikan artikel"
+                    >
+                      <Share2 className="h-4.5 w-4.5" />
+                    </button>
+                    <button
+                      onClick={handleCopyLink}
+                      className="group flex h-11 w-11 items-center justify-center rounded-2xl text-muted-foreground transition hover:bg-accent hover:text-primary"
+                      title="Salin tautan"
+                    >
+                      <Link2 className="h-4.5 w-4.5" />
+                    </button>
+                    <button
+                      onClick={handleBookmark}
+                      className={`flex h-11 w-11 items-center justify-center rounded-2xl transition ${isBookmarked ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent hover:text-primary"}`}
+                      title={isBookmarked ? "Hapus simpanan" : "Simpan artikel"}
+                    >
+                      <Bookmark className={`h-4.5 w-4.5 ${isBookmarked ? "fill-current" : ""}`} />
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-border/60 bg-background/90 text-muted-foreground shadow-sm transition hover:border-primary/30 hover:text-primary"
+                  title="Kembali ke atas"
+                >
+                  <ChevronUp className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
             <div className="min-w-0">
               <article
+                ref={articleBodyRef}
                 style={{ fontSize: `${fontSize}px` }}
-                className="prose prose-lg max-w-none mx-auto lg:mx-0 py-8 overflow-x-auto"
+                className="prose prose-lg prose-neutral max-w-none mx-auto rounded-[28px] border border-border/60 bg-card/70 px-5 py-8 shadow-sm backdrop-blur dark:prose-invert sm:px-7 lg:mx-0 lg:px-10 [&_a]:font-semibold [&_a]:text-primary [&_blockquote]:rounded-r-2xl [&_blockquote]:border-l-4 [&_blockquote]:border-primary/30 [&_blockquote]:bg-primary/5 [&_blockquote]:px-5 [&_blockquote]:py-3 [&_figcaption]:text-center [&_figcaption]:text-sm [&_figcaption]:text-muted-foreground [&_h2]:mt-12 [&_h2]:scroll-mt-28 [&_h2]:text-2xl [&_h2]:font-black [&_h2]:tracking-tight [&_h3]:mt-10 [&_h3]:scroll-mt-28 [&_h3]:text-xl [&_h3]:font-bold [&_hr]:border-border/60 [&_img]:mx-auto [&_img]:rounded-3xl [&_img]:shadow-lg [&_li]:marker:text-primary [&_p]:leading-8 [&_pre]:overflow-x-auto [&_pre]:rounded-2xl [&_pre]:border [&_pre]:border-border/60 [&_pre]:bg-muted [&_table]:block [&_table]:w-full [&_table]:overflow-x-auto"
                 dangerouslySetInnerHTML={{ __html: article.content }}
               />
 
@@ -503,7 +580,7 @@ export default function ArticleDetail() {
               </div>
             </div>
 
-            <div className="hidden lg:block">
+            <div className="hidden lg:block lg:sticky lg:top-24 lg:self-start">
               <Sidebar placement="detail" articleContent={article.content} />
             </div>
           </div>
