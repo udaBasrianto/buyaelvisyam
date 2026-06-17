@@ -221,7 +221,7 @@ export default function ArticleDetail() {
   const categories = normalizeStringList(article.categories, [article.category || "Umum"])
     .map((c) => String(c || "").trim())
     .filter(Boolean);
-  const tags = article.tags || [];
+  const tags = normalizeStringList(article.tags, []);
 
   const plainText = (article.content || "").replace(/<[^>]+>/g, " ");
   const wordCount = plainText.trim().split(/\s+/).filter(Boolean).length;
@@ -311,101 +311,157 @@ export default function ArticleDetail() {
       <Navbar />
       <main className="bottom-nav-safe pb-20">
         <div className="container mx-auto px-4 mt-6">
-          <div className="relative w-full aspect-[16/9] md:aspect-[21/9] rounded-2xl overflow-hidden">
-            <img 
-              src={coverImage} 
-              alt={article.title} 
-              className="absolute inset-0 w-full h-full object-cover" 
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = DEFAULT_POST_IMAGE;
-              }}
-            />
-            <div className="absolute inset-0 hero-overlay" />
-            <div className="absolute top-4 left-4">
-              <Link to="/" className="inline-flex items-center gap-1.5 bg-card/30 backdrop-blur-sm hover:bg-card/50 text-primary-foreground rounded-full px-3 py-1.5 text-sm transition">
-                <ArrowLeft className="h-4 w-4" /> Kembali
-              </Link>
-            </div>
-            <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-12">
-              <div className="flex flex-wrap gap-2 mb-4">
+          <div className="mx-auto max-w-5xl">
+            <Link
+              to="/"
+              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/95 px-3 py-1.5 text-sm text-muted-foreground transition hover:border-primary/30 hover:text-primary"
+            >
+              <ArrowLeft className="h-4 w-4" /> Kembali
+            </Link>
+
+            <div className="mt-5 rounded-3xl border border-border/60 bg-card/70 p-5 shadow-sm backdrop-blur md:p-8">
+              <div className="flex flex-wrap gap-2">
                 {categories.map((c) => (
-                  <Link 
+                  <Link
                     key={c}
                     to={`/kategori/${c.toLowerCase().replace(/\s+/g, "-")}`}
-                    className="tag-badge islamic-gradient text-primary-foreground text-[10px] font-bold uppercase tracking-wider hover:scale-105 transition-transform"
+                    className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-primary transition hover:bg-primary hover:text-primary-foreground"
                   >
                     #{c}
                   </Link>
                 ))}
                 {tags.map((tag) => (
-                  <span key={tag} className="tag-badge gold-gradient text-primary-foreground text-[10px] font-bold uppercase tracking-wider">#{tag}</span>
+                  <span
+                    key={tag}
+                    className="inline-flex items-center rounded-full bg-secondary px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-secondary-foreground"
+                  >
+                    #{tag}
+                  </span>
                 ))}
               </div>
-              <h1 className="text-xl md:text-3xl lg:text-4xl font-bold text-primary-foreground leading-tight max-w-3xl drop-shadow-sm">
-                {article.title}
-              </h1>
+
+              <div className="mt-5 grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_320px] lg:items-start">
+                <div className="min-w-0">
+                  <h1 className="text-3xl font-bold leading-tight text-foreground md:text-4xl lg:text-5xl">
+                    {article.title}
+                  </h1>
+                  {article.excerpt && (
+                    <p className="mt-4 max-w-3xl text-base leading-7 text-muted-foreground md:text-lg">
+                      {article.excerpt}
+                    </p>
+                  )}
+
+                  <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3 text-sm text-muted-foreground">
+                    <span className="flex items-center gap-1.5">
+                      <User className="h-4 w-4 text-primary" />
+                      {article.author || "Ustadz"}
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <Calendar className="h-4 w-4 text-primary" />
+                      {formattedDate}
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <Clock className="h-4 w-4 text-primary" />
+                      {readingMinutes} menit baca
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <Eye className="h-4 w-4 text-primary" />
+                      {article.views} views
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <MessageCircle className="h-4 w-4 text-primary" />
+                      {article.comment_count || 0} komentar
+                    </span>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-border/60 bg-background/80 p-4 shadow-sm">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                    Aksi Pembaca
+                  </p>
+                  <div className="mt-4 flex flex-wrap items-center gap-2">
+                    <div className="flex items-center gap-1 rounded-full border border-border bg-card px-1 py-0.5">
+                      <button
+                        onClick={decreaseFont}
+                        disabled={fontSize <= MIN_FONT}
+                        className="rounded-full p-1.5 text-muted-foreground transition hover:bg-accent hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        <AArrowDown className="h-4 w-4" />
+                      </button>
+                      <span className="w-7 text-center text-xs font-medium tabular-nums text-foreground/70">{fontSize}</span>
+                      <button
+                        onClick={increaseFont}
+                        disabled={fontSize >= MAX_FONT}
+                        className="rounded-full p-1.5 text-muted-foreground transition hover:bg-accent hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        <AArrowUp className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={resetFont}
+                        className="rounded-full p-1.5 text-muted-foreground transition hover:bg-accent hover:text-primary"
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+
+                    <button
+                      onClick={handleShare}
+                      className="rounded-full border border-border p-2 text-muted-foreground transition hover:bg-accent hover:text-primary"
+                      title="Bagikan Artikel"
+                    >
+                      <Share2 className="h-4 w-4" />
+                    </button>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleBookmark}
+                      className={`rounded-xl px-4 font-bold uppercase text-[10px] tracking-widest gap-2 shadow-sm transition-all ${isBookmarked ? "bg-primary text-white border-primary shadow-primary/20" : "hover:bg-primary/5 hover:text-primary border-border/50"}`}
+                    >
+                      <Bookmark className={`h-3 w-3 ${isBookmarked ? "fill-current" : ""}`} />
+                      {isBookmarked ? "Tersimpan" : "Simpan"}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-8 overflow-hidden rounded-3xl border border-border/60 bg-muted/30">
+                <div className="relative mx-auto aspect-[16/8] max-h-[360px] w-full">
+                  <img
+                    src={coverImage}
+                    alt={article.title}
+                    className="absolute inset-0 h-full w-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = DEFAULT_POST_IMAGE;
+                    }}
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
         <div className="container mx-auto px-4">
-          <div className="flex flex-wrap items-center justify-between gap-4 py-4 border-b border-border">
-            <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-              <span className="flex items-center gap-1.5"><User className="h-4 w-4 text-primary" />{article.author || "Ustadz"}</span>
+          <div className="mx-auto max-w-5xl border-b border-border py-4 text-sm text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <span className="font-medium text-foreground/80">Topik:</span>
               {categories.map((c) => (
-                <Link 
+                <Link
                   key={c}
                   to={`/kategori/${c.toLowerCase().replace(/\s+/g, "-")}`}
-                  className="flex items-center gap-1.5 hover:text-primary transition-colors"
+                  className="flex items-center gap-1.5 transition-colors hover:text-primary"
                   title="Lihat kategori ini"
                 >
-                  <div className="h-4 w-4 flex items-center justify-center rounded-sm bg-primary/10 text-primary">
+                  <div className="flex h-4 w-4 items-center justify-center rounded-sm bg-primary/10 text-primary">
                     <span className="text-[10px] font-bold">#</span>
                   </div>
                   {c}
                 </Link>
               ))}
-              <span className="flex items-center gap-1.5"><Calendar className="h-4 w-4 text-primary" />{formattedDate}</span>
-              <span className="flex items-center gap-1.5"><Eye className="h-4 w-4 text-primary" />{article.views} views</span>
-              <span className="flex items-center gap-1.5"><Clock className="h-4 w-4 text-primary" />{readingMinutes} menit baca</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1 mr-1 rounded-full border border-border bg-card px-1 py-0.5">
-                <button
-                  onClick={decreaseFont}
-                  disabled={fontSize <= MIN_FONT}
-                  className="p-1.5 rounded-full hover:bg-accent transition text-muted-foreground hover:text-primary disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  <AArrowDown className="h-4 w-4" />
-                </button>
-                <span className="text-xs font-medium text-foreground/70 w-7 text-center tabular-nums">{fontSize}</span>
-                <button
-                  onClick={increaseFont}
-                  disabled={fontSize >= MAX_FONT}
-                  className="p-1.5 rounded-full hover:bg-accent transition text-muted-foreground hover:text-primary disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  <AArrowUp className="h-4 w-4" />
-                </button>
-                <button onClick={resetFont} className="p-1.5 rounded-full hover:bg-accent transition text-muted-foreground hover:text-primary">
-                  <RotateCcw className="h-3.5 w-3.5" />
-                </button>
-              </div>
-              <button onClick={handleShare} className="p-2 rounded-full hover:bg-accent transition text-muted-foreground hover:text-primary" title="Bagikan Artikel">
-                <Share2 className="h-4 w-4" />
-              </button>
-              <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleBookmark}
-              className={`rounded-xl px-4 font-bold uppercase text-[10px] tracking-widest gap-2 shadow-sm transition-all ${isBookmarked ? 'bg-primary text-white border-primary shadow-primary/20' : 'hover:bg-primary/5 hover:text-primary border-border/50'}`}
-            >
-                <Bookmark className={`h-3 w-3 ${isBookmarked ? 'fill-current' : ''}`} /> 
-                {isBookmarked ? 'Tersimpan' : 'Simpan'}
-             </Button>
             </div>
           </div>
 
-          <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-8 mx-auto mt-6">
+          <div className="mx-auto mt-6 lg:grid lg:max-w-5xl lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-8">
             <div className="min-w-0">
               <article
                 style={{ fontSize: `${fontSize}px` }}
