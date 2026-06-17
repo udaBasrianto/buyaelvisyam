@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   ArrowLeft, User, MessageCircle, Edit, Trash2, LayoutDashboard,
   CornerDownRight, CheckCircle2, Wallet, Plus, ArrowUpRight, History, Trophy, Award, Bookmark
@@ -18,6 +18,21 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { PostCardV2 } from "@/components/PostCardV2";
 import { Navbar } from "@/components/Navbar";
 import { BottomNav } from "@/components/BottomNav";
+
+const asArray = <T,>(value: unknown): T[] => {
+  if (Array.isArray(value)) return value as T[];
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    if (Array.isArray(record.data)) return record.data as T[];
+    if (Array.isArray(record.items)) return record.items as T[];
+    if (Array.isArray(record.results)) return record.results as T[];
+  }
+  return [];
+};
+
+const asNumber = (value: unknown, fallback = 0): number => {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+};
 
 interface Comment {
   id: string;
@@ -61,6 +76,7 @@ interface ContinueReadingItem {
 export default function ReaderDashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [comments, setComments] = useState<Comment[]>([]);
   const [profile, setProfile] = useState<Profile>({ display_name: "", avatar_url: "" });
   const [loading, setLoading] = useState(true);
@@ -85,24 +101,28 @@ export default function ReaderDashboard() {
     if (!user) return;
     try {
       const { data: profileData } = await api.get("/auth/me");
-      setProfile(profileData);
-      setProfileForm({ display_name: profileData.display_name || "", avatar_url: profileData.avatar_url || "" });
+      const safeProfile = {
+        display_name: typeof profileData?.display_name === "string" ? profileData.display_name : "",
+        avatar_url: typeof profileData?.avatar_url === "string" ? profileData.avatar_url : "",
+      };
+      setProfile(safeProfile);
+      setProfileForm(safeProfile);
       
       const { data: commentsData } = await api.get("/comments"); 
-      if (commentsData) setComments(commentsData as Comment[]);
+      setComments(asArray<Comment>(commentsData));
 
       const { data: walletData } = await api.get("/wallet");
-      setBalance(walletData.balance);
-      setTransactions(walletData.transactions);
+      setBalance(asNumber(walletData?.balance));
+      setTransactions(asArray<Transaction>(walletData?.transactions));
 
       const { data: lbData } = await api.get("/leaderboard");
-      setLeaderboard(lbData.data || []);
+      setLeaderboard(asArray<LeaderboardEntry>(lbData?.data ?? lbData));
 
       const { data: bookmarkData } = await api.get("/koleksi");
-      setBookmarks(bookmarkData || []);
+      setBookmarks(asArray<any>(bookmarkData));
 
       const { data: continueData } = await api.get("/reading-progress/continue", { params: { limit: 6 } });
-      setContinueReading((continueData || []) as ContinueReadingItem[]);
+      setContinueReading(asArray<ContinueReadingItem>(continueData));
     } catch (err: any) {
       console.error(err);
     } finally {
@@ -179,7 +199,7 @@ export default function ReaderDashboard() {
     }
   };
 
-  const myComments = comments.filter(c => c.user_id === user?.id && !c.parent_id);
+  const myComments = asArray<Comment>(comments).filter(c => c.user_id === user?.id && !c.parent_id);
   const initials = (profile.display_name || user?.email || "U")
     .split(" ")
     .map((w) => w[0])
@@ -194,7 +214,7 @@ export default function ReaderDashboard() {
     excerpt: a.excerpt || "",
     image: a.cover_image || "",
     category: a.category || "Umum",
-    tags: a.tags || [],
+    tags: asArray<string>(a.tags),
     author: a.author || "Ustadz",
     date: new Date(a.created_at).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric'}),
     views: a.views || 0,
