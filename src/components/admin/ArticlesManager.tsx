@@ -534,6 +534,19 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedArticles = filtered.slice(startIndex, startIndex + itemsPerPage);
+  const editorActionButtons = (
+    <div className="flex flex-col gap-2 sm:flex-row xl:flex-col">
+      <Button variant="outline" onClick={() => handleSave("draft")} className="gap-1.5">
+        <Save className="h-4 w-4" /> Simpan Draf
+      </Button>
+      <Button variant="secondary" onClick={() => handleSave("review")} className="gap-1.5">
+        <Send className="h-4 w-4" /> Review
+      </Button>
+      <Button onClick={() => handleSave("published")} className="gap-1.5">
+        <CheckCircle2 className="h-4 w-4" /> Publikasikan
+      </Button>
+    </div>
+  );
 
   return (
     <div className="space-y-4">
@@ -947,7 +960,7 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
             <div>
               <h2 className="text-xl font-bold">{editing ? "Edit Artikel" : "Tambah Artikel Baru"}</h2>
               <p className="text-sm text-muted-foreground">
-                Editor artikel tampil langsung di halaman agar area kerja lebih lebar.
+                Mode split panel: fokus menulis di kiri, pengaturan artikel tetap terlihat di kanan.
               </p>
             </div>
             <Button variant="outline" onClick={() => setEditorOpen(false)} className="gap-2 self-start md:self-auto">
@@ -956,15 +969,15 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
           </div>
 
           <Tabs defaultValue="content" className="w-full mt-4">
-            <TabsList className="grid w-full grid-cols-3 mb-4">
+            <TabsList className="grid w-full grid-cols-3 mb-4 xl:w-auto">
               <TabsTrigger value="content">Konten Artikel</TabsTrigger>
               <TabsTrigger value="quiz" disabled={!editing}>Kuis Artikel</TabsTrigger>
               <TabsTrigger value="revisions" disabled={!editing}>Revisi</TabsTrigger>
             </TabsList>
 
             <TabsContent value="content" className="space-y-4">
-              <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
-                <div className="space-y-4 min-w-0">
+              <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_360px] 2xl:grid-cols-[minmax(0,1fr)_400px]">
+                <div className="min-w-0 space-y-4 rounded-2xl border bg-background/40 p-4 md:p-5">
                   <div>
                     <Label>Judul</Label>
                     <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Judul artikel..." />
@@ -979,13 +992,22 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
                       value={form.content}
                       onChange={(html) => setForm({ ...form, content: html })}
                       placeholder="Tulis konten artikel..."
-                      minHeight="520px"
+                      minHeight="640px"
                     />
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <div>
+                <div className="space-y-4 xl:sticky xl:top-24">
+                  <div className="rounded-2xl border bg-background/70 p-4 space-y-3">
+                    <div>
+                      <div className="text-sm font-bold">Aksi Artikel</div>
+                      <p className="text-xs text-muted-foreground">
+                        Simpan perubahan tanpa perlu scroll ke bawah.
+                      </p>
+                    </div>
+                    {editorActionButtons}
+                  </div>
+                  <div className="rounded-2xl border bg-background/70 p-4 space-y-3">
                     <Label className="flex items-center gap-1.5">
                       <Calendar className="h-3.5 w-3.5 text-primary" /> Jadwalkan Publish (Opsional)
                     </Label>
@@ -997,7 +1019,7 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
                     />
                     <p className="text-[10px] text-muted-foreground mt-1">Jika diisi dan status artikel “Review”, sistem akan publish otomatis sesuai jadwal.</p>
                   </div>
-                  <div>
+                  <div className="rounded-2xl border bg-background/70 p-4 space-y-3">
                     <Label>Template Artikel</Label>
                     <Select value={form.template_type} onValueChange={(v) => setForm({ ...form, template_type: v })}>
                       <SelectTrigger className="h-10">
@@ -1011,7 +1033,7 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div>
+                  <div className="rounded-2xl border bg-background/70 p-4 space-y-3">
                     <Label className="block mb-2 text-sm font-semibold">Kategori (Bisa pilih lebih dari satu)</Label>
                     <div className="flex flex-wrap gap-2 p-3 rounded-lg border bg-accent/5">
                       {dbCategories.length > 0 ? (
@@ -1058,7 +1080,7 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
                     </div>
                     <p className="text-[10px] text-muted-foreground mt-1">Kategori pertama yang Anda pilih akan digunakan sebagai kategori utama.</p>
                   </div>
-                  <div className="flex items-center justify-between p-3 rounded-lg border bg-accent/10">
+                  <div className="flex items-center justify-between rounded-2xl border bg-accent/10 p-4">
                     <div className="space-y-0.5">
                       <Label className="text-sm font-bold">Editor's Choice</Label>
                       <p className="text-xs text-muted-foreground">Tampilkan artikel ini di bagian Editor's Choice beranda</p>
@@ -1068,7 +1090,7 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
                       onCheckedChange={(v) => setForm({ ...form, is_featured: v })} 
                     />
                   </div>
-                  <div className="p-4 rounded-xl border bg-muted/30 space-y-3">
+                  <div className="rounded-2xl border bg-muted/30 p-4 space-y-3">
                      <div className="flex items-center gap-2 mb-2">
                         <Youtube className="h-4 w-4 text-red-500" />
                         <Label className="text-sm font-bold uppercase tracking-wider">Video YouTube (Optional)</Label>
@@ -1089,7 +1111,7 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
                         </div>
                      )}
                   </div>
-                  <div>
+                  <div className="rounded-2xl border bg-background/70 p-4 space-y-3">
                     <Label>Gambar Cover</Label>
                     <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
                     {previewUrl || form.cover_image ? (
@@ -1122,16 +1144,8 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
                 </div>
               </div>
 
-              <DialogFooter className="gap-2 sm:gap-0 flex-wrap pt-4">
-                <Button variant="outline" onClick={() => handleSave("draft")} className="gap-1.5">
-                  <Save className="h-4 w-4" /> Simpan Draf
-                </Button>
-                <Button variant="secondary" onClick={() => handleSave("review")} className="gap-1.5">
-                  <Send className="h-4 w-4" /> Review
-                </Button>
-                <Button onClick={() => handleSave("published")} className="gap-1.5">
-                  <CheckCircle2 className="h-4 w-4" /> Publikasikan
-                </Button>
+              <DialogFooter className="gap-2 sm:gap-0 flex-wrap pt-4 xl:hidden">
+                {editorActionButtons}
               </DialogFooter>
             </TabsContent>
 
