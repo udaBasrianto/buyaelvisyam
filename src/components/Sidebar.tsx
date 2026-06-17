@@ -31,15 +31,40 @@ type Widget = {
   sort_order: number;
 };
 
+type SiteSettings = {
+  show_chatbot?: boolean;
+  newsletter_title?: string;
+  newsletter_description?: string;
+  newsletter_button_text?: string;
+  newsletter_link?: string;
+  about_contact_phone?: string;
+};
+
 interface SidebarProps {
   placement?: "beranda" | "detail";
   articleContent?: string; // Optional context from article view
 }
 
+const ensureLinkProtocol = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  if (/^(https?:\/\/|mailto:|tel:)/i.test(trimmed)) return trimmed;
+  if (trimmed.startsWith("/") || trimmed.startsWith("#")) return trimmed;
+  return `https://${trimmed}`;
+};
+
+const normalizeWhatsAppLink = (phone: string) => {
+  const digits = phone.replace(/\D/g, "");
+  if (!digits) return "";
+  const normalized = digits.startsWith("0") ? `62${digits.slice(1)}` : digits;
+  return `https://wa.me/${normalized}`;
+};
+
 export function Sidebar({ placement = "detail", articleContent }: SidebarProps) {
   const [articles, setArticles] = useState<ArticleSummary[]>([]);
   const [categories, setCategories] = useState<CategorySummary[]>([]);
   const [dynamicWidgets, setDynamicWidgets] = useState<Widget[]>([]);
+  const [siteSettings, setSiteSettings] = useState<SiteSettings>({});
   const [loading, setLoading] = useState(true);
   const [activeHeadingId, setActiveHeadingId] = useState<string>("");
   const articleHeadings = useMemo(() => {
@@ -156,6 +181,7 @@ export function Sidebar({ placement = "detail", articleContent }: SidebarProps) 
           });
           setDynamicWidgets(filtered);
         }
+        setSiteSettings(settingsRes?.data || {});
       } catch (err) {
         console.error("Failed to load sidebar content", err);
       } finally {
@@ -165,6 +191,16 @@ export function Sidebar({ placement = "detail", articleContent }: SidebarProps) 
 
     loadSidebarData();
   }, [placement]);
+
+  const ctaTitle = siteSettings.newsletter_title?.trim() || "Dapatkan Update Via WhatsApp";
+  const ctaDescription =
+    siteSettings.newsletter_description?.trim() ||
+    "Jangan lewatkan materi kajian terbaru langsung di ponsel Anda.";
+  const ctaButtonText = siteSettings.newsletter_button_text?.trim() || "Gabung Sekarang";
+  const ctaHref =
+    ensureLinkProtocol(siteSettings.newsletter_link || "") ||
+    normalizeWhatsAppLink(siteSettings.about_contact_phone || "");
+  const isExternalCta = !!ctaHref && !ctaHref.startsWith("/") && !ctaHref.startsWith("#");
 
   return (
     <aside className="space-y-8 w-full select-none">
@@ -345,11 +381,27 @@ export function Sidebar({ placement = "detail", articleContent }: SidebarProps) 
       <div className="relative overflow-hidden bg-primary rounded-[24px] p-6 text-primary-foreground shadow-lg shadow-primary/20">
          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
          <div className="relative z-10">
-            <h4 className="font-black text-lg leading-tight mb-2">Dapatkan Update <br/>Via WhatsApp</h4>
-            <p className="text-white/70 text-[11px] leading-relaxed mb-4">Jangan lewatkan materi kajian terbaru langsung di ponsel Anda.</p>
-            <button className="w-full py-2.5 bg-white text-primary rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-secondary transition-colors">
-               Gabung Sekarang
-            </button>
+            <h4 className="font-black text-lg leading-tight mb-2">{ctaTitle}</h4>
+            <p className="text-white/70 text-[11px] leading-relaxed mb-4">{ctaDescription}</p>
+            {ctaHref ? (
+              <a
+                href={ctaHref}
+                target={isExternalCta ? "_blank" : undefined}
+                rel={isExternalCta ? "noreferrer" : undefined}
+                className="flex w-full items-center justify-center py-2.5 bg-white text-primary rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-secondary transition-colors"
+              >
+                {ctaButtonText}
+              </a>
+            ) : (
+              <button
+                type="button"
+                disabled
+                className="w-full py-2.5 rounded-xl bg-white/75 text-primary/70 text-[11px] font-black uppercase tracking-widest cursor-not-allowed"
+                title="Tambahkan Link Tujuan pada pengaturan situs agar tombol bisa diklik"
+              >
+                {ctaButtonText}
+              </button>
+            )}
          </div>
       </div>
     </aside>

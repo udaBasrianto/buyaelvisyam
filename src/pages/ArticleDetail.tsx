@@ -349,7 +349,7 @@ export default function ArticleDetail() {
       <Navbar />
       <main className="bottom-nav-safe pb-20">
         <div className="container mx-auto px-4 mt-6">
-          <div className="mx-auto max-w-5xl">
+          <div className="mx-auto max-w-[1360px]">
             <Link
               to="/"
               className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/95 px-3 py-1.5 text-sm text-muted-foreground transition hover:border-primary/30 hover:text-primary"
@@ -480,7 +480,7 @@ export default function ArticleDetail() {
         </div>
 
         <div className="container mx-auto px-4">
-          <div className="mx-auto max-w-5xl border-b border-border py-4 text-sm text-muted-foreground">
+          <div className="mx-auto max-w-[1360px] border-b border-border py-4 text-sm text-muted-foreground">
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
               <span className="font-medium text-foreground/80">Topik:</span>
               {categories.map((c) => (
@@ -499,8 +499,8 @@ export default function ArticleDetail() {
             </div>
           </div>
 
-          <div className="mx-auto mt-6 lg:grid lg:max-w-5xl lg:grid-cols-[72px_minmax(0,1fr)_360px] lg:gap-8">
-            <div className="hidden lg:block">
+          <div className="mx-auto mt-6 lg:grid lg:max-w-[1360px] lg:grid-cols-[88px_minmax(0,1fr)_340px] lg:items-start lg:gap-8 xl:grid-cols-[96px_minmax(0,1fr)_360px] xl:gap-10">
+            <div className="hidden lg:block lg:self-start">
               <div className="sticky top-28 flex flex-col items-center gap-3">
                 <div className="rounded-[28px] border border-border/60 bg-card/80 p-2 shadow-sm backdrop-blur">
                   <div className="flex flex-col gap-2">
@@ -538,7 +538,7 @@ export default function ArticleDetail() {
               </div>
             </div>
 
-            <div className="min-w-0">
+            <div className="min-w-0 max-w-none">
               <article
                 ref={articleBodyRef}
                 style={{ fontSize: `${fontSize}px` }}
