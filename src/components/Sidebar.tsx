@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type MouseEvent } from "react";
 import { Link } from "react-router-dom";
 import { TrendingUp, Tag, ChevronRight, MessageSquare, Info } from "lucide-react";
 import api from "@/lib/api";
@@ -201,6 +201,16 @@ export function Sidebar({ placement = "detail", articleContent }: SidebarProps) 
     ensureLinkProtocol(siteSettings.newsletter_link || "") ||
     normalizeWhatsAppLink(siteSettings.about_contact_phone || "");
   const isExternalCta = !!ctaHref && !ctaHref.startsWith("/") && !ctaHref.startsWith("#");
+  const handleHeadingClick = (headingId: string) => (event: MouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault();
+
+    const target = document.getElementById(headingId);
+    if (!target) return;
+
+    target.scrollIntoView({ behavior: "smooth", block: "start" });
+    window.history.replaceState(null, "", `#${headingId}`);
+    setActiveHeadingId(headingId);
+  };
 
   return (
     <aside className="space-y-8 w-full select-none">
@@ -220,6 +230,7 @@ export function Sidebar({ placement = "detail", articleContent }: SidebarProps) 
               <a
                 key={heading.id}
                 href={`#${heading.id}`}
+                onClick={handleHeadingClick(heading.id)}
                 className={`group flex items-start gap-3 rounded-2xl px-3 py-2 transition ${heading.level === 3 ? "ml-4" : ""} ${activeHeadingId === heading.id ? "bg-primary/10 shadow-sm" : "hover:bg-muted/50"}`}
               >
                 <span className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full transition ${activeHeadingId === heading.id ? "bg-primary scale-125" : "bg-primary/50 group-hover:bg-primary"}`} />

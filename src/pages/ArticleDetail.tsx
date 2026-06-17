@@ -1,5 +1,5 @@
 import { useParams, Link } from "react-router-dom";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Eye, Calendar, User, Share2, Bookmark, AArrowDown, AArrowUp, RotateCcw, Clock, MessageCircle, Link2, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/Navbar";
@@ -214,14 +214,21 @@ export default function ArticleDetail() {
     };
   }, [user?.id, article?.id]);
 
-  useEffect(() => {
-    const articleElement = articleBodyRef.current;
-    if (!articleElement) return;
+  const articleContentWithHeadingIds = useMemo(() => {
+    if (!article?.content) return "";
 
     const seen = new Map<string, number>();
-    articleElement.querySelectorAll("h2, h3").forEach((heading) => {
-      const text = heading.textContent?.trim();
-      if (!text) return;
+
+    return article.content.replace(/<h([23])([^>]*)>([\s\S]*?)<\/h\1>/gi, (_, level, attributes, innerHtml) => {
+      const text = String(innerHtml)
+        .replace(/<[^>]+>/g, " ")
+        .replace(/&nbsp;/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+      if (!text) {
+        return `<h${level}${attributes}>${innerHtml}</h${level}>`;
+      }
 
       const base = text
         .toLowerCase()
@@ -230,8 +237,11 @@ export default function ArticleDetail() {
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/(^-|-$)/g, "") || "bagian";
       const nextCount = (seen.get(base) || 0) + 1;
+      const headingId = nextCount > 1 ? `${base}-${nextCount}` : base;
       seen.set(base, nextCount);
-      heading.id = nextCount > 1 ? `${base}-${nextCount}` : base;
+
+      const safeAttributes = String(attributes || "").replace(/\s+id=(["']).*?\1/i, "");
+      return `<h${level}${safeAttributes} id="${headingId}">${innerHtml}</h${level}>`;
     });
   }, [article?.content]);
 
@@ -336,7 +346,7 @@ export default function ArticleDetail() {
   };
 
   return (
-    <div className="min-h-screen bg-background max-w-full overflow-x-hidden">
+    <div className="min-h-screen bg-background max-w-full">
       <SEO 
         title={article.title} 
         description={article.excerpt || plainText.substring(0, 160)} 
@@ -500,8 +510,8 @@ export default function ArticleDetail() {
           </div>
 
           <div className="mx-auto mt-6 lg:grid lg:max-w-[1360px] lg:grid-cols-[88px_minmax(0,1fr)_340px] lg:items-start lg:gap-8 xl:grid-cols-[96px_minmax(0,1fr)_360px] xl:gap-10">
-            <div className="hidden lg:block lg:self-start">
-              <div className="sticky top-28 flex flex-col items-center gap-3">
+            <div className="hidden lg:block lg:sticky lg:top-28 lg:self-start">
+              <div className="flex flex-col items-center gap-3">
                 <div className="rounded-[28px] border border-border/60 bg-card/80 p-2 shadow-sm backdrop-blur">
                   <div className="flex flex-col gap-2">
                     <button
@@ -543,7 +553,7 @@ export default function ArticleDetail() {
                 ref={articleBodyRef}
                 style={{ fontSize: `${fontSize}px` }}
                 className="prose prose-lg prose-neutral max-w-none mx-auto rounded-[28px] border border-border/60 bg-card/70 px-5 py-8 shadow-sm backdrop-blur dark:prose-invert sm:px-7 lg:mx-0 lg:px-10 [&_a]:font-semibold [&_a]:text-primary [&_blockquote]:rounded-r-2xl [&_blockquote]:border-l-4 [&_blockquote]:border-primary/30 [&_blockquote]:bg-primary/5 [&_blockquote]:px-5 [&_blockquote]:py-3 [&_figcaption]:text-center [&_figcaption]:text-sm [&_figcaption]:text-muted-foreground [&_h2]:mt-12 [&_h2]:scroll-mt-28 [&_h2]:text-2xl [&_h2]:font-black [&_h2]:tracking-tight [&_h3]:mt-10 [&_h3]:scroll-mt-28 [&_h3]:text-xl [&_h3]:font-bold [&_hr]:border-border/60 [&_img]:mx-auto [&_img]:rounded-3xl [&_img]:shadow-lg [&_li]:marker:text-primary [&_p]:leading-8 [&_pre]:overflow-x-auto [&_pre]:rounded-2xl [&_pre]:border [&_pre]:border-border/60 [&_pre]:bg-muted [&_table]:block [&_table]:w-full [&_table]:overflow-x-auto"
-                dangerouslySetInnerHTML={{ __html: article.content }}
+                dangerouslySetInnerHTML={{ __html: articleContentWithHeadingIds }}
               />
 
               {/* YouTube Embed Section */}
@@ -581,12 +591,12 @@ export default function ArticleDetail() {
             </div>
 
             <div className="hidden lg:block lg:sticky lg:top-24 lg:self-start">
-              <Sidebar placement="detail" articleContent={article.content} />
+              <Sidebar placement="detail" articleContent={articleContentWithHeadingIds} />
             </div>
           </div>
 
           <div className="lg:hidden mt-10">
-            <Sidebar placement="detail" articleContent={article.content} />
+            <Sidebar placement="detail" articleContent={articleContentWithHeadingIds} />
           </div>
 
           <div className="border-t border-border py-8">
