@@ -941,16 +941,21 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
         </DialogContent>
       </Dialog>
 
-      {/* Editor Dialog */}
-      <Dialog open={editorOpen} onOpenChange={setEditorOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{editing ? "Edit Artikel" : "Tambah Artikel Baru"}</DialogTitle>
-            <DialogDescription className="sr-only">
-              Form editor artikel untuk mengubah judul, kategori, konten, dan publikasi.
-            </DialogDescription>
-          </DialogHeader>
-          <Tabs defaultValue="content" className="w-full">
+      {editorOpen && (
+        <div className="rounded-2xl border bg-card p-4 md:p-6 shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className="flex flex-col gap-3 border-b pb-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-xl font-bold">{editing ? "Edit Artikel" : "Tambah Artikel Baru"}</h2>
+              <p className="text-sm text-muted-foreground">
+                Editor artikel tampil langsung di halaman agar area kerja lebih lebar.
+              </p>
+            </div>
+            <Button variant="outline" onClick={() => setEditorOpen(false)} className="gap-2 self-start md:self-auto">
+              <X className="h-4 w-4" /> Tutup Editor
+            </Button>
+          </div>
+
+          <Tabs defaultValue="content" className="w-full mt-4">
             <TabsList className="grid w-full grid-cols-3 mb-4">
               <TabsTrigger value="content">Konten Artikel</TabsTrigger>
               <TabsTrigger value="quiz" disabled={!editing}>Kuis Artikel</TabsTrigger>
@@ -958,159 +963,163 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
             </TabsList>
 
             <TabsContent value="content" className="space-y-4">
-              <div>
-                <Label>Judul</Label>
-                <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Judul artikel..." />
-              </div>
-              <div>
-                <Label className="flex items-center gap-1.5">
-                  <Calendar className="h-3.5 w-3.5 text-primary" /> Jadwalkan Publish (Opsional)
-                </Label>
-                <Input
-                  type="datetime-local"
-                  value={form.scheduled_publish_at}
-                  onChange={(e) => setForm({ ...form, scheduled_publish_at: e.target.value })}
-                  className="h-9"
-                />
-                <p className="text-[10px] text-muted-foreground mt-1">Jika diisi dan status artikel “Review”, sistem akan publish otomatis sesuai jadwal.</p>
-              </div>
-              <div>
-                <Label>Template Artikel</Label>
-                <Select value={form.template_type} onValueChange={(v) => setForm({ ...form, template_type: v })}>
-                  <SelectTrigger className="h-10">
-                    <SelectValue placeholder="Pilih template" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="kajian">Kajian</SelectItem>
-                    <SelectItem value="berita">Berita</SelectItem>
-                    <SelectItem value="quote">Quote</SelectItem>
-                    <SelectItem value="tanya_jawab">Tanya Jawab</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Ringkasan</Label>
-                <Input value={form.excerpt} onChange={(e) => setForm({ ...form, excerpt: e.target.value })} placeholder="Ringkasan singkat..." />
-              </div>
-              <div>
-                <Label className="block mb-2 text-sm font-semibold">Kategori (Bisa pilih lebih dari satu)</Label>
-                <div className="flex flex-wrap gap-2 p-3 rounded-lg border bg-accent/5">
-                  {dbCategories.length > 0 ? (
-                    dbCategories.map((c) => {
-                      const isSelected = form.categories.includes(c.name);
-                      return (
-                        <button
-                          key={c.id}
-                          type="button"
-                          onClick={() => {
-                            let nextCategories = [...form.categories];
-                            if (isSelected) {
-                              // Minimal harus ada satu yang terpilih
-                              if (nextCategories.length > 1) {
-                                nextCategories = nextCategories.filter((name) => name !== c.name);
-                              } else {
-                                toast({
-                                  title: "Info",
-                                  description: "Minimal harus memilih satu kategori.",
-                                });
-                              }
-                            } else {
-                              nextCategories.push(c.name);
-                            }
-                            setForm({
-                              ...form,
-                              categories: nextCategories,
-                              category: nextCategories[0] || "Umum"
-                            });
-                          }}
-                          className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all duration-200 active:scale-95 hover:scale-105 flex items-center gap-1.5 ${
-                            isSelected
-                              ? "bg-primary border-primary text-primary-foreground shadow-sm shadow-primary/25"
-                              : "bg-background border-input text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                          }`}
-                        >
-                          {isSelected && <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />}
-                          {c.name}
-                        </button>
-                      );
-                    })
-                  ) : (
-                    <span className="text-xs text-muted-foreground">Tidak ada kategori.</span>
-                  )}
-                </div>
-                <p className="text-[10px] text-muted-foreground mt-1">Kategori pertama yang Anda pilih akan digunakan sebagai kategori utama.</p>
-              </div>
-              <div className="flex items-center justify-between p-3 rounded-lg border bg-accent/10">
-                <div className="space-y-0.5">
-                  <Label className="text-sm font-bold">Editor's Choice</Label>
-                  <p className="text-xs text-muted-foreground">Tampilkan artikel ini di bagian Editor's Choice beranda</p>
-                </div>
-                <Switch 
-                  checked={form.is_featured} 
-                  onCheckedChange={(v) => setForm({ ...form, is_featured: v })} 
-                />
-              </div>
-
-              <div className="p-4 rounded-xl border bg-muted/30 space-y-3">
-                 <div className="flex items-center gap-2 mb-2">
-                    <Youtube className="h-4 w-4 text-red-500" />
-                    <Label className="text-sm font-bold uppercase tracking-wider">Video YouTube (Optional)</Label>
-                 </div>
-                 <div>
-                    <Label className="text-[10px] font-bold uppercase">Link YouTube</Label>
-                    <Input
-                       value={form.youtube_url}
-                       onChange={(e) => setForm({ ...form, youtube_url: e.target.value })}
-                       placeholder="https://www.youtube.com/watch?v=... atau https://youtu.be/..."
-                       className="h-9"
-                    />
-                    <p className="text-[10px] text-muted-foreground italic mt-1">Video akan tampil otomatis di akhir artikel.</p>
-                 </div>
-                 {form.youtube_url && (
-                    <div className="text-[10px] text-emerald-600 font-bold flex items-center gap-1">
-                       ✓ Link YouTube terdeteksi
-                    </div>
-                 )}
-              </div>
-
-              <div>
-                <Label>Gambar Cover</Label>
-                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-                {previewUrl || form.cover_image ? (
-                  <div className="relative mt-2 rounded-lg overflow-hidden border">
-                    <img src={previewUrl || form.cover_image} alt="Cover" className="w-full h-40 object-cover" />
-                    <button
-                      type="button"
-                      className="absolute top-2 right-2 bg-destructive text-destructive-foreground rounded-full p-1"
-                      onClick={() => { setPreviewUrl(null); setForm((f) => ({ ...f, cover_image: "" })); }}
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
+              <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+                <div className="space-y-4 min-w-0">
+                  <div>
+                    <Label>Judul</Label>
+                    <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Judul artikel..." />
                   </div>
-                ) : (
-                  <Button type="button" variant="outline" className="w-full mt-1 gap-2" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
-                    <ImagePlus className="h-4 w-4" />
-                    {uploading ? "Mengupload..." : "Upload Gambar Cover"}
-                  </Button>
-                )}
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full mt-2 gap-2"
-                  onClick={() => { setMediaDialogOpen(true); fetchMedia("").catch(() => {}); }}
-                >
-                  <Image className="h-4 w-4" />
-                  Pilih dari Media Library
-                </Button>
-              </div>
-              <div>
-                <Label>Konten</Label>
-                <RichTextEditor
-                  value={form.content}
-                  onChange={(html) => setForm({ ...form, content: html })}
-                  placeholder="Tulis konten artikel..."
-                  minHeight="280px"
-                />
+                  <div>
+                    <Label>Ringkasan</Label>
+                    <Input value={form.excerpt} onChange={(e) => setForm({ ...form, excerpt: e.target.value })} placeholder="Ringkasan singkat..." />
+                  </div>
+                  <div>
+                    <Label>Konten</Label>
+                    <RichTextEditor
+                      value={form.content}
+                      onChange={(html) => setForm({ ...form, content: html })}
+                      placeholder="Tulis konten artikel..."
+                      minHeight="520px"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <Label className="flex items-center gap-1.5">
+                      <Calendar className="h-3.5 w-3.5 text-primary" /> Jadwalkan Publish (Opsional)
+                    </Label>
+                    <Input
+                      type="datetime-local"
+                      value={form.scheduled_publish_at}
+                      onChange={(e) => setForm({ ...form, scheduled_publish_at: e.target.value })}
+                      className="h-9"
+                    />
+                    <p className="text-[10px] text-muted-foreground mt-1">Jika diisi dan status artikel “Review”, sistem akan publish otomatis sesuai jadwal.</p>
+                  </div>
+                  <div>
+                    <Label>Template Artikel</Label>
+                    <Select value={form.template_type} onValueChange={(v) => setForm({ ...form, template_type: v })}>
+                      <SelectTrigger className="h-10">
+                        <SelectValue placeholder="Pilih template" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="kajian">Kajian</SelectItem>
+                        <SelectItem value="berita">Berita</SelectItem>
+                        <SelectItem value="quote">Quote</SelectItem>
+                        <SelectItem value="tanya_jawab">Tanya Jawab</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="block mb-2 text-sm font-semibold">Kategori (Bisa pilih lebih dari satu)</Label>
+                    <div className="flex flex-wrap gap-2 p-3 rounded-lg border bg-accent/5">
+                      {dbCategories.length > 0 ? (
+                        dbCategories.map((c) => {
+                          const isSelected = form.categories.includes(c.name);
+                          return (
+                            <button
+                              key={c.id}
+                              type="button"
+                              onClick={() => {
+                                let nextCategories = [...form.categories];
+                                if (isSelected) {
+                                  if (nextCategories.length > 1) {
+                                    nextCategories = nextCategories.filter((name) => name !== c.name);
+                                  } else {
+                                    toast({
+                                      title: "Info",
+                                      description: "Minimal harus memilih satu kategori.",
+                                    });
+                                  }
+                                } else {
+                                  nextCategories.push(c.name);
+                                }
+                                setForm({
+                                  ...form,
+                                  categories: nextCategories,
+                                  category: nextCategories[0] || "Umum"
+                                });
+                              }}
+                              className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all duration-200 active:scale-95 hover:scale-105 flex items-center gap-1.5 ${
+                                isSelected
+                                  ? "bg-primary border-primary text-primary-foreground shadow-sm shadow-primary/25"
+                                  : "bg-background border-input text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                              }`}
+                            >
+                              {isSelected && <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />}
+                              {c.name}
+                            </button>
+                          );
+                        })
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Tidak ada kategori.</span>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-1">Kategori pertama yang Anda pilih akan digunakan sebagai kategori utama.</p>
+                  </div>
+                  <div className="flex items-center justify-between p-3 rounded-lg border bg-accent/10">
+                    <div className="space-y-0.5">
+                      <Label className="text-sm font-bold">Editor's Choice</Label>
+                      <p className="text-xs text-muted-foreground">Tampilkan artikel ini di bagian Editor's Choice beranda</p>
+                    </div>
+                    <Switch 
+                      checked={form.is_featured} 
+                      onCheckedChange={(v) => setForm({ ...form, is_featured: v })} 
+                    />
+                  </div>
+                  <div className="p-4 rounded-xl border bg-muted/30 space-y-3">
+                     <div className="flex items-center gap-2 mb-2">
+                        <Youtube className="h-4 w-4 text-red-500" />
+                        <Label className="text-sm font-bold uppercase tracking-wider">Video YouTube (Optional)</Label>
+                     </div>
+                     <div>
+                        <Label className="text-[10px] font-bold uppercase">Link YouTube</Label>
+                        <Input
+                           value={form.youtube_url}
+                           onChange={(e) => setForm({ ...form, youtube_url: e.target.value })}
+                           placeholder="https://www.youtube.com/watch?v=... atau https://youtu.be/..."
+                           className="h-9"
+                        />
+                        <p className="text-[10px] text-muted-foreground italic mt-1">Video akan tampil otomatis di akhir artikel.</p>
+                     </div>
+                     {form.youtube_url && (
+                        <div className="text-[10px] text-emerald-600 font-bold flex items-center gap-1">
+                           ✓ Link YouTube terdeteksi
+                        </div>
+                     )}
+                  </div>
+                  <div>
+                    <Label>Gambar Cover</Label>
+                    <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                    {previewUrl || form.cover_image ? (
+                      <div className="relative mt-2 rounded-lg overflow-hidden border">
+                        <img src={previewUrl || form.cover_image} alt="Cover" className="w-full h-40 object-cover" />
+                        <button
+                          type="button"
+                          className="absolute top-2 right-2 bg-destructive text-destructive-foreground rounded-full p-1"
+                          onClick={() => { setPreviewUrl(null); setForm((f) => ({ ...f, cover_image: "" })); }}
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <Button type="button" variant="outline" className="w-full mt-1 gap-2" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+                        <ImagePlus className="h-4 w-4" />
+                        {uploading ? "Mengupload..." : "Upload Gambar Cover"}
+                      </Button>
+                    )}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full mt-2 gap-2"
+                      onClick={() => { setMediaDialogOpen(true); fetchMedia("").catch(() => {}); }}
+                    >
+                      <Image className="h-4 w-4" />
+                      Pilih dari Media Library
+                    </Button>
+                  </div>
+                </div>
               </div>
 
               <DialogFooter className="gap-2 sm:gap-0 flex-wrap pt-4">
@@ -1164,8 +1173,8 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
               )}
             </TabsContent>
           </Tabs>
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
 
       <Dialog open={mediaDialogOpen} onOpenChange={setMediaDialogOpen}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
