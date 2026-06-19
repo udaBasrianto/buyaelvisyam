@@ -1,7 +1,7 @@
 import axios from 'axios';
+import { getApiBaseUrl } from "@/lib/runtime-config";
 
-// Use environment variable or default to local backend
-const baseURL = (import.meta.env.VITE_API_URL || 'http://127.0.0.1:4000') + '/api';
+const baseURL = getApiBaseUrl();
 
 const api = axios.create({
   baseURL,

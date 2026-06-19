@@ -12,6 +12,8 @@ export interface SiteSettings {
   admin_slug?: string;
   hero_title?: string;
   recent_title?: string;
+  google_client_id?: string;
+  site_description?: string;
 }
 
 const DEFAULTS: SiteSettings = {

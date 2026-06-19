@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { LogIn, Mail, Lock, KeyRound } from "lucide-react";
-import api from "@/lib/api";
 
 export default function AdminLogin() {
   const [email, setEmail] = useState("");
@@ -16,10 +16,10 @@ export default function AdminLogin() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const googleBtnRef = useRef<HTMLDivElement | null>(null);
-  const [googleClientId, setGoogleClientId] = useState<string>("");
+  const { settings } = useSiteSettings();
 
   useEffect(() => {
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || googleClientId;
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || settings.google_client_id;
     if (!clientId) return;
     if (!googleBtnRef.current) return;
 
@@ -75,13 +75,7 @@ export default function AdminLogin() {
         });
       })
       .catch(() => {});
-  }, [googleClientId, navigate, signInWithGoogle, toast, token]);
-
-  useEffect(() => {
-    api.get("/settings")
-      .then((res) => setGoogleClientId(String(res?.data?.google_client_id || "")))
-      .catch(() => {});
-  }, []);
+  }, [navigate, settings.google_client_id, signInWithGoogle, toast, token]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,9 +96,21 @@ export default function AdminLogin() {
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <span className="text-5xl mb-4 block">🔐</span>
-          <h1 className="text-3xl font-bold text-white mb-2">Portal Admin</h1>
-          <p className="text-slate-400">Akses terbatas untuk administrator</p>
+          <Link
+            to="/"
+            className="mb-4 inline-flex items-center justify-center overflow-hidden transition-transform hover:scale-[1.02]"
+            aria-label="Kembali ke beranda"
+          >
+            {settings.logo_url ? (
+              <img src={settings.logo_url} alt={settings.site_name} className="h-16 w-auto object-contain drop-shadow-md" />
+            ) : (
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-600 text-2xl font-black text-white shadow-lg shadow-emerald-900/30">
+                {settings.site_name?.charAt(0)?.toUpperCase() || "B"}
+              </div>
+            )}
+          </Link>
+          <h1 className="text-3xl font-bold text-white mb-2">{settings.site_name || "Portal Admin"}</h1>
+          <p className="text-slate-400">{settings.site_description || settings.tagline || "Akses terbatas untuk administrator"}</p>
         </div>
 
         {/* Login Form */}
@@ -156,7 +162,7 @@ export default function AdminLogin() {
             </div>
           </div>
 
-          {(import.meta.env.VITE_GOOGLE_CLIENT_ID || googleClientId) ? (
+          {(import.meta.env.VITE_GOOGLE_CLIENT_ID || settings.google_client_id) ? (
             <div className="pt-1">
               <div ref={googleBtnRef} />
             </div>
@@ -194,7 +200,7 @@ export default function AdminLogin() {
 
         {/* Footer */}
         <p className="text-center text-slate-500 text-sm mt-6">
-          BlogUstad Admin v1.0
+          {settings.site_name || "BlogUstad"} Admin v1.0
         </p>
       </div>
     </div>

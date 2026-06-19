@@ -28,6 +28,7 @@ import { ScrollToTop } from "./components/ScrollToTop";
 import { ThemeInitializer } from "./components/ThemeInitializer";
 import { GoogleAnalytics } from "./components/GoogleAnalytics";
 import { VisitorTracker } from "./components/VisitorTracker";
+import { CapacitorAppBridge } from "./components/CapacitorAppBridge";
 
 
 
@@ -57,6 +58,7 @@ const App = () => (
         <AuthProvider>
           <ThemeInitializer />
           <ScrollToTop />
+          <CapacitorAppBridge />
           <GoogleAnalytics />
           <VisitorTracker />
 

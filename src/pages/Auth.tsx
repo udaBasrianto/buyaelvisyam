@@ -1,30 +1,26 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { Mail, Lock, KeyRound } from "lucide-react";
-import api from "@/lib/api";
 
 export default function Auth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [adminToken, setAdminToken] = useState("");
-  const [settings, setSettings] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const { signIn, signInWithGoogle } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const googleBtnRef = useRef<HTMLDivElement | null>(null);
+  const { settings } = useSiteSettings();
 
   const isAdminRoute = settings?.admin_slug
     ? window.location.pathname === `/${settings.admin_slug}`
     : window.location.pathname === "/yaakhi";
-
-  useEffect(() => {
-    api.get("/settings").then(res => setSettings(res.data)).catch(() => {});
-  }, []);
 
   useEffect(() => {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || settings?.google_client_id;
@@ -102,7 +98,11 @@ export default function Auth() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center mb-4 overflow-hidden">
+          <Link
+            to="/"
+            className="inline-flex items-center justify-center mb-4 overflow-hidden transition-transform hover:scale-[1.02]"
+            aria-label="Kembali ke beranda"
+          >
             {settings?.logo_url ? (
               <img src={settings.logo_url} alt={settings.site_name} className="h-16 w-auto object-contain drop-shadow-md" />
             ) : (
@@ -110,9 +110,9 @@ export default function Auth() {
                 ☪
               </div>
             )}
-          </div>
+          </Link>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">{settings?.site_name || "BlogUstad"}</h1>
-          <p className="text-gray-500 italic">{settings?.description || "Platform Literasi & Edukasi Islami"}</p>
+          <p className="text-gray-500 italic">{settings?.site_description || settings?.tagline || "Platform Literasi & Edukasi Islami"}</p>
         </div>
 
         <div className="bg-white rounded-2xl p-8 space-y-6 border border-gray-100 shadow-xl shadow-gray-200/50">

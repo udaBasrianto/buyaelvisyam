@@ -23,31 +23,7 @@
 </head>
 
 <body>
-  <div id="root">
-    <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;font-family:Poppins,Arial,sans-serif;background:#f8fbf9;color:#15332a;text-align:center;">
-      <div style="max-width:640px;background:#ffffff;border:1px solid #dbe7e1;border-radius:20px;padding:24px;box-shadow:0 10px 30px rgba(0,0,0,0.04);">
-        <h1 style="margin:0 0 12px;font-size:28px;">Memuat aplikasi...</h1>
-        <p style="margin:0 0 12px;line-height:1.7;">
-          Jika halaman ini tetap kosong, kemungkinan project dibuka langsung dari server statis lokal.
-        </p>
-        <p style="margin:0;line-height:1.7;">
-          Gunakan URL app lokal:
-          <a href="http://127.0.0.1:4000/" style="color:#0f766e;font-weight:700;">http://127.0.0.1:4000/</a>
-        </p>
-      </div>
-    </div>
-  </div>
-  <script>
-    (function () {
-      var port = window.location.port;
-      var knownPorts = ["4000", "5173", "5174", "5175", "5176"];
-      if (!knownPorts.includes(port) && window.location.hostname) {
-        window.setTimeout(function () {
-          window.location.href = "http://127.0.0.1:4000" + window.location.pathname + window.location.search + window.location.hash;
-        }, 300);
-      }
-    })();
-  </script>
+  <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
 </body>
 

@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
+import { getBackendOrigin } from "@/lib/runtime-config";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { PostCardV2 } from "@/components/PostCardV2";
 import { Navbar } from "@/components/Navbar";
@@ -142,7 +143,7 @@ export default function ReaderDashboard() {
       const { data } = await api.post("/upload", formData, {
         headers: { "Content-Type": "multipart/form-data" }
       });
-      const fullUrl = `${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:4000'}${data.url}`;
+      const fullUrl = `${getBackendOrigin()}${data.url}`;
       setProofUrl(fullUrl);
       toast({ title: "Bukti terunggah!", description: "Silakan lanjut kirim permintaan." });
     } catch (err) {

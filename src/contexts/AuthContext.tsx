@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import api from "@/lib/api";
+import { getOfflineBackendMessage } from "@/lib/runtime-config";
 
 type AppRole = "admin" | "kontributor" | "pembaca";
 
@@ -69,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: null };
     } catch (error: any) {
       if (!error?.response) {
-        return { error: "Backend tidak dapat diakses. Pastikan server berjalan di http://127.0.0.1:4000" };
+        return { error: getOfflineBackendMessage() };
       }
       return { error: error.response?.data?.error || "Login failed" };
     }
@@ -84,7 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: null };
     } catch (error: any) {
       if (!error?.response) {
-        return { error: "Backend tidak dapat diakses. Pastikan server berjalan di http://127.0.0.1:4000" };
+        return { error: getOfflineBackendMessage() };
       }
       return { error: error.response?.data?.error || "Google login gagal" };
     }
