@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ChevronUp, Rocket } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
@@ -8,6 +8,7 @@ export function ScrollToTop() {
   const [isVisible, setIsVisible] = useState(false);
   const [isLaunching, setIsLaunching] = useState(false);
   const [isFlying, setIsFlying] = useState(false);
+  const launchTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     const toggleVisibility = () => {
@@ -16,6 +17,10 @@ export function ScrollToTop() {
       } else {
         setIsVisible(false);
         if (window.pageYOffset === 0) {
+          if (launchTimeoutRef.current) {
+            window.clearTimeout(launchTimeoutRef.current);
+            launchTimeoutRef.current = null;
+          }
           setIsLaunching(false);
           setIsFlying(false);
         }
@@ -23,7 +28,13 @@ export function ScrollToTop() {
     };
 
     window.addEventListener("scroll", toggleVisibility);
-    return () => window.removeEventListener("scroll", toggleVisibility);
+    return () => {
+      window.removeEventListener("scroll", toggleVisibility);
+      if (launchTimeoutRef.current) {
+        window.clearTimeout(launchTimeoutRef.current);
+        launchTimeoutRef.current = null;
+      }
+    };
   }, []);
 
   const slowScrollToTop = () => {
@@ -55,8 +66,11 @@ export function ScrollToTop() {
     }
 
     setIsLaunching(true);
-    // Preparation phase for 1.5 seconds before flying
-    setTimeout(() => {
+    setIsFlying(false);
+    if (launchTimeoutRef.current) {
+      window.clearTimeout(launchTimeoutRef.current);
+    }
+    launchTimeoutRef.current = window.setTimeout(() => {
       setIsFlying(true);
       slowScrollToTop();
     }, 1500);
@@ -67,7 +81,7 @@ export function ScrollToTop() {
   const isBasic = settings.scroll_to_top_version === "basic";
 
   return (
-    <div className="fixed left-6 z-[60] flex flex-col items-center bottom-[calc(env(safe-area-inset-bottom,0px)+4rem+1.5rem)] md:bottom-6">
+    <div className="fixed left-6 z-[60] flex w-14 flex-col items-center overflow-hidden bottom-[calc(env(safe-area-inset-bottom,0px)+4rem+1.5rem)] md:bottom-6">
       {settings.scroll_to_top_version === "animated" && (
         <style>{`
           @keyframes rocket-shake {
@@ -123,7 +137,7 @@ export function ScrollToTop() {
           }
         `}</style>
       )}
-      
+
       <button
         onClick={scrollToTop}
         className={cn(
@@ -148,12 +162,6 @@ export function ScrollToTop() {
           <ChevronUp className="h-6 w-6 group-hover:-translate-y-1 transition-transform" />
         )}
       </button>
-      
-      {isLaunching && (
-          <span className="text-[10px] font-black italic text-primary mt-2 animate-bounce uppercase tracking-tighter">
-            {isFlying ? "Blast Off!" : "Ignition..."}
-          </span>
-      )}
     </div>
   );
 }
