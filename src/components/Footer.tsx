@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { Eye, Users, TrendingUp } from "lucide-react";
 import api from "@/lib/api";
@@ -75,6 +76,17 @@ export function Footer() {
           </div>
 
           <div className="pt-8 w-full">
+            <div className="mb-5 flex flex-wrap items-center justify-center gap-3 text-sm font-semibold text-muted-foreground">
+              <Link to="/privacy-policy" className="rounded-full border border-border/70 bg-background px-4 py-2 transition-colors hover:border-primary/30 hover:text-primary">
+                Kebijakan Privasi
+              </Link>
+              <Link to="/tentang" className="rounded-full border border-border/70 bg-background px-4 py-2 transition-colors hover:border-primary/30 hover:text-primary">
+                Tentang Kami
+              </Link>
+              <Link to="/auth" className="rounded-full border border-border/70 bg-background px-4 py-2 transition-colors hover:border-primary/30 hover:text-primary">
+                Masuk
+              </Link>
+            </div>
             <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-[0.2em]">
               {settings.footer_text || "© 2026 Buyaelvisyam.id"} — Optimized for SEO & Speed
             </p>

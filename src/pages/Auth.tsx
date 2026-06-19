@@ -182,7 +182,11 @@ export default function Auth() {
         </div>
 
         <p className="text-center text-gray-400 text-xs mt-12 px-8 leading-relaxed">
-          Dengan mendaftar, Anda menyetujui Ketentuan Layanan dan Kebijakan Privasi BlogUstad.
+          Dengan mendaftar, Anda menyetujui{" "}
+          <Link to="/privacy-policy" className="font-semibold text-blue-600 hover:text-blue-700">
+            Kebijakan Privasi
+          </Link>{" "}
+          {settings?.site_name || "BlogUstad"}.
         </p>
       </div>
     </div>

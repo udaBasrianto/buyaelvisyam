@@ -11,6 +11,9 @@ Panduan singkat untuk membungkus web app ini menjadi aplikasi Android.
 5. Baseline identitas Android saat ini memakai:
    - `appId`: `id.buyaelvisyam.app`
    - `appName`: `Buya Elvisyam`
+6. Versi rilis Android saat ini diatur dari `android/gradle.properties`:
+   - `APP_VERSION_CODE=1`
+   - `APP_VERSION_NAME=1.0.0`
 
 ## Build Web + Sync Android
 
@@ -41,9 +44,26 @@ npm run cap:open:android
 Lalu dari Android Studio:
 
 1. Tunggu Gradle sync selesai
-2. Ubah nama aplikasi, icon, dan splash screen bila perlu
+2. Verifikasi icon, splash screen, dan identitas aplikasi
 3. Pilih device atau emulator
 4. Jalankan build/debug
+
+## Siapkan Signing Release
+
+1. Salin `android/keystore.properties.example` menjadi `android/keystore.properties`
+2. Isi file tersebut dengan lokasi file keystore dan password upload key Anda
+3. Simpan file `.jks` atau `.keystore` di folder yang aman, jangan di-commit ke git
+
+Contoh:
+
+```properties
+storeFile=release-keystore.jks
+storePassword=ISI_PASSWORD_STORE
+keyAlias=upload
+keyPassword=ISI_PASSWORD_KEY
+```
+
+Jika `android/keystore.properties` tersedia, project ini bisa langsung build bundle release dari Gradle.
 
 ## Testing Yang Disarankan
 
@@ -55,17 +75,43 @@ Lalu dari Android Studio:
 
 ## Build Untuk Play Store
 
-1. Buka project Android di Android Studio
-2. Pilih `Build > Generate Signed Bundle / APK`
-3. Pilih `Android App Bundle`
-4. Buat atau pilih keystore
-5. Build file `.aab`
-6. Upload ke Google Play Console
+1. Build web terbaru dan sync ke Android:
+
+```bash
+npm run android
+```
+
+2. Untuk build bundle release dari terminal:
+
+```bash
+npm run android:bundle:release
+```
+
+3. File hasil build akan berada di:
+
+```text
+android/app/build/outputs/bundle/release/app-release.aab
+```
+
+4. Alternatif lewat Android Studio:
+   - `Build > Generate Signed Bundle / APK`
+   - pilih `Android App Bundle`
+   - pilih upload keystore
+   - build file `.aab`
+
+## Checklist Sebelum Upload
+
+1. Naikkan `APP_VERSION_CODE` setiap kali upload build baru ke Play Console
+2. Ubah `APP_VERSION_NAME` jika ingin menampilkan versi baru ke pengguna
+3. Pastikan `.env` memakai `VITE_SITE_URL` dan `VITE_API_URL` production
+4. Tes login, detail artikel, share, bookmark, dan back button di perangkat Android
+5. Siapkan `privacy policy`, screenshot aplikasi, dan icon Play Store 512x512
+6. Bila ingin deep link verified benar-benar aktif, tambahkan `assetlinks.json` di domain utama setelah upload key final tersedia
 
 ## Catatan Penting
 
 - Runtime Android tidak boleh bergantung ke `localhost`
 - Untuk build release mobile, `VITE_API_URL` harus mengarah ke backend publik
-- Bila `appId` ingin diganti, ubah di `capacitor.config.ts` sebelum rilis pertama
-- Bila ingin deep link Android yang lebih resmi, tahap berikutnya adalah menambahkan `assetlinks.json` di domain utama
-- Icon dan splash saat ini sudah dibaseline-kan secara internal, tetapi masih disarankan diganti lagi saat logo final resmi sudah tersedia
+- Bila `appId` ingin diganti, ubah di `capacitor.config.ts`, `android/app/build.gradle`, dan `android/app/src/main/res/values/strings.xml` sebelum rilis pertama
+- Deep link verified akan lebih mulus jika domain utama menyajikan file `/.well-known/assetlinks.json`
+- Icon launcher, monochrome icon, dan splash sekarang sudah memakai logo/fav icon aktif dari situs

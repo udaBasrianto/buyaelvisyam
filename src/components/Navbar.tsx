@@ -13,6 +13,7 @@ const baseNavItems = [
   { label: "Beranda", href: "/" },
   { label: "__LMS__", href: "/lms" },
   { label: "Tentang Kami", href: "/tentang" },
+  { label: "Privasi", href: "/privacy-policy" },
 ];
 
 export function Navbar() {
