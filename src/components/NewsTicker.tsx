@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Zap } from "lucide-react";
 import { Link } from "react-router-dom";
 import api from "@/lib/api";
+import { asArray } from "@/lib/api-response";
 
 interface SimplePost {
   title: string;
@@ -14,7 +15,7 @@ export function NewsTicker() {
   useEffect(() => {
     api.get("/articles", { params: { limit: 5, status: "published" } })
       .then(({ data }) => {
-        if (data) setHeadlines(data);
+        setHeadlines(asArray<SimplePost>(data));
       })
       .catch(() => {});
   }, []);

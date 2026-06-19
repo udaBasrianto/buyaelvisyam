@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "@/lib/api";
+import { asObject } from "@/lib/api-response";
 
 export interface SiteSettings {
   id: string;
@@ -34,7 +35,7 @@ export function useSiteSettings() {
     const fetch = async () => {
       try {
         const { data } = await api.get("/settings");
-        if (data) setSettings(data);
+        setSettings(asObject(data, DEFAULTS));
       } catch (err) {
         return;
       } finally {

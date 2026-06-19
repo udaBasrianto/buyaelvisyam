@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { Eye, Users, TrendingUp } from "lucide-react";
 import api from "@/lib/api";
+import { asNumber, asObject } from "@/lib/api-response";
 
 export function Footer() {
   const { settings } = useSiteSettings();
@@ -12,7 +13,7 @@ export function Footer() {
     const fetchStats = async () => {
       try {
         const { data } = await api.get("/stats");
-        setStats(data);
+        setStats(asObject(data, { total_views: 0, today_views: 0, total_visitors: 0 }));
       } catch (err) {
         console.error("Failed to fetch footer stats", err);
       }
@@ -49,7 +50,7 @@ export function Footer() {
                    <span className="text-[10px] font-bold uppercase tracking-widest">Total Tayangan</span>
                 </div>
                 <span className="text-lg font-black text-foreground">
-                   {stats ? stats.total_views.toLocaleString("id-ID") : "..."}
+                   {stats ? asNumber(stats.total_views).toLocaleString("id-ID") : "..."}
                 </span>
                 <span className="text-[9px] text-muted-foreground">kali dibaca</span>
              </div>
@@ -59,7 +60,7 @@ export function Footer() {
                    <span className="text-[10px] font-bold uppercase tracking-widest">Total Artikel</span>
                 </div>
                 <span className="text-lg font-black text-primary">
-                   {stats ? ((stats as any).total_articles ?? 0).toLocaleString("id-ID") : "..."}
+                   {stats ? asNumber((stats as any).total_articles).toLocaleString("id-ID") : "..."}
                 </span>
                 <span className="text-[9px] text-muted-foreground">artikel publik</span>
              </div>
@@ -69,7 +70,7 @@ export function Footer() {
                    <span className="text-[10px] font-bold uppercase tracking-widest">Total Kategori</span>
                 </div>
                 <span className="text-lg font-black text-foreground">
-                   {stats ? ((stats as any).total_categories ?? 0).toLocaleString("id-ID") : "..."}
+                   {stats ? asNumber((stats as any).total_categories).toLocaleString("id-ID") : "..."}
                 </span>
                 <span className="text-[9px] text-muted-foreground">topik kajian</span>
              </div>

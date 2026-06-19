@@ -12,6 +12,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { PrayerTimesBar } from "@/components/PrayerTimesBar";
 import { Sidebar } from "@/components/Sidebar";
 import api from "@/lib/api";
+import { asArray } from "@/lib/api-response";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import type { Post } from "@/data/mockData";
 import { heroSlides, latestPosts as mockLatestPosts } from "@/data/mockData";
@@ -58,18 +59,15 @@ export function IndexV2() {
           };
         };
 
-        if (latestRes.data) {
-          setDbPosts(latestRes.data.map(mapToPost));
-          setLatestData(latestRes.data);
-        }
-        if (featuredRes.data) {
-          setFeaturedPosts(featuredRes.data.map(mapToPost));
-        }
+        const latestArticles = asArray<any>(latestRes.data);
+        const featuredArticles = asArray<any>(featuredRes.data);
+
+        setDbPosts(latestArticles.map(mapToPost));
+        setLatestData(latestArticles);
+        setFeaturedPosts(featuredArticles.map(mapToPost));
 
         const featRes = await api.get("/features");
-        if (featRes.data) {
-          setFeatures(featRes.data);
-        }
+        setFeatures(asArray<any>(featRes.data));
       } catch (err) {
         console.error("Fetch articles failed", err);
       } finally {

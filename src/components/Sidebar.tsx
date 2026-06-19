@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type MouseEvent } from "react";
 import { Link } from "react-router-dom";
 import { TrendingUp, Tag, ChevronRight, MessageSquare, Info } from "lucide-react";
 import api from "@/lib/api";
+import { asArray, asObject } from "@/lib/api-response";
 
 type ArticleSummary = {
   id: string;
@@ -159,20 +160,20 @@ export function Sidebar({ placement = "detail", articleContent }: SidebarProps) 
           api.get("/settings")
         ]);
 
-        if (Array.isArray(articlesRes.data)) {
-          setArticles(articlesRes.data);
-        } else {
-          setArticles([]);
-        }
-        if (Array.isArray(categoriesRes.data)) {
-          setCategories(categoriesRes.data.filter((c: any) => c.article_count > 0).slice(0, 8));
-        }
-        if (Array.isArray(widgetsRes.data)) {
-          const showChatbot = settingsRes?.data?.show_chatbot !== false;
+        const articleList = asArray<ArticleSummary>(articlesRes.data);
+        const categoryList = asArray<CategorySummary>(categoriesRes.data);
+        const widgetList = asArray<Widget>(widgetsRes.data);
+        const settingsData = asObject<SiteSettings>(settingsRes?.data, {});
+
+        setArticles(articleList);
+        setCategories(categoryList.filter((c: any) => c.article_count > 0).slice(0, 8));
+
+        if (widgetList.length > 0) {
+          const showChatbot = settingsData.show_chatbot !== false;
           const chatbotWidgetRegex = /(chatbot|livechat|tawk\.to|tawkto|crisp|intercom)/i;
 
           // Filter widgets that match the placement
-          const filtered = widgetsRes.data.filter((w: Widget) => {
+          const filtered = widgetList.filter((w: Widget) => {
             if (!(w.placement === "all" || w.placement === placement)) return false;
             if (showChatbot) return true;
 
@@ -181,7 +182,7 @@ export function Sidebar({ placement = "detail", articleContent }: SidebarProps) 
           });
           setDynamicWidgets(filtered);
         }
-        setSiteSettings(settingsRes?.data || {});
+        setSiteSettings(settingsData);
       } catch (err) {
         console.error("Failed to load sidebar content", err);
       } finally {

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { BottomNav } from "@/components/BottomNav";
 import api from "@/lib/api";
+import { asArray } from "@/lib/api-response";
 import { BookOpen, ArrowRight, Sparkles } from "lucide-react";
 
 export default function CategoriesPage() {
@@ -11,7 +12,7 @@ export default function CategoriesPage() {
 
   useEffect(() => {
     api.get("/categories")
-      .then(({ data }) => setCategories(data || []))
+      .then(({ data }) => setCategories(asArray<any>(data)))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import api from "@/lib/api";
+import { asArray } from "@/lib/api-response";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { 
   ArrowRight, Box, Hash, ShieldCheck, Book, History, 
@@ -97,17 +98,20 @@ export function CategorySectionV2() {
           api.get("/articles", { params: { limit: 1000, status: "published" } }),
         ]);
 
-        if (cats && cats.length > 0) {
+        const categoryList = asArray<any>(cats);
+        const articleList = asArray<any>(articles);
+
+        if (categoryList.length > 0) {
           const counts: Record<string, number> = {};
           const commentCounts: Record<string, number> = {};
           
-          (articles || []).forEach((a: any) => {
+          articleList.forEach((a: any) => {
             counts[a.category] = (counts[a.category] || 0) + 1;
             commentCounts[a.category] = (commentCounts[a.category] || 0) + (a.comment_count || 0);
           });
           
           setCategories(
-            cats.filter((c: any) => c.is_active).map((c: any) => ({
+            categoryList.filter((c: any) => c.is_active).map((c: any) => ({
               name: c.name,
               slug: c.slug,
               color: c.color,

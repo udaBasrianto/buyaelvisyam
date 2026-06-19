@@ -8,6 +8,7 @@ import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { NewsTicker } from "@/components/NewsTicker";
 import { AnimatedLogoText } from "@/components/AnimatedLogoText";
 import api from "@/lib/api";
+import { asArray } from "@/lib/api-response";
 
 const baseNavItems = [
   { label: "Beranda", href: "/" },
@@ -27,9 +28,10 @@ export function Navbar() {
   const { settings } = useSiteSettings();
 
   useEffect(() => {
-    api.get("/categories").then(({ data }) => setCategories(data)).catch(() => {});
+    api.get("/categories").then(({ data }) => setCategories(asArray<any>(data))).catch(() => {});
     api.get("/navigation").then(({ data }) => {
-      if (data && data.length > 0) setDbNavItems(data);
+      const items = asArray<any>(data);
+      if (items.length > 0) setDbNavItems(items);
     }).catch(() => {});
     
     const timer = setInterval(() => {
