@@ -25,6 +25,7 @@ import LessonView from "./pages/LessonView.tsx";
 import Profile from "./pages/Profile.tsx";
 import Donation from "./pages/Donation.tsx";
 import PrivacyPolicy from "./pages/PrivacyPolicy.tsx";
+import AccountDeletion from "./pages/AccountDeletion.tsx";
 import { ScrollToTop } from "./components/ScrollToTop";
 import { ThemeInitializer } from "./components/ThemeInitializer";
 import { GoogleAnalytics } from "./components/GoogleAnalytics";
@@ -94,6 +95,8 @@ const App = () => (
             <Route path="/donasi" element={<Donation />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/kebijakan-privasi" element={<PrivacyPolicy />} />
+            <Route path="/hapus-akun" element={<AccountDeletion />} />
+            <Route path="/account-deletion" element={<AccountDeletion />} />
             <Route path="/kategori/:slug" element={<CategoryPage />} />
             <Route path="/p/:slug" element={<PageViewWrapper />} />
             <Route path="/tentang" element={<About />} />
