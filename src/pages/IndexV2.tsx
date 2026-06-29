@@ -18,6 +18,7 @@ import type { Post } from "@/data/mockData";
 import { heroSlides, latestPosts as mockLatestPosts } from "@/data/mockData";
 import { Sparkles, TrendingUp, Zap, Eye, LayoutList, Grid2X2, LayoutGrid } from "lucide-react";
 import * as LucideIcons from "lucide-react";
+import ProductsHome from "@/components/ProductsHome";
 
 export function IndexV2() {
   const [dbPosts, setDbPosts] = useState<Post[]>([]);
@@ -111,6 +112,9 @@ export function IndexV2() {
         <div className="container mx-auto px-4">
            <CategorySectionV2 />
         </div>
+
+          {/* Products section on homepage */}
+          <ProductsHome />
 
         <div className="bg-muted/30 py-16">
           <div className="container mx-auto px-4">

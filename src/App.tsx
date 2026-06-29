@@ -5,6 +5,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { CartProvider } from "@/contexts/CartContext";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import api from "@/lib/api";
 import Index from "./pages/Index.tsx";
@@ -24,8 +25,12 @@ import CourseDetail from "./pages/CourseDetail.tsx";
 import LessonView from "./pages/LessonView.tsx";
 import Profile from "./pages/Profile.tsx";
 import Donation from "./pages/Donation.tsx";
+import DonationHistory from "./pages/DonationHistory.tsx";
 import PrivacyPolicy from "./pages/PrivacyPolicy.tsx";
 import AccountDeletion from "./pages/AccountDeletion.tsx";
+import ProductsPage from "./pages/ProductsPage.tsx";
+import ProductDetail from "./pages/ProductDetail.tsx";
+import Checkout from "./pages/Checkout";
 import { ScrollToTop } from "./components/ScrollToTop";
 import { ThemeInitializer } from "./components/ThemeInitializer";
 import { GoogleAnalytics } from "./components/GoogleAnalytics";
@@ -57,6 +62,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <CartProvider>
         <AuthProvider>
           <ThemeInitializer />
           <ScrollToTop />
@@ -93,6 +99,15 @@ const App = () => (
               </ProtectedRoute>
             } />
             <Route path="/donasi" element={<Donation />} />
+            <Route path="/donasi-history" element={
+              <ProtectedRoute>
+                <DonationHistory />
+              </ProtectedRoute>
+            } />
+            <Route path="/produk" element={<ProductsPage />} />
+            <Route path="/produk/:slug" element={<ProductDetail />} />
+            <Route path="/cart" element={<Checkout />} />
+            <Route path="/checkout" element={<Checkout />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/kebijakan-privasi" element={<PrivacyPolicy />} />
             <Route path="/hapus-akun" element={<AccountDeletion />} />
@@ -113,6 +128,7 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
+        </CartProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

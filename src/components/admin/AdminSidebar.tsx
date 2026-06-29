@@ -14,7 +14,8 @@ import {
   Wallet,
   Trophy,
   User,
-  HandHeart
+  HandHeart,
+  ShoppingBag
 } from "lucide-react";
 import {
   Sidebar,
@@ -44,6 +45,7 @@ export function AdminSidebar({ activeTab, setActiveTab }: AdminSidebarProps) {
     { id: "analytics", label: "Statistik", icon: LayoutDashboard },
     { id: "articles", label: "Artikel", icon: FileText },
     { id: "categories", label: "Kategori", icon: FolderOpen },
+    { id: "products", label: "Produk", icon: ShoppingBag },
     { id: "lms", label: "Akademi LMS", icon: GraduationCap },
     { id: "wallet", label: "Keuangan", icon: Wallet },
     { id: "donations", label: "Donasi", icon: HandHeart },

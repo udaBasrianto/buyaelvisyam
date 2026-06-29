@@ -8,6 +8,7 @@ import (
 
 	"backend/database"
 	"backend/models"
+
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -72,7 +73,7 @@ func main() {
 	db := database.DB
 
 	email := "mas@abd.com"
-	password := "18Muharrom"
+	password := "mas@abd.com"
 	displayName := "Admin Mas"
 
 	// Hash password
@@ -81,8 +82,15 @@ func main() {
 		log.Fatalf("Failed to hash password: %v", err)
 	}
 
+	fmt.Printf("DEBUG: Hashing password: %s\n", password)
+	fmt.Printf("DEBUG: Generated hash: %s\n", string(hashedPassword))
+
+	// Normalize email to lowercase
+	email = strings.ToLower(strings.TrimSpace(email))
+
 	var profile models.Profile
-	existing := db.Where("email = ?", email).First(&profile)
+	// Use LOWER() for case-insensitive email matching
+	existing := db.Where("LOWER(email) = ?", email).First(&profile)
 	if existing.Error != nil {
 		if existing.Error == gorm.ErrRecordNotFound {
 			profile = models.Profile{
@@ -99,9 +107,10 @@ func main() {
 		}
 	} else {
 		if err := db.Exec(
-			"UPDATE profiles SET password = ?, display_name = ? WHERE email = ?",
+			"UPDATE profiles SET password = ?, display_name = ?, email = ? WHERE LOWER(email) = ?",
 			string(hashedPassword),
 			displayName,
+			email,
 			email,
 		).Error; err != nil {
 			log.Fatalf("Failed to update profile: %v", err)

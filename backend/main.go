@@ -11,6 +11,7 @@ import (
 	"backend/handlers"
 	"backend/middleware"
 	"backend/models"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/limiter"
@@ -106,9 +107,9 @@ func main() {
 				res := database.DB.Model(&models.Article{}).
 					Where("id = ? AND status = ?", a.ID, "review").
 					Updates(map[string]any{
-						"status":              "published",
+						"status":               "published",
 						"scheduled_publish_at": nil,
-						"created_at":          *a.ScheduledPublishAt,
+						"created_at":           *a.ScheduledPublishAt,
 					})
 				if res.Error == nil && res.RowsAffected > 0 {
 					article := a
@@ -179,9 +180,18 @@ func main() {
 	// Middleware
 	app.Use(logger.New())
 	app.Static("/uploads", "./uploads")
+
+	// Configure CORS with specific allowed origins
+	allowedOrigins := os.Getenv("CORS_ALLOWED_ORIGINS")
+	if allowedOrigins == "" {
+		allowedOrigins = "http://localhost:8080, http://localhost:5173" // dev defaults
+	}
+
 	app.Use(cors.New(cors.Config{
-		AllowOrigins: "*",
-		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
+		AllowOrigins:     allowedOrigins,
+		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
+		AllowCredentials: true,
+		MaxAge:           300,
 	}))
 
 	// Routes
@@ -200,7 +210,7 @@ func main() {
 	auth.Get("/me", middleware.Protected(), handlers.Me)
 	auth.Put("/profile", middleware.Protected(), handlers.UpdateProfile)
 	auth.Post("/profile", middleware.Protected(), handlers.UpdateProfile)
-	
+
 	// WhatsApp Auth (for pembaca registration & login)
 	auth.Post("/whatsapp/request-token", otpLimiter, handlers.RequestWhatsAppToken)
 	auth.Post("/whatsapp/verify-token", otpLimiter, handlers.VerifyWhatsAppToken)
@@ -215,7 +225,7 @@ func main() {
 	// Articles - Bulk Operations (Registered first to avoid param conflicts)
 	api.Post("/articles/bulk-image-update", middleware.Protected(), middleware.RequireAnyRole("admin", "kontributor"), middleware.AuditAdminActions(), handlers.BulkUpdateArticleImage)
 	api.Post("/articles/bulk-delete", middleware.Protected(), middleware.RequireAnyRole("admin", "kontributor"), middleware.AuditAdminActions(), handlers.BulkDeleteArticles)
-	
+
 	api.Get("/articles", handlers.GetArticles)
 	api.Get("/articles/:id/related", handlers.GetRelatedArticles)
 	api.Get("/articles/:id", handlers.GetArticle)
@@ -237,6 +247,13 @@ func main() {
 	api.Put("/categories/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.UpdateCategory)
 	api.Delete("/categories/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.DeleteCategory)
 
+	api.Get("/products", handlers.GetProducts)
+	api.Get("/products/:slug", handlers.GetProduct)
+	api.Get("/admin/products", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.GetProducts)
+	api.Post("/admin/products", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.CreateProduct)
+	api.Put("/admin/products/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.UpdateProduct)
+	api.Delete("/admin/products/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.DeleteProduct)
+
 	// Pages
 	api.Get("/pages", handlers.GetPages)
 	api.Get("/pages/:id", handlers.GetPage)
@@ -252,6 +269,7 @@ func main() {
 	api.Get("/donations/campaigns", handlers.GetPublicDonationCampaigns)
 	api.Get("/donations", handlers.GetPublicDonations)
 	api.Post("/donations", handlers.CreateDonation)
+	api.Get("/user/donations", middleware.Protected(), handlers.UserGetDonations)
 
 	// Blog API for Mobile/Android
 	blog := api.Group("/blog")
@@ -259,17 +277,17 @@ func main() {
 	blog.Get("/popular", handlers.GetPopularArticles)
 	blog.Get("/search", handlers.SearchArticles)
 	blog.Get("/category/:slug", handlers.GetArticlesByCategory)
-	
+
 	// Leaderboard
 	api.Get("/leaderboard", handlers.GetLeaderboard)
-	
+
 	// Bookmarks
 	api.Post("/koleksi/toggle/:articleId", middleware.Protected(), handlers.ToggleBookmark)
 	api.Get("/koleksi", middleware.Protected(), handlers.GetUserBookmarks)
 	api.Get("/koleksi/check/:articleId", handlers.CheckBookmark)
 	api.Post("/reading-progress", middleware.Protected(), handlers.UpsertReadingProgress)
 	api.Get("/reading-progress/continue", middleware.Protected(), handlers.GetContinueReading)
-	
+
 	api.Put("/settings", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.UpdateSiteSettings)
 
 	// Features
@@ -340,13 +358,13 @@ func main() {
 	api.Post("/lessons/:lessonId/complete", middleware.Protected(), handlers.MarkLessonComplete)
 	api.Delete("/lessons/:lessonId/complete", middleware.Protected(), handlers.UnmarkLessonComplete)
 	api.Post("/lessons", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.CreateLesson)
-	
+
 	// Enrollment
 	api.Post("/courses/:id/enroll", middleware.Protected(), handlers.EnrollCourse)
 	api.Get("/courses/:id/enrollment-status", middleware.Protected(), handlers.GetCheckEnrollment)
 	api.Get("/admin/enrollments", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.GetAllEnrollments)
 	api.Put("/admin/enrollments/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.UpdateEnrollmentStatus)
-	
+
 	// Wallet & Transactions
 	api.Get("/wallet", middleware.Protected(), handlers.GetWalletInfo)
 	api.Post("/wallet/topup", middleware.Protected(), handlers.RequestTopUp)

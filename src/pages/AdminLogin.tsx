@@ -17,9 +17,14 @@ export default function AdminLogin() {
   const navigate = useNavigate();
   const googleBtnRef = useRef<HTMLDivElement | null>(null);
   const { settings } = useSiteSettings();
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || settings.google_client_id;
+  const disableGoogleLogin = import.meta.env.VITE_DISABLE_GOOGLE_LOGIN === "true";
+  const isLocalhost = typeof window !== "undefined" && window.location.hostname === "localhost";
+  const canUseGoogleLogin = Boolean(googleClientId) && !isLocalhost && !disableGoogleLogin;
 
   useEffect(() => {
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || settings.google_client_id;
+    if (!canUseGoogleLogin) return;
+    const clientId = googleClientId;
     if (!clientId) return;
     if (!googleBtnRef.current) return;
 
@@ -162,7 +167,7 @@ export default function AdminLogin() {
             </div>
           </div>
 
-          {(import.meta.env.VITE_GOOGLE_CLIENT_ID || settings.google_client_id) ? (
+          {canUseGoogleLogin ? (
             <div className="pt-1">
               <div ref={googleBtnRef} />
             </div>

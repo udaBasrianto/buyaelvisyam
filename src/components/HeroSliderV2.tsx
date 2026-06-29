@@ -5,8 +5,8 @@ import { heroSlides as defaultSlides } from "@/data/mockData";
 import type { Post } from "@/data/mockData";
 import { motion, AnimatePresence } from "framer-motion";
 
-// Islamic desert/mosque fallback image
-const DEFAULT_POST_IMAGE = "https://images.unsplash.com/photo-1564769625392-651b89c75a23?q=80&w=2070&auto=format&fit=crop";
+// Placeholder gradient SVG (Islamic-themed)
+const DEFAULT_POST_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 600'%3E%3Cdefs%3E%3ClinearGradient id='grad1' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%238B5CF6;stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:%236366F1;stop-opacity:1' /%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='1200' height='600' fill='url(%23grad1)'/%3E%3Ctext x='600' y='300' font-size='48' fill='white' opacity='0.3' text-anchor='middle' dominant-baseline='middle' font-family='Arial'%3E📖 Blog Islami%3C/text%3E%3C/svg%3E";
 const SLIDE_DURATION = 7000;
 
 interface HeroSliderV2Props {
@@ -63,7 +63,7 @@ export function HeroSliderV2({ slides }: HeroSliderV2Props) {
 
   return (
     <div 
-      className="flex flex-col lg:grid lg:grid-cols-4 gap-4 h-full min-h-[500px] lg:min-h-[550px] relative"
+      className="flex flex-col lg:grid lg:grid-cols-4 gap-4 h-full min-h-[350px] lg:min-h-[550px] relative"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >

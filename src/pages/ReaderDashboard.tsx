@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   ArrowLeft, User, MessageCircle, Edit, Trash2, LayoutDashboard,
-  CornerDownRight, CheckCircle2, Wallet, Plus, ArrowUpRight, History, Trophy, Award, Bookmark
+  CornerDownRight, CheckCircle2, Wallet, Plus, ArrowUpRight, History, Trophy, Award, Bookmark, Heart
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
@@ -228,12 +229,13 @@ export default function ReaderDashboard() {
 
       <main className="container mx-auto px-4 py-6 pb-24 max-w-3xl bottom-nav-safe">
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid grid-cols-5 w-full bg-muted/30 p-1 rounded-2xl border border-border/50">
+          <TabsList className="grid grid-cols-6 w-full bg-muted/30 p-1 rounded-2xl border border-border/50">
             <TabsTrigger value="overview" className="rounded-xl font-bold gap-2 text-[10px] sm:text-xs"><LayoutDashboard className="h-3 w-3" /> Overview</TabsTrigger>
             <TabsTrigger value="bookmarks" className="rounded-xl font-bold gap-2 text-[10px] sm:text-xs"><Bookmark className="h-3 w-3" /> Koleksi</TabsTrigger>
             <TabsTrigger value="komentar" className="rounded-xl font-bold gap-2 text-[10px] sm:text-xs"><MessageCircle className="h-3 w-3" /> Komentar</TabsTrigger>
             <TabsTrigger value="wallet" className="rounded-xl font-bold gap-2 text-[10px] sm:text-xs"><Wallet className="h-3 w-3" /> Dompet</TabsTrigger>
             <TabsTrigger value="leaderboard" className="rounded-xl font-bold gap-2 text-[10px] sm:text-xs"><Trophy className="h-3 w-3" /> Peringkat</TabsTrigger>
+            <TabsTrigger value="donasi" className="rounded-xl font-bold gap-2 text-[10px] sm:text-xs"><Heart className="h-3 w-3" /> Donasi</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
@@ -420,6 +422,37 @@ export default function ReaderDashboard() {
                   <Button onClick={updateProfile} className="w-full h-11 rounded-xl font-bold">Perbarui Profil</Button>
                 </div>
              </div>
+          </TabsContent>
+
+          <TabsContent value="donasi">
+            <div className="space-y-6">
+              <Card className="p-8 bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h3 className="text-lg font-black flex items-center gap-2">
+                      <Heart className="h-5 w-5 text-red-500" />
+                      Riwayat Donasi Anda
+                    </h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Kelola dan pantau semua donasi Anda di sini
+                    </p>
+                  </div>
+                  <Button onClick={() => navigate("/donasi-history")} className="shrink-0 rounded-xl font-bold">
+                    Lihat Selengkapnya →
+                  </Button>
+                </div>
+              </Card>
+
+              <div className="text-center py-12">
+                <Heart className="h-12 w-12 mx-auto text-muted-foreground/40 mb-3" />
+                <p className="text-muted-foreground">Belum ada data donasi</p>
+                <Button asChild variant="outline" className="mt-4 rounded-xl">
+                  <Link to="/donasi">
+                    Mulai Berdonasi
+                  </Link>
+                </Button>
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
       </main>

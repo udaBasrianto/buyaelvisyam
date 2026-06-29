@@ -17,6 +17,9 @@ export default function About() {
   const { settings } = useSiteSettings();
   const [dbPage, setDbPage] = useState<PageData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [heroImageError, setHeroImageError] = useState(false);
+  const [visionImage1Error, setVisionImage1Error] = useState(false);
+  const [visionImage2Error, setVisionImage2Error] = useState(false);
 
   useEffect(() => {
     api.get("/pages")
@@ -44,11 +47,16 @@ export default function About() {
         {/* Header Section */}
         <section className="relative h-[400px] flex items-center justify-center overflow-hidden">
           <div className="absolute inset-0 bg-primary/10">
-            <img 
-              src={(settings as any).about_hero_image || "https://images.unsplash.com/photo-1542831371-29b0f74f9713?q=80&w=2070&auto=format&fit=crop"} 
-              className="w-full h-full object-cover opacity-20"
-              alt="Decorative background"
-            />
+            {!heroImageError && (settings as any).about_hero_image ? (
+              <img 
+                src={(settings as any).about_hero_image} 
+                onError={() => setHeroImageError(true)}
+                className="w-full h-full object-cover opacity-20"
+                alt="Decorative background"
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-primary/30 to-primary/10 opacity-20" />
+            )}
           </div>
           <div className="container mx-auto px-4 relative text-center">
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/20 text-primary text-xs font-bold uppercase tracking-widest mb-6">
@@ -103,7 +111,16 @@ export default function About() {
                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-4 pt-12">
                      <div className="aspect-[4/5] rounded-3xl overflow-hidden shadow-2xl">
-                        <img src={(settings as any).about_vision_image_1 || "https://images.unsplash.com/photo-1584281723350-467496607bc0?q=80&w=2070&auto=format&fit=crop"} className="w-full h-full object-cover" alt="Islamic Art" />
+                        {!visionImage1Error && (settings as any).about_vision_image_1 ? (
+                          <img 
+                            src={(settings as any).about_vision_image_1} 
+                            onError={() => setVisionImage1Error(true)}
+                            className="w-full h-full object-cover" 
+                            alt="Islamic Art" 
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-purple-400/30 to-blue-400/30 flex items-center justify-center text-xs text-muted-foreground">Gambar Dekorasi</div>
+                        )}
                      </div>
                      <div className="h-32 rounded-3xl bg-secondary flex items-center justify-center text-secondary-foreground p-6 text-center">
                         <p className="text-xs font-bold leading-tight uppercase tracking-widest">Kajian Berbasis Sunnah</p>
@@ -114,7 +131,16 @@ export default function About() {
                         <p className="text-xs font-bold leading-tight uppercase tracking-widest">Amanah & Terpercaya</p>
                      </div>
                      <div className="aspect-[4/5] rounded-3xl overflow-hidden shadow-2xl">
-                        <img src={(settings as any).about_vision_image_2 || "https://images.unsplash.com/photo-1506485338023-6ce5f36692df?q=80&w=2070&auto=format&fit=crop"} className="w-full h-full object-cover" alt="Library" />
+                        {!visionImage2Error && (settings as any).about_vision_image_2 ? (
+                          <img 
+                            src={(settings as any).about_vision_image_2} 
+                            onError={() => setVisionImage2Error(true)}
+                            className="w-full h-full object-cover" 
+                            alt="Library" 
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-amber-400/30 to-orange-400/30 flex items-center justify-center text-xs text-muted-foreground">Gambar Dekorasi</div>
+                        )}
                      </div>
                   </div>
                </div>

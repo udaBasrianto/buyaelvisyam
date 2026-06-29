@@ -506,6 +506,78 @@ func AdminDeleteDonation(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"message": "Donasi dihapus"})
 }
 
+func UserGetDonations(c *fiber.Ctx) error {
+	db := database.DB
+
+	// Get user ID from JWT
+	user := c.Locals("user")
+	token, ok := user.(*jwt.Token)
+	if !ok || token == nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
+	}
+
+	userIDStr, ok := claims["user_id"].(string)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
+	}
+
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Unauthorized"})
+	}
+
+	status := strings.TrimSpace(strings.ToLower(c.Query("status", "")))
+	page, _ := strconv.Atoi(c.Query("page", "1"))
+	limit, _ := strconv.Atoi(c.Query("limit", "20"))
+	if page <= 0 {
+		page = 1
+	}
+	if limit <= 0 {
+		limit = 20
+	}
+	if limit > 100 {
+		limit = 100
+	}
+	offset := (page - 1) * limit
+
+	query := db.Where("user_id = ?", userID)
+	if status != "" && (status == "pending" || status == "approved" || status == "rejected") {
+		query = query.Where("status = ?", status)
+	}
+
+	var total int64
+	query.Model(&models.Donation{}).Count(&total)
+
+	type DonationRow struct {
+		models.Donation
+		BankName      *string `json:"bank_name"`
+		AccountNumber *string `json:"account_number"`
+		CampaignTitle *string `json:"campaign_title"`
+	}
+
+	var rows []DonationRow
+	query.Table("donations").
+		Select("donations.*, bank_accounts.bank_name, bank_accounts.account_number, donation_campaigns.title as campaign_title").
+		Joins("left join bank_accounts on bank_accounts.id = donations.bank_account_id").
+		Joins("left join donation_campaigns on donation_campaigns.id = donations.campaign_id").
+		Order("donations.created_at desc").
+		Limit(limit).
+		Offset(offset).
+		Scan(&rows)
+
+	return c.JSON(fiber.Map{
+		"data":  rows,
+		"page":  page,
+		"limit": limit,
+		"total": total,
+	})
+}
+
 func AdminGetBankAccounts(c *fiber.Ctx) error {
 	var accounts []models.BankAccount
 	database.DB.Order("sort_order asc, created_at desc").Find(&accounts)

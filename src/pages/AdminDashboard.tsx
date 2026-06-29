@@ -16,6 +16,7 @@ import LeaderboardManager from "@/components/admin/LeaderboardManager";
 import { NavigationManager } from "@/components/admin/NavigationManager";
 import { AccessLogsManager } from "@/components/admin/AccessLogsManager";
 import { CommentsManager } from "@/components/admin/CommentsManager";
+import { ProductsManager } from "@/components/admin/ProductsManager";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -135,6 +136,8 @@ export default function AdminDashboard() {
         return <SiteSettingsManager />;
       case "whatsapp":
         return <WhatsAppSettingsManager />;
+      case "products":
+        return <ProductsManager />;
       case "lms":
         return <LmsManager />;
       case 'comments':
@@ -163,6 +166,7 @@ export default function AdminDashboard() {
       case "analytics": return "Statistik Situs";
       case "articles": return "Manajemen Artikel";
       case "categories": return "Manajemen Kategori";
+      case "products": return "Manajemen Produk";
       case "widgets": return "Widget Sidebar";
       case "pages": return "Manajemen Halaman";
       case "features": return "Feature Bar";

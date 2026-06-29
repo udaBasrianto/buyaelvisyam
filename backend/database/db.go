@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"backend/models"
+
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -33,18 +34,19 @@ func ConnectDB() {
 	// Auto migration (GORM will create/update tables automatically)
 	// Note: We still provide database.sql for initial setup if needed
 	db.AutoMigrate(
-		&models.Profile{}, 
-		&models.UserRole{}, 
-		&models.Category{}, 
-		&models.Article{}, 
+		&models.Profile{},
+		&models.UserRole{},
+		&models.Category{},
+		&models.Article{},
 		&models.ArticleRevision{},
-		&models.Page{}, 
+		&models.Page{},
 		&models.SiteSettings{},
 		&models.FeatureItem{},
 		&models.Comment{},
 		&models.UploadAsset{},
 		&models.Visit{},
 		&models.Widget{},
+		&models.Product{},
 		&models.QuizQuestion{},
 		&models.Course{},
 		&models.CourseModule{},

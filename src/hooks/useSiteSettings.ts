@@ -17,12 +17,13 @@ export interface SiteSettings {
   site_description?: string;
 }
 
+// Minimal defaults - rest dari database
 const DEFAULTS: SiteSettings = {
   id: "",
-  site_name: "BlogUstad",
-  tagline: "Berbagi ilmu agama Islam untuk umat",
+  site_name: "",
+  tagline: "",
   logo_url: null,
-  footer_text: "Berbagi ilmu agama Islam untuk umat — © 2026",
+  footer_text: "",
   homepage_version: "v1",
   scroll_to_top_version: "animated",
 };

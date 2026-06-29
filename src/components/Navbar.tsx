@@ -10,11 +10,9 @@ import { AnimatedLogoText } from "@/components/AnimatedLogoText";
 import api from "@/lib/api";
 import { asArray } from "@/lib/api-response";
 
+// Menu items dari database - fallback default menu jika belum ada konfigurasi yang tersimpan
 const baseNavItems = [
-  { label: "Beranda", href: "/" },
-  { label: "__LMS__", href: "/lms" },
-  { label: "Tentang Kami", href: "/tentang" },
-  { label: "Privasi", href: "/privacy-policy" },
+  { id: "produk", label: "Produk", href: "/produk", isExternal: false, parent_id: null },
 ];
 
 export function Navbar() {
@@ -23,6 +21,7 @@ export function Navbar() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [categories, setCategories] = useState<any[]>([]);
   const [dbNavItems, setDbNavItems] = useState<any[]>([]);
+  const [logoLoadError, setLogoLoadError] = useState(false);
   const { user, role, signOut } = useAuth();
   const navigate = useNavigate();
   const { settings } = useSiteSettings();
@@ -62,10 +61,11 @@ export function Navbar() {
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           {/* Dynamic Logo + Site Name */}
           <a href="/" className="flex items-center gap-2.5 group">
-            {settings.logo_url ? (
+            {settings.logo_url && !logoLoadError ? (
               <img
                 src={settings.logo_url}
                 alt={settings.site_name}
+                onError={() => setLogoLoadError(true)}
                 className="h-9 w-auto object-contain rounded-lg transition-transform duration-300 group-hover:scale-105 animate-float"
               />
             ) : (
