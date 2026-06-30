@@ -19,14 +19,14 @@ interface ProductCard {
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<ProductCard[]>([]);
-  const [filterType, setFilterType] = useState<string>("");
+  const [filterType, setFilterType] = useState<string>("all");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const loadProducts = async () => {
     setLoading(true);
     try {
-      const query = filterType ? `?product_type=${filterType}` : "";
+      const query = filterType && filterType !== "all" ? `?product_type=${filterType}` : "";
       const { data } = await api.get(`/products${query}`);
       setProducts(asArray<ProductCard>(data));
     } catch {
@@ -50,12 +50,12 @@ export default function ProductsPage() {
           <Select value={filterType} onValueChange={setFilterType}>
             <SelectTrigger className="min-w-[200px]"><SelectValue placeholder="Filter jenis produk" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Semua Jenis</SelectItem>
+              <SelectItem value="all">Semua Jenis</SelectItem>
               <SelectItem value="physical">Fisika</SelectItem>
               <SelectItem value="digital">Digital</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" onClick={() => setFilterType("")}>Reset</Button>
+          <Button variant="outline" onClick={() => setFilterType("all")}>Reset</Button>
         </div>
       </div>
 
