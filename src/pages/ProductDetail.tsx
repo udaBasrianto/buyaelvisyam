@@ -3,6 +3,11 @@ import { useParams, useNavigate } from "react-router-dom";
 import api from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { asObject } from "@/lib/api-response";
+import { Navbar } from "@/components/Navbar";
+import { BottomNav } from "@/components/BottomNav";
+import { Footer } from "@/components/Footer";
+import { SEO } from "@/components/SEO";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 interface ProductDetailItem {
   id: string;
@@ -24,6 +29,7 @@ export default function ProductDetail() {
   const navigate = useNavigate();
   const [product, setProduct] = useState<ProductDetailItem | null>(null);
   const [loading, setLoading] = useState(true);
+  const { settings } = useSiteSettings();
 
   useEffect(() => {
     if (!slug) return;
@@ -35,16 +41,36 @@ export default function ProductDetail() {
   }, [slug]);
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Memuat produk...</div>;
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">Memuat produk...</div>
+      </div>
+    );
   }
 
   if (!product) {
-    return <div className="min-h-screen flex items-center justify-center">Produk tidak ditemukan.</div>;
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <Navbar />
+        <div className="flex-1 flex items-center justify-center py-20">
+          <div className="text-center">
+            <p className="text-muted-foreground mb-4">Produk tidak ditemukan.</p>
+            <Button onClick={() => navigate("/produk")}>Kembali ke Toko</Button>
+          </div>
+        </div>
+        <Footer />
+        <BottomNav />
+      </div>
+    );
   }
 
   return (
-    <div className="container mx-auto px-4 py-10">
-      <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
+    <div className="min-h-screen bg-background">
+      <SEO title={`${product.title} - ${settings.site_name}`} description={product.description} />
+      <Navbar />
+
+      <main className="container mx-auto px-4 py-10 bottom-nav-safe">
+        <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="space-y-6">
           {product.image_url && <img src={product.image_url} alt={product.title} className="w-full rounded-[2rem] object-cover shadow-lg" />}
           <div className="space-y-4">
@@ -85,7 +111,11 @@ export default function ProductDetail() {
             <Button onClick={() => navigate(-1)}>Kembali</Button>
           </div>
         </div>
-      </div>
+        </div>
+      </main>
+
+      <Footer />
+      <BottomNav />
     </div>
   );
 }

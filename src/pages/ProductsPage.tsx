@@ -6,6 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { Navbar } from "@/components/Navbar";
+import { BottomNav } from "@/components/BottomNav";
+import { Footer } from "@/components/Footer";
+import { SEO } from "@/components/SEO";
 
 interface ProductCard {
   id: string;
@@ -42,7 +46,12 @@ export default function ProductsPage() {
   }, [filterType]);
 
   return (
-    <div className="container mx-auto px-4 py-8 space-y-6">
+    <div className="min-h-screen bg-background">
+      <SEO title={`${settings.products_title || "Daftar Produk"} - ${settings.site_name}`} description={settings.products_subtitle} />
+      <Navbar />
+
+      <main className="container mx-auto px-4 py-8 bottom-nav-safe">
+        <div className="space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold">{settings.products_title || "Daftar Produk"}</h1>
@@ -84,6 +93,11 @@ export default function ProductsPage() {
           )}
         </div>
       )}
+        </div>
+      </main>
+
+      <Footer />
+      <BottomNav />
     </div>
   );
 }
