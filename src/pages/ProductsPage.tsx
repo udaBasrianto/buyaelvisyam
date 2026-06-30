@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 interface ProductCard {
   id: string;
@@ -22,6 +23,7 @@ export default function ProductsPage() {
   const [filterType, setFilterType] = useState<string>("all");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { settings } = useSiteSettings();
 
   const loadProducts = async () => {
     setLoading(true);
@@ -43,8 +45,8 @@ export default function ProductsPage() {
     <div className="container mx-auto px-4 py-8 space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Daftar Produk</h1>
-          <p className="text-muted-foreground">Lihat produk fisik dan digital yang tersedia.</p>
+          <h1 className="text-3xl font-bold">{settings.products_title || "Daftar Produk"}</h1>
+          <p className="text-muted-foreground">{settings.products_subtitle || "Lihat produk fisik dan digital yang tersedia."}</p>
         </div>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <Select value={filterType} onValueChange={setFilterType}>

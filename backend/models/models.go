@@ -281,6 +281,9 @@ type SiteSettings struct {
 	LmsMenuLabel                 string    `gorm:"default:'Akademi'" json:"lms_menu_label"`
 	LmsTitle                     string    `gorm:"default:'Belajar Islam Lebih Terstruktur.'" json:"lms_title"`
 	LmsSubtitle                  string    `gorm:"default:'Akses materi kajian eksklusif, video tutorial, dan kuis interaktif dari Ustadz-Ustadz terpercaya.'" json:"lms_subtitle"`
+	ProductsMenuLabel            string    `gorm:"default:'Produk'" json:"products_menu_label"`
+	ProductsTitle                string    `gorm:"default:'Daftar Produk'" json:"products_title"`
+	ProductsSubtitle             string    `gorm:"default:'Lihat produk fisik dan digital yang tersedia.'" json:"products_subtitle"`
 	ShowFeatureBar               bool      `gorm:"default:true" json:"show_feature_bar"`
 	ShowChatbot                  bool      `gorm:"default:true" json:"show_chatbot"`
 	DonationTitle                string    `gorm:"default:'Donasi'" json:"donation_title"`

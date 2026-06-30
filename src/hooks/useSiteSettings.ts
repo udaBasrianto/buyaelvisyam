@@ -15,6 +15,9 @@ export interface SiteSettings {
   recent_title?: string;
   google_client_id?: string;
   site_description?: string;
+  products_menu_label?: string;
+  products_title?: string;
+  products_subtitle?: string;
 }
 
 // Minimal defaults - rest dari database

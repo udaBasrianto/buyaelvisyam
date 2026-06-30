@@ -57,6 +57,9 @@ interface Settings {
   lms_menu_label?: string;
   lms_title?: string;
   lms_subtitle?: string;
+  products_menu_label?: string;
+  products_title?: string;
+  products_subtitle?: string;
   show_feature_bar?: boolean;
   show_chatbot?: boolean;
 }
@@ -202,6 +205,9 @@ export function SiteSettingsManager() {
         lms_menu_label: settings.lms_menu_label?.trim() || "Akademi",
         lms_title: settings.lms_title?.trim() || "",
         lms_subtitle: settings.lms_subtitle?.trim() || "",
+        products_menu_label: settings.products_menu_label?.trim() || "Produk",
+        products_title: settings.products_title?.trim() || "Daftar Produk",
+        products_subtitle: settings.products_subtitle?.trim() || "Lihat produk fisik dan digital yang tersedia.",
         show_feature_bar: settings.show_feature_bar ?? true,
         show_chatbot: settings.show_chatbot ?? true,
       });
@@ -602,6 +608,38 @@ export function SiteSettingsManager() {
                 value={settings.lms_subtitle || ""} 
                 onChange={(e) => setSettings({ ...settings, lms_subtitle: e.target.value })} 
                 placeholder="Akses materi kajian eksklusif..."
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="pt-6 border-t space-y-4">
+          <Label className="text-sm font-bold block">Konfigurasi Halaman Produk</Label>
+          <div className="text-[10px] text-muted-foreground mb-4">Ubah nama menu, judul, dan sub-judul halaman produk secara dinamis.</div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label className="text-[10px]">Label Menu Navigasi</Label>
+              <Input 
+                value={settings.products_menu_label || ""} 
+                onChange={(e) => setSettings({ ...settings, products_menu_label: e.target.value })} 
+                placeholder="Produk"
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">Nama yang tampil di navbar & breadcrumb</p>
+            </div>
+            <div>
+              <Label className="text-[10px]">Judul Halaman Produk</Label>
+              <Input 
+                value={settings.products_title || ""} 
+                onChange={(e) => setSettings({ ...settings, products_title: e.target.value })} 
+                placeholder="Daftar Produk"
+              />
+            </div>
+            <div>
+              <Label className="text-[10px]">Subtitle Halaman Produk</Label>
+              <Input 
+                value={settings.products_subtitle || ""} 
+                onChange={(e) => setSettings({ ...settings, products_subtitle: e.target.value })} 
+                placeholder="Lihat produk fisik dan digital yang tersedia."
               />
             </div>
           </div>

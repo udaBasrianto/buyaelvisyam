@@ -12,7 +12,7 @@ import { asArray } from "@/lib/api-response";
 
 // Menu items dari database - fallback default menu jika belum ada konfigurasi yang tersimpan
 const baseNavItems = [
-  { id: "produk", label: "Produk", href: "/produk", isExternal: false, parent_id: null },
+  { id: "produk", label: "__PRODUCTS__", href: "/produk", isExternal: false, parent_id: null },
 ];
 
 export function Navbar() {
@@ -41,9 +41,10 @@ export function Navbar() {
 
   // Navigation Manager is the single source of truth for menu items
   const lmsLabel = (settings as any).lms_menu_label || "Akademi";
+  const productsLabel = (settings as any).products_menu_label || "Produk";
   const rawNavItems = dbNavItems.length > 0 
-    ? dbNavItems.filter(i => i.is_active).map(i => ({ id: i.id, label: i.label, href: i.url, isExternal: i.is_external, parent_id: i.parent_id }))
-    : baseNavItems.map(i => ({ ...i, id: i.label, label: i.label === "__LMS__" ? lmsLabel : i.label, isExternal: false, parent_id: null }));
+    ? dbNavItems.filter(i => i.is_active).map(i => ({ id: i.id, label: i.label === "Produk" ? productsLabel : i.label, href: i.url, isExternal: i.is_external, parent_id: i.parent_id }))
+    : baseNavItems.map(i => ({ ...i, id: i.id, label: i.label === "__PRODUCTS__" ? productsLabel : i.label === "__LMS__" ? lmsLabel : i.label, isExternal: false, parent_id: null }));
 
   // Nest children under parents
   const navItems = rawNavItems.filter(item => !item.parent_id).map(parent => ({
