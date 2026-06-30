@@ -2,10 +2,18 @@ import React from "react";
 import { useCart } from "@/contexts/CartContext";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
+import { Navbar } from "@/components/Navbar";
+import { BottomNav } from "@/components/BottomNav";
+import { Footer } from "@/components/Footer";
+import { SEO } from "@/components/SEO";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 export default function Checkout() {
   const { items, updateQuantity, removeFromCart, totalAmount, clearCart } = useCart();
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { settings } = useSiteSettings();
 
   const handleCheckout = async () => {
     // Placeholder: integrate with backend order/payment API here
@@ -15,16 +23,27 @@ export default function Checkout() {
 
   if (items.length === 0) {
     return (
-      <div className="min-h-screen container mx-auto px-4 py-12">
-        <h3 className="text-xl font-bold mb-4">Keranjang Anda kosong</h3>
-        <p className="text-muted-foreground">Tambah produk ke keranjang untuk melanjutkan ke checkout.</p>
+      <div className="min-h-screen bg-background flex flex-col">
+        <SEO title={`Keranjang Belanja - ${settings.site_name}`} />
+        <Navbar />
+        <div className="flex-1 container mx-auto px-4 py-20 text-center">
+          <h3 className="text-xl font-bold mb-4">Keranjang Anda kosong</h3>
+          <p className="text-muted-foreground mb-6">Tambah produk ke keranjang untuk melanjutkan ke checkout.</p>
+          <Button onClick={() => navigate("/produk")}>Kembali Belanja</Button>
+        </div>
+        <Footer />
+        <BottomNav />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen container mx-auto px-4 py-12">
-      <h3 className="text-xl font-bold mb-6">Checkout</h3>
+    <div className="min-h-screen bg-background">
+      <SEO title={`Checkout - ${settings.site_name}`} />
+      <Navbar />
+
+      <main className="container mx-auto px-4 py-12 bottom-nav-safe">
+        <h3 className="text-xl font-bold mb-6">Checkout</h3>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2 space-y-4">
           {items.map(it => (
@@ -47,9 +66,12 @@ export default function Checkout() {
           <div className="flex justify-between mb-2"><span>Subtotal</span><span className="font-bold">IDR {totalAmount.toLocaleString('id-ID')}</span></div>
           <div className="flex justify-between mb-4"><span>Ongkos Kirim</span><span className="font-bold">IDR 0</span></div>
           <div className="flex justify-between mb-6"><span>Total</span><span className="font-bold">IDR {totalAmount.toLocaleString('id-ID')}</span></div>
-          <Button className="w-full" onClick={handleCheckout}>Checkout</Button>
         </div>
       </div>
-    </div>
+    </main>
+
+    <Footer />
+    <BottomNav />
+  </div>
   );
 }

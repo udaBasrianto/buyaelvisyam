@@ -8,6 +8,8 @@ import { BottomNav } from "@/components/BottomNav";
 import { Footer } from "@/components/Footer";
 import { SEO } from "@/components/SEO";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { useToast } from "@/hooks/use-toast";
+import { useCart } from "@/contexts/CartContext";
 
 interface ProductDetailItem {
   id: string;
@@ -30,6 +32,37 @@ export default function ProductDetail() {
   const [product, setProduct] = useState<ProductDetailItem | null>(null);
   const [loading, setLoading] = useState(true);
   const { settings } = useSiteSettings();
+  const { addToCart } = useCart();
+  const { toast } = useToast();
+
+  const handleAddToCart = () => {
+    if (!product) return;
+    addToCart({
+      id: product.id,
+      title: product.title,
+      price: product.price,
+      currency: product.currency,
+      image: product.image_url,
+      product_type: product.product_type
+    }, 1);
+    toast({
+      title: "Keranjang Belanja",
+      description: `${product.title} ditambahkan ke keranjang.`,
+    });
+  };
+
+  const handleBuyNow = () => {
+    if (!product) return;
+    addToCart({
+      id: product.id,
+      title: product.title,
+      price: product.price,
+      currency: product.currency,
+      image: product.image_url,
+      product_type: product.product_type
+    }, 1);
+    navigate("/checkout");
+  };
 
   useEffect(() => {
     if (!slug) return;
@@ -102,13 +135,17 @@ export default function ProductDetail() {
                 <p className="text-lg font-semibold">{product.sku}</p>
               </div>
             )}
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">Status</p>
-              <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${product.is_active ? "bg-emerald-500/10 text-emerald-700" : "bg-destructive/10 text-destructive"}`}>
-                {product.is_active ? "Aktif" : "Tidak Aktif"}
-              </span>
+            <div className="space-y-3 pt-4 border-t">
+              <Button className="w-full justify-center" onClick={handleAddToCart} variant="outline">
+                Tambah ke Keranjang
+              </Button>
+              <Button className="w-full justify-center" onClick={handleBuyNow}>
+                Beli Sekarang
+              </Button>
+              <Button className="w-full justify-center" variant="ghost" onClick={() => navigate(-1)}>
+                Kembali
+              </Button>
             </div>
-            <Button onClick={() => navigate(-1)}>Kembali</Button>
           </div>
         </div>
         </div>
