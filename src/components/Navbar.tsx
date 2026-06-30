@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { Menu, X, LogIn, LogOut, ShieldCheck, Edit, LayoutDashboard, User, ChevronDown, Shield, PenTool } from "lucide-react";
+import { Menu, X, LogIn, LogOut, ShieldCheck, Edit, LayoutDashboard, User, ChevronDown, Shield, PenTool, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { useCart } from "@/contexts/CartContext";
 import { useNavPages } from "@/hooks/useNavPages";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { NewsTicker } from "@/components/NewsTicker";
@@ -25,6 +26,7 @@ export function Navbar() {
   const { user, role, signOut } = useAuth();
   const navigate = useNavigate();
   const { settings } = useSiteSettings();
+  const { totalCount } = useCart();
 
   useEffect(() => {
     api.get("/categories").then(({ data }) => setCategories(asArray<any>(data))).catch(() => {});
@@ -135,6 +137,22 @@ export function Navbar() {
 
           {/* Right controls */}
           <div className="flex items-center gap-1.5">
+            {/* Shopping Cart Link */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="relative text-foreground/70 hover:text-primary"
+              onClick={() => navigate("/checkout")}
+              title="Keranjang Belanja"
+            >
+              <ShoppingCart className="h-5 w-5" />
+              {totalCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[8px] font-bold text-white shadow-sm ring-2 ring-background">
+                  {totalCount}
+                </span>
+              )}
+            </Button>
+
             {/* Date and Time Display */}
             <div className="hidden md:flex items-center px-3 py-1.5 bg-muted/50 rounded-md text-sm font-medium text-foreground/80">
               <span>
