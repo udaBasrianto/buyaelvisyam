@@ -18,6 +18,16 @@ export interface SiteSettings {
   products_menu_label?: string;
   products_title?: string;
   products_subtitle?: string;
+  about_contact_email?: string;
+  about_contact_phone?: string;
+  checkout_web_enabled?: boolean;
+  checkout_whatsapp_enabled?: boolean;
+  checkout_whatsapp_number?: string;
+  checkout_instructions?: string;
+  checkout_flat_shipping_enabled?: boolean;
+  checkout_flat_shipping_amount?: number;
+  checkout_flat_shipping_label?: string;
+  checkout_payment_due_hours?: number;
 }
 
 // Minimal defaults - rest dari database

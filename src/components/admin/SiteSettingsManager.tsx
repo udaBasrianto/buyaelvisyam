@@ -60,6 +60,14 @@ interface Settings {
   products_menu_label?: string;
   products_title?: string;
   products_subtitle?: string;
+  checkout_web_enabled?: boolean;
+  checkout_whatsapp_enabled?: boolean;
+  checkout_whatsapp_number?: string;
+  checkout_instructions?: string;
+  checkout_flat_shipping_enabled?: boolean;
+  checkout_flat_shipping_amount?: number;
+  checkout_flat_shipping_label?: string;
+  checkout_payment_due_hours?: number;
   show_feature_bar?: boolean;
   show_chatbot?: boolean;
 }
@@ -208,6 +216,14 @@ export function SiteSettingsManager() {
         products_menu_label: settings.products_menu_label?.trim() || "Produk",
         products_title: settings.products_title?.trim() || "Daftar Produk",
         products_subtitle: settings.products_subtitle?.trim() || "Lihat produk fisik dan digital yang tersedia.",
+        checkout_web_enabled: settings.checkout_web_enabled ?? true,
+        checkout_whatsapp_enabled: settings.checkout_whatsapp_enabled ?? true,
+        checkout_whatsapp_number: settings.checkout_whatsapp_number?.trim() || "",
+        checkout_instructions: settings.checkout_instructions?.trim() || "",
+        checkout_flat_shipping_enabled: settings.checkout_flat_shipping_enabled ?? false,
+        checkout_flat_shipping_amount: Number(settings.checkout_flat_shipping_amount) || 0,
+        checkout_flat_shipping_label: settings.checkout_flat_shipping_label?.trim() || "Ongkos Kirim",
+        checkout_payment_due_hours: Number(settings.checkout_payment_due_hours) || 24,
         show_feature_bar: settings.show_feature_bar ?? true,
         show_chatbot: settings.show_chatbot ?? true,
       });
@@ -641,6 +657,102 @@ export function SiteSettingsManager() {
                 onChange={(e) => setSettings({ ...settings, products_subtitle: e.target.value })} 
                 placeholder="Lihat produk fisik dan digital yang tersedia."
               />
+            </div>
+          </div>
+        </div>
+
+        <div className="pt-6 border-t space-y-4">
+          <Label className="text-sm font-bold block">Konfigurasi Checkout Produk</Label>
+          <div className="text-[10px] text-muted-foreground mb-4">Atur metode order yang tersedia untuk pembeli dan kontak WhatsApp tujuan checkout.</div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex items-center justify-between gap-4 rounded-xl border p-4">
+              <div className="space-y-0.5">
+                <div className="font-bold">Aktifkan Order via Web</div>
+                <div className="text-xs text-muted-foreground">Pembeli bisa membuat order langsung ke sistem admin.</div>
+              </div>
+              <Switch
+                checked={settings.checkout_web_enabled ?? true}
+                onCheckedChange={(v) => setSettings({ ...settings, checkout_web_enabled: v })}
+              />
+            </div>
+            <div className="flex items-center justify-between gap-4 rounded-xl border p-4">
+              <div className="space-y-0.5">
+                <div className="font-bold">Aktifkan Order via WhatsApp</div>
+                <div className="text-xs text-muted-foreground">Pembeli membuat order lalu diarahkan ke WhatsApp admin.</div>
+              </div>
+              <Switch
+                checked={settings.checkout_whatsapp_enabled ?? true}
+                onCheckedChange={(v) => setSettings({ ...settings, checkout_whatsapp_enabled: v })}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label className="text-[10px]">Nomor WhatsApp Checkout</Label>
+              <Input
+                value={settings.checkout_whatsapp_number || ""}
+                onChange={(e) => setSettings({ ...settings, checkout_whatsapp_number: e.target.value })}
+                placeholder="628xxxxxxxxxx"
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">Dipakai saat pembeli memilih order via WhatsApp.</p>
+            </div>
+            <div>
+              <Label className="text-[10px]">Instruksi Checkout</Label>
+              <Textarea
+                value={settings.checkout_instructions || ""}
+                onChange={(e) => setSettings({ ...settings, checkout_instructions: e.target.value })}
+                placeholder="Contoh: Setelah order dibuat, tunggu admin menghubungi Anda atau lanjutkan konfirmasi via WhatsApp."
+                rows={3}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="flex items-center justify-between gap-4 rounded-xl border p-4 md:col-span-1">
+              <div className="space-y-0.5">
+                <div className="font-bold">Aktifkan Ongkir Flat</div>
+                <div className="text-xs text-muted-foreground">Pakai ongkir tetap untuk checkout produk fisik.</div>
+              </div>
+              <Switch
+                checked={settings.checkout_flat_shipping_enabled ?? false}
+                onCheckedChange={(v) => setSettings({ ...settings, checkout_flat_shipping_enabled: v })}
+              />
+            </div>
+            <div>
+              <Label className="text-[10px]">Label Ongkir</Label>
+              <Input
+                value={settings.checkout_flat_shipping_label || ""}
+                onChange={(e) => setSettings({ ...settings, checkout_flat_shipping_label: e.target.value })}
+                placeholder="Ongkos Kirim"
+              />
+            </div>
+            <div>
+              <Label className="text-[10px]">Nominal Ongkir Flat</Label>
+              <Input
+                type="number"
+                value={String(settings.checkout_flat_shipping_amount ?? 0)}
+                onChange={(e) => setSettings({ ...settings, checkout_flat_shipping_amount: Number(e.target.value) || 0 })}
+                placeholder="15000"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label className="text-[10px]">Batas Waktu Pembayaran (jam)</Label>
+              <Input
+                type="number"
+                value={String(settings.checkout_payment_due_hours ?? 24)}
+                onChange={(e) => setSettings({ ...settings, checkout_payment_due_hours: Number(e.target.value) || 24 })}
+                placeholder="24"
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">Dipakai untuk order via web dengan transfer manual.</p>
+            </div>
+            <div className="rounded-xl border p-4 text-xs text-muted-foreground bg-muted/30">
+              Order via web sekarang diarahkan ke alur transfer manual. Pastikan rekening bank aktif tersedia di menu donasi
+              agar instruksi pembayaran dapat tampil pada halaman konfirmasi order.
             </div>
           </div>
         </div>

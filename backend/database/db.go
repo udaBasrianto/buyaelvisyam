@@ -61,6 +61,8 @@ func ConnectDB() {
 		&models.Donation{},
 		&models.DonationCampaign{},
 		&models.BankAccount{},
+		&models.ProductOrder{},
+		&models.ProductOrderItem{},
 		&models.WhatsAppToken{},
 		&models.WhatsAppSession{},
 		&models.AdminAuditLog{},
@@ -68,6 +70,16 @@ func ConnectDB() {
 	)
 
 	db.Exec(`UPDATE profiles SET whats_app_number = NULL WHERE whats_app_number = ''`)
+	db.Exec(`UPDATE site_settings SET checkout_web_enabled = TRUE WHERE checkout_web_enabled IS NULL`)
+	db.Exec(`UPDATE site_settings SET checkout_whatsapp_enabled = TRUE WHERE checkout_whatsapp_enabled IS NULL`)
+	db.Exec(`UPDATE site_settings SET checkout_flat_shipping_enabled = FALSE WHERE checkout_flat_shipping_enabled IS NULL`)
+	db.Exec(`UPDATE site_settings SET checkout_flat_shipping_amount = 0 WHERE checkout_flat_shipping_amount IS NULL`)
+	db.Exec(`UPDATE site_settings SET checkout_flat_shipping_label = 'Ongkos Kirim' WHERE checkout_flat_shipping_label IS NULL OR checkout_flat_shipping_label = ''`)
+	db.Exec(`UPDATE site_settings SET checkout_payment_due_hours = 24 WHERE checkout_payment_due_hours IS NULL OR checkout_payment_due_hours <= 0`)
+	db.Exec(`ALTER TABLE product_orders ADD COLUMN IF NOT EXISTS public_token text`)
+	db.Exec(`UPDATE product_orders
+		SET public_token = md5(random()::text || clock_timestamp()::text || id::text) || md5(random()::text || id::text)
+		WHERE public_token IS NULL OR public_token = ''`)
 
 	DB = db
 }

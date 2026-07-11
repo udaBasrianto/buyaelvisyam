@@ -189,7 +189,8 @@ func main() {
 
 	app.Use(cors.New(cors.Config{
 		AllowOrigins:     allowedOrigins,
-		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
+		AllowMethods:     "GET,POST,PUT,PATCH,DELETE,OPTIONS",
+		AllowHeaders:     "Origin, Content-Type, Accept, Authorization, Idempotency-Key",
 		AllowCredentials: true,
 		MaxAge:           300,
 	}))
@@ -249,10 +250,15 @@ func main() {
 
 	api.Get("/products", handlers.GetProducts)
 	api.Get("/products/:slug", handlers.GetProduct)
+	orderLimiter := limiter.New(limiter.Config{Max: 10, Expiration: 15 * time.Minute})
+	api.Post("/orders", orderLimiter, handlers.CreateOrder)
+	api.Get("/orders/public/:token", handlers.GetPublicOrderByToken)
 	api.Get("/admin/products", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.GetProducts)
 	api.Post("/admin/products", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.CreateProduct)
 	api.Put("/admin/products/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.UpdateProduct)
 	api.Delete("/admin/products/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.DeleteProduct)
+	api.Get("/admin/orders", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.AdminGetOrders)
+	api.Put("/admin/orders/:id/status", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.AdminUpdateOrderStatus)
 
 	// Pages
 	api.Get("/pages", handlers.GetPages)

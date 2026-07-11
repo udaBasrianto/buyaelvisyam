@@ -46,6 +46,7 @@ export function AdminSidebar({ activeTab, setActiveTab }: AdminSidebarProps) {
     { id: "articles", label: "Artikel", icon: FileText },
     { id: "categories", label: "Kategori", icon: FolderOpen },
     { id: "products", label: "Produk", icon: ShoppingBag },
+    { id: "orders", label: "Order Produk", icon: ShoppingBag },
     { id: "lms", label: "Akademi LMS", icon: GraduationCap },
     { id: "wallet", label: "Keuangan", icon: Wallet },
     { id: "donations", label: "Donasi", icon: HandHeart },

@@ -30,7 +30,7 @@ import PrivacyPolicy from "./pages/PrivacyPolicy.tsx";
 import AccountDeletion from "./pages/AccountDeletion.tsx";
 import ProductsPage from "./pages/ProductsPage.tsx";
 import ProductDetail from "./pages/ProductDetail.tsx";
-import Checkout from "./pages/Checkout";
+import Checkout, { CheckoutSuccess } from "./pages/Checkout";
 import { ScrollToTop } from "./components/ScrollToTop";
 import { ThemeInitializer } from "./components/ThemeInitializer";
 import { GoogleAnalytics } from "./components/GoogleAnalytics";
@@ -108,6 +108,7 @@ const App = () => (
             <Route path="/produk/:slug" element={<ProductDetail />} />
             <Route path="/cart" element={<Checkout />} />
             <Route path="/checkout" element={<Checkout />} />
+            <Route path="/checkout/success/:token" element={<CheckoutSuccess />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/kebijakan-privasi" element={<PrivacyPolicy />} />
             <Route path="/hapus-akun" element={<AccountDeletion />} />

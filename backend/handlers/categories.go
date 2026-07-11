@@ -18,7 +18,7 @@ import (
 func GetCategories(c *fiber.Ctx) error {
 	db := database.DB
 	var categories []models.Category
-	
+
 	// Check if we need to sync from articles (especially useful after imports)
 	rows, err := db.Raw(`SELECT category, categories FROM articles`).Rows()
 	if err != nil {
@@ -114,7 +114,7 @@ func UpdateCategory(c *fiber.Ctx) error {
 
 	if err := db.Model(&category).Updates(updateMap).Error; err != nil {
 		return c.Status(500).JSON(fiber.Map{
-			"error": "Gagal memperbarui kategori",
+			"error":   "Gagal memperbarui kategori",
 			"details": err.Error(),
 		})
 	}
@@ -179,28 +179,34 @@ func GetSiteSettings(c *fiber.Ctx) error {
 
 		// Initialize if missing
 		settings = models.SiteSettings{
-			ID: uuid.New(),
-			SiteName:         "Buyaelvisyam.id",
-			Tagline:          "Berilmu Sebelum Beramal",
+			ID:                           uuid.New(),
+			SiteName:                     "Buyaelvisyam.id",
+			Tagline:                      "Berilmu Sebelum Beramal",
 			WhatsAppNotificationsEnabled: false,
 			WhatsAppNotifyNewArticle:     true,
 			WhatsAppNotifyNewCourse:      true,
 			WhatsAppNotifyMaxRecipients:  200,
-			HomepageVersion:  "v2",
-			ScrollToTopVersion: "animated",
-			AdminToken:       adminToken,
-			AdminSlug:        "yaakhi",
-			HeroTitle:        "Editors Choice",
-			RecentTitle:      "Recent Stories",
-			ProductsMenuLabel: "Produk",
-			ProductsTitle:    "Daftar Produk",
-			ProductsSubtitle: "Lihat produk fisik dan digital yang tersedia.",
-			SliderStyle:      "v3",
-			ShowFeatureBar:   true,
-			ShowChatbot:      true,
-			DonationTitle:    "Donasi",
-			ShowDonors:       true,
-			UpdatedAt:        time.Now(),
+			HomepageVersion:              "v2",
+			ScrollToTopVersion:           "animated",
+			AdminToken:                   adminToken,
+			AdminSlug:                    "yaakhi",
+			HeroTitle:                    "Editors Choice",
+			RecentTitle:                  "Recent Stories",
+			ProductsMenuLabel:            "Produk",
+			ProductsTitle:                "Daftar Produk",
+			ProductsSubtitle:             "Lihat produk fisik dan digital yang tersedia.",
+			CheckoutWebEnabled:           true,
+			CheckoutWhatsAppEnabled:      true,
+			CheckoutFlatShippingEnabled:  false,
+			CheckoutFlatShippingAmount:   0,
+			CheckoutFlatShippingLabel:    "Ongkos Kirim",
+			CheckoutPaymentDueHours:      24,
+			SliderStyle:                  "v3",
+			ShowFeatureBar:               true,
+			ShowChatbot:                  true,
+			DonationTitle:                "Donasi",
+			ShowDonors:                   true,
+			UpdatedAt:                    time.Now(),
 		}
 		db.Create(&settings)
 	}

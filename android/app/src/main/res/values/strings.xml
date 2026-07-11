@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">Buya Elvisyam</string>
-    <string name="title_activity_main">Buya Elvisyam</string>
-    <string name="package_name">id.buyaelvisyam.app</string>
-    <string name="custom_url_scheme">id.buyaelvisyam.app</string>
-</resources>

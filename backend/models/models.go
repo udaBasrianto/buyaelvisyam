@@ -142,6 +142,20 @@ func (m *Bookmark) BeforeCreate(tx *gorm.DB) error {
 	return nil
 }
 
+func (m *ProductOrder) BeforeCreate(tx *gorm.DB) error {
+	if m.ID == uuid.Nil {
+		m.ID = uuid.New()
+	}
+	return nil
+}
+
+func (m *ProductOrderItem) BeforeCreate(tx *gorm.DB) error {
+	if m.ID == uuid.Nil {
+		m.ID = uuid.New()
+	}
+	return nil
+}
+
 type Profile struct {
 	ID               uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
 	UserID           uuid.UUID `gorm:"type:uuid;unique;not null" json:"user_id"`
@@ -284,6 +298,14 @@ type SiteSettings struct {
 	ProductsMenuLabel            string    `gorm:"default:'Produk'" json:"products_menu_label"`
 	ProductsTitle                string    `gorm:"default:'Daftar Produk'" json:"products_title"`
 	ProductsSubtitle             string    `gorm:"default:'Lihat produk fisik dan digital yang tersedia.'" json:"products_subtitle"`
+	CheckoutWebEnabled           bool      `gorm:"column:checkout_web_enabled;default:true" json:"checkout_web_enabled"`
+	CheckoutWhatsAppEnabled      bool      `gorm:"column:checkout_whatsapp_enabled;default:true" json:"checkout_whatsapp_enabled"`
+	CheckoutWhatsAppNumber       string    `gorm:"column:checkout_whatsapp_number" json:"checkout_whatsapp_number"`
+	CheckoutInstructions         string    `json:"checkout_instructions"`
+	CheckoutFlatShippingEnabled  bool      `gorm:"default:false" json:"checkout_flat_shipping_enabled"`
+	CheckoutFlatShippingAmount   float64   `gorm:"default:0" json:"checkout_flat_shipping_amount"`
+	CheckoutFlatShippingLabel    string    `gorm:"default:'Ongkos Kirim'" json:"checkout_flat_shipping_label"`
+	CheckoutPaymentDueHours      int       `gorm:"default:24" json:"checkout_payment_due_hours"`
 	ShowFeatureBar               bool      `gorm:"default:true" json:"show_feature_bar"`
 	ShowChatbot                  bool      `gorm:"default:true" json:"show_chatbot"`
 	DonationTitle                string    `gorm:"default:'Donasi'" json:"donation_title"`
@@ -460,6 +482,58 @@ type Product struct {
 	SortOrder      int       `gorm:"default:0" json:"sort_order"`
 	CreatedAt      time.Time `json:"created_at"`
 	UpdatedAt      time.Time `json:"updated_at"`
+}
+
+type ProductOrder struct {
+	ID                  uuid.UUID          `gorm:"type:uuid;primaryKey" json:"id"`
+	OrderCode           string             `gorm:"uniqueIndex;not null" json:"order_code"`
+	PublicToken         string             `gorm:"uniqueIndex" json:"public_token"`
+	IdempotencyKey      string             `gorm:"index" json:"idempotency_key"`
+	UserID              *uuid.UUID         `gorm:"type:uuid;index" json:"user_id"`
+	Method              string             `gorm:"default:'web'" json:"method"`     // web, whatsapp
+	Status              string             `gorm:"default:'pending'" json:"status"` // pending, confirmed, processed, completed, cancelled
+	CustomerName        string             `gorm:"not null" json:"customer_name"`
+	CustomerPhone       string             `gorm:"not null" json:"customer_phone"`
+	CustomerEmail       string             `json:"customer_email"`
+	RecipientName       string             `json:"recipient_name"`
+	AddressLine1        string             `json:"address_line_1"`
+	AddressLine2        string             `json:"address_line_2"`
+	City                string             `json:"city"`
+	Province            string             `json:"province"`
+	PostalCode          string             `json:"postal_code"`
+	Courier             string             `json:"courier"`
+	ShippingService     string             `json:"shipping_service"`
+	Notes               string             `gorm:"type:text" json:"notes"`
+	Currency            string             `gorm:"default:'IDR'" json:"currency"`
+	SubtotalAmount      float64            `gorm:"default:0" json:"subtotal_amount"`
+	ShippingAmount      float64            `gorm:"default:0" json:"shipping_amount"`
+	DiscountAmount      float64            `gorm:"default:0" json:"discount_amount"`
+	TotalAmount         float64            `gorm:"default:0" json:"total_amount"`
+	RequiresShipping    bool               `gorm:"default:false" json:"requires_shipping"`
+	PaymentMethod       string             `gorm:"default:'manual'" json:"payment_method"`
+	PaymentStatus       string             `gorm:"default:'awaiting_payment'" json:"payment_status"`
+	PaymentReference    string             `json:"payment_reference"`
+	PaymentInstructions string             `gorm:"type:text" json:"payment_instructions"`
+	PaymentDueAt        *time.Time         `json:"payment_due_at"`
+	AdminNote           string             `gorm:"type:text" json:"admin_note"`
+	CreatedAt           time.Time          `json:"created_at"`
+	UpdatedAt           time.Time          `json:"updated_at"`
+	Items               []ProductOrderItem `gorm:"foreignKey:OrderID;constraint:OnDelete:CASCADE" json:"items,omitempty"`
+}
+
+type ProductOrderItem struct {
+	ID           uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
+	OrderID      uuid.UUID `gorm:"type:uuid;index;not null" json:"order_id"`
+	ProductID    uuid.UUID `gorm:"type:uuid;index;not null" json:"product_id"`
+	ProductTitle string    `gorm:"not null" json:"product_title"`
+	ProductSlug  string    `json:"product_slug"`
+	ProductType  string    `json:"product_type"`
+	Quantity     int       `gorm:"default:1" json:"quantity"`
+	UnitPrice    float64   `gorm:"default:0" json:"unit_price"`
+	LineTotal    float64   `gorm:"default:0" json:"line_total"`
+	Currency     string    `gorm:"default:'IDR'" json:"currency"`
+	ImageURL     string    `json:"image_url"`
+	CreatedAt    time.Time `json:"created_at"`
 }
 
 type QuizQuestion struct {
