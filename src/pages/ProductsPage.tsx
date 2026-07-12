@@ -141,7 +141,8 @@ export default function ProductsPage() {
                 <Button onClick={() => navigate(`/produk/${product.slug}`)}>Lihat Detail</Button>
               </div>
             </div>
-          ))}
+            );
+          })}
           {products.length === 0 && !loading && (
             <div className="col-span-full rounded-3xl border border-border bg-card p-8 text-center text-muted-foreground">Belum ada produk untuk ditampilkan.</div>
           )}
