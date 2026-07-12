@@ -25,7 +25,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { WordPressImportDialog } from "@/components/WordPressImportDialog";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
-import { WhatsAppSettingsManager } from "@/components/admin/WhatsAppSettingsManager";
 import { UsersManager } from "@/components/admin/UsersManager";
 import { DonationsManager } from "@/components/admin/DonationsManager";
 
@@ -135,8 +134,6 @@ export default function AdminDashboard() {
         return <FeatureBarManager />;
       case "settings":
         return <SiteSettingsManager />;
-      case "whatsapp":
-        return <WhatsAppSettingsManager />;
       case "products":
         return <ProductsManager />;
       case "orders":
@@ -175,7 +172,6 @@ export default function AdminDashboard() {
       case "pages": return "Manajemen Halaman";
       case "features": return "Feature Bar";
       case "settings": return "Pengaturan Situs";
-      case "whatsapp": return "WhatsApp Bot Settings";
       case "lms": return "Manajemen Akademi LMS";
       case "navigation": return "Manajemen Menu";
       case "access_logs": return "Log Keamanan Akses";

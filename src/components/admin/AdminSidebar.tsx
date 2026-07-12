@@ -77,7 +77,6 @@ export function AdminSidebar({ activeTab, setActiveTab }: AdminSidebarProps) {
     {
       label: "Konfigurasi Sistem",
       items: [
-        { id: "whatsapp", label: "WhatsApp Bot", icon: MessageCircle },
         { id: "navigation", label: "Menu Navigasi", icon: Menu },
         { id: "widgets", label: "Widget Sidebar", icon: FileCode },
         { id: "features", label: "Feature Bar", icon: Sparkles },
