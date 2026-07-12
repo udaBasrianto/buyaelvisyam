@@ -30,6 +30,7 @@ interface ProductItem {
   is_flash_sale?: boolean;
   flash_sale_start?: string;
   flash_sale_end?: string;
+  images?: string[];
 }
 
 const PRODUCT_TYPES = [
@@ -70,6 +71,7 @@ export function ProductsManager() {
     is_flash_sale: false,
     flash_sale_start: "",
     flash_sale_end: "",
+    images: [] as string[],
   });
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -109,6 +111,7 @@ export function ProductsManager() {
         is_flash_sale: product.is_flash_sale || false,
         flash_sale_start: formatForDateTimeLocal(product.flash_sale_start),
         flash_sale_end: formatForDateTimeLocal(product.flash_sale_end),
+        images: product.images || [],
       });
     } else {
       setEditing(null);
@@ -129,27 +132,53 @@ export function ProductsManager() {
         is_flash_sale: false,
         flash_sale_start: "",
         flash_sale_end: "",
+        images: [],
       });
     }
     setDialogOpen(true);
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
     setUploadingImage(true);
 
-    const formData = new FormData();
-    formData.append("image", file);
+    const newUrls: string[] = [];
+    let failedCount = 0;
 
-    try {
-      const { data } = await api.post("/upload", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+    for (let i = 0; i < files.length; i++) {
+      const formData = new FormData();
+      formData.append("image", files[i]);
+
+      try {
+        const { data } = await api.post("/upload", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        newUrls.push(data.url);
+      } catch (err) {
+        failedCount++;
+      }
+    }
+
+    if (newUrls.length > 0) {
+      setForm((prev) => {
+        const updatedImages = [...prev.images, ...newUrls];
+        const updatedImageUrl = prev.image_url || updatedImages[0] || "";
+        return {
+          ...prev,
+          images: updatedImages,
+          image_url: updatedImageUrl,
+        };
       });
-      setForm((prev) => ({ ...prev, image_url: data.url }));
-      toast({ title: "Gambar berhasil diunggah" });
-    } catch (err: any) {
-      toast({ title: "Upload gagal", description: err.message, variant: "destructive" });
+      toast({ title: `${newUrls.length} gambar berhasil diunggah` });
+    }
+
+    if (failedCount > 0) {
+      toast({
+        title: "Beberapa upload gagal",
+        description: `${failedCount} file gagal diunggah`,
+        variant: "destructive",
+      });
     }
 
     setUploadingImage(false);
@@ -294,17 +323,13 @@ export function ProductsManager() {
                 <Input value={form.digital_file_url} onChange={(e) => setForm({ ...form, digital_file_url: e.target.value })} disabled={form.product_type === "physical"} />
               </div>
             </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Gambar Produk</Label>
-                <div className="flex flex-col gap-2">
-                  <Input value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} placeholder="URL gambar atau upload" />
-                  <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" type="button" onClick={() => fileInputRef.current?.click()} disabled={uploadingImage}>
-                      <ImagePlus className="h-4 w-4" /> {uploadingImage ? "Mengunggah..." : "Upload Gambar"}
-                    </Button>
-                    {form.image_url && <span className="text-sm text-muted-foreground break-all">{form.image_url}</span>}
-                  </div>
+            <div className="space-y-2 border-t pt-4">
+              <Label>Galeri Gambar Produk</Label>
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-3">
+                  <Button variant="outline" size="sm" type="button" onClick={() => fileInputRef.current?.click()} disabled={uploadingImage}>
+                    <ImagePlus className="h-4 w-4 mr-2" /> {uploadingImage ? "Mengunggah..." : "Upload Gambar"}
+                  </Button>
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -312,21 +337,74 @@ export function ProductsManager() {
                     className="hidden"
                     onChange={handleImageUpload}
                     disabled={uploadingImage}
+                    multiple
                   />
+                  {form.images && form.images.length > 0 && (
+                    <span className="text-xs text-muted-foreground">{form.images.length} gambar diunggah</span>
+                  )}
+                </div>
+
+                {form.images && form.images.length > 0 && (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 p-3 bg-muted/30 rounded-2xl border border-border">
+                    {form.images.map((img, idx) => {
+                      const isMain = form.image_url === img;
+                      return (
+                        <div key={idx} className={`relative aspect-square rounded-xl overflow-hidden border group ${isMain ? 'border-primary ring-2 ring-primary/20' : 'border-border'}`}>
+                          <img src={img} alt="" className="w-full h-full object-cover" />
+                          
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const nextImages = form.images.filter(x => x !== img);
+                              let nextMain = form.image_url;
+                              if (isMain) {
+                                nextMain = nextImages[0] || "";
+                              }
+                              setForm({ ...form, images: nextImages, image_url: nextMain });
+                            }}
+                            className="absolute top-1 right-1 p-1 rounded-lg bg-black/60 hover:bg-red-600 text-white transition opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setForm({ ...form, image_url: img })}
+                            className={`absolute bottom-1 left-1 right-1 text-[10px] py-0.5 rounded font-semibold text-center transition ${
+                              isMain 
+                                ? 'bg-primary text-white' 
+                                : 'bg-black/60 hover:bg-black/80 text-white opacity-100 sm:opacity-0 sm:group-hover:opacity-100'
+                            }`}
+                          >
+                            {isMain ? "Utama" : "Set Utama"}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">URL Gambar Utama (Featured)</Label>
+                  <Input value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} placeholder="Pilih gambar di atas atau masukkan URL langsung" className="h-8 text-xs" />
                 </div>
               </div>
-              <div className="space-y-2 flex items-end">
-                <Switch checked={form.is_active} onCheckedChange={(value) => setForm({ ...form, is_active: value })} />
-                <span className="text-sm text-muted-foreground">Aktifkan produk</span>
-              </div>
             </div>
-            <div className="space-y-2">
+
+            <div className="space-y-2 border-t pt-4">
               <Label>Deskripsi</Label>
               <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={4} />
             </div>
-            <div className="space-y-2">
-              <Label>Urutan Tampilan</Label>
-              <Input type="number" value={form.sort_order} onChange={(e) => setForm({ ...form, sort_order: Number(e.target.value) })} />
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Urutan Tampilan</Label>
+                <Input type="number" value={form.sort_order} onChange={(e) => setForm({ ...form, sort_order: Number(e.target.value) })} />
+              </div>
+              <div className="space-y-2 flex items-center gap-2 pt-6">
+                <Switch checked={form.is_active} onCheckedChange={(value) => setForm({ ...form, is_active: value })} />
+                <span className="text-sm font-medium">Aktifkan produk</span>
+              </div>
             </div>
             
             <div className="grid gap-4 md:grid-cols-2 border-t pt-4">

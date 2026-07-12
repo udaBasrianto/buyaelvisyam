@@ -82,6 +82,7 @@ func ConnectDB() {
 	db.Exec(`ALTER TABLE products ADD COLUMN IF NOT EXISTS is_flash_sale boolean DEFAULT false`)
 	db.Exec(`ALTER TABLE products ADD COLUMN IF NOT EXISTS flash_sale_start timestamp with time zone`)
 	db.Exec(`ALTER TABLE products ADD COLUMN IF NOT EXISTS flash_sale_end timestamp with time zone`)
+	db.Exec(`ALTER TABLE products ADD COLUMN IF NOT EXISTS images text[]`)
 	db.Exec(`UPDATE product_orders
 		SET public_token = md5(random()::text || clock_timestamp()::text || id::text) || md5(random()::text || id::text)
 		WHERE public_token IS NULL OR public_token = ''`)

@@ -477,9 +477,10 @@ type Product struct {
 	SKU            string    `json:"sku"`
 	Stock          int       `gorm:"default:0" json:"stock"`
 	DigitalFileURL string    `json:"digital_file_url"`
-	ImageURL       string    `json:"image_url"`
-	IsActive       bool       `gorm:"default:true" json:"is_active"`
-	SortOrder      int        `gorm:"default:0" json:"sort_order"`
+	ImageURL       string         `json:"image_url"`
+	Images         pq.StringArray `gorm:"type:text[]" json:"images"`
+	IsActive       bool           `gorm:"default:true" json:"is_active"`
+	SortOrder      int            `gorm:"default:0" json:"sort_order"`
 	Views          int        `gorm:"default:0" json:"views"`
 	DiscountPrice  float64    `gorm:"default:0" json:"discount_price"`
 	IsFlashSale    bool       `gorm:"default:false" json:"is_flash_sale"`

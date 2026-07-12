@@ -26,10 +26,11 @@ type productRequest struct {
 	ImageURL       *string  `json:"image_url"`
 	IsActive       *bool    `json:"is_active"`
 	SortOrder      *int     `json:"sort_order"`
-	DiscountPrice  *float64 `json:"discount_price"`
-	IsFlashSale    *bool    `json:"is_flash_sale"`
-	FlashSaleStart *string  `json:"flash_sale_start"`
-	FlashSaleEnd   *string  `json:"flash_sale_end"`
+	DiscountPrice  *float64  `json:"discount_price"`
+	IsFlashSale    *bool     `json:"is_flash_sale"`
+	FlashSaleStart *string   `json:"flash_sale_start"`
+	FlashSaleEnd   *string   `json:"flash_sale_end"`
+	Images         *[]string `json:"images"`
 }
 
 func parseTime(s *string) *time.Time {
@@ -183,6 +184,14 @@ func CreateProduct(c *fiber.Ctx) error {
 		isFlashSale = *body.IsFlashSale
 	}
 
+	var images []string
+	if body.Images != nil {
+		images = *body.Images
+	}
+	if imageURL == "" && len(images) > 0 {
+		imageURL = images[0]
+	}
+
 	product := models.Product{
 		ID:             uuid.New(),
 		Title:          body.Title,
@@ -195,6 +204,7 @@ func CreateProduct(c *fiber.Ctx) error {
 		Stock:          stock,
 		DigitalFileURL: digitalFileURL,
 		ImageURL:       imageURL,
+		Images:         images,
 		IsActive:       true,
 		SortOrder:      0,
 		DiscountPrice:  discountPrice,
@@ -286,6 +296,18 @@ func UpdateProduct(c *fiber.Ctx) error {
 	}
 	if body.FlashSaleEnd != nil {
 		updateMap["flash_sale_end"] = parseTime(body.FlashSaleEnd)
+	}
+	if body.Images != nil {
+		updateMap["images"] = *body.Images
+		var currentImage string
+		if body.ImageURL != nil {
+			currentImage = *body.ImageURL
+		} else {
+			currentImage = product.ImageURL
+		}
+		if currentImage == "" && len(*body.Images) > 0 {
+			updateMap["image_url"] = (*body.Images)[0]
+		}
 	}
 
 	if strings.TrimSpace(body.Slug) != "" && body.Slug != product.Slug {

@@ -95,6 +95,7 @@ export default function ProductDetail() {
   const navigate = useNavigate();
   const [product, setProduct] = useState<ProductDetailItem | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeImage, setActiveImage] = useState<string>("");
   const { settings } = useSiteSettings();
   const { addToCart } = useCart();
   const { toast } = useToast();
@@ -132,7 +133,13 @@ export default function ProductDetail() {
     if (!slug) return;
     setLoading(true);
     api.get(`/products/${slug}`)
-      .then(({ data }) => setProduct(asObject<ProductDetailItem>(data)))
+      .then(({ data }) => {
+        const prod = asObject<ProductDetailItem>(data);
+        setProduct(prod);
+        if (prod) {
+          setActiveImage(prod.image_url || "");
+        }
+      })
       .catch(() => setProduct(null))
       .finally(() => setLoading(false));
   }, [slug]);
@@ -172,17 +179,42 @@ export default function ProductDetail() {
 
       <main className="container mx-auto px-4 py-10 bottom-nav-safe">
         <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
-        <div className="space-y-6">
-          {product.image_url && <img src={product.image_url} alt={product.title} className="w-full rounded-[2rem] object-cover shadow-lg" />}
-          <div className="space-y-4">
-            <p className="text-sm uppercase tracking-[0.3em] text-primary">{product.product_type === "digital" ? "Produk Digital" : "Produk Fisik"}</p>
-            <h1 className="text-4xl font-bold">{product.title}</h1>
-            {isFlash && product.flash_sale_end && (
-              <FlashSaleCountdown endDate={product.flash_sale_end} />
-            )}
-            <p className="text-muted-foreground leading-relaxed whitespace-pre-line">{product.description}</p>
+          <div className="space-y-6">
+            <div className="space-y-4">
+              {activeImage && (
+                <div className="aspect-[4/3] sm:aspect-[16/9] w-full rounded-[2rem] overflow-hidden shadow-lg border border-border bg-muted">
+                  <img src={activeImage} alt={product.title} className="w-full h-full object-cover transition-all duration-300" />
+                </div>
+              )}
+              
+              {product.images && product.images.length > 1 && (
+                <div className="flex items-center gap-3 overflow-x-auto py-2 px-1 no-scrollbar">
+                  {product.images.map((img, idx) => {
+                    const isActive = activeImage === img;
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => setActiveImage(img)}
+                        className={`relative w-20 sm:w-24 aspect-square rounded-2xl overflow-hidden border-2 transition-all ${
+                          isActive ? 'border-primary scale-95 shadow-md' : 'border-border hover:border-primary/50'
+                        }`}
+                      >
+                        <img src={img} alt="" className="w-full h-full object-cover" />
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            <div className="space-y-4">
+              <p className="text-sm uppercase tracking-[0.3em] text-primary">{product.product_type === "digital" ? "Produk Digital" : "Produk Fisik"}</p>
+              <h1 className="text-4xl font-bold">{product.title}</h1>
+              {isFlash && product.flash_sale_end && (
+                <FlashSaleCountdown endDate={product.flash_sale_end} />
+              )}
+              <p className="text-muted-foreground leading-relaxed whitespace-pre-line">{product.description}</p>
+            </div>
           </div>
-        </div>
         <div className="rounded-[2rem] border border-border bg-card p-8 shadow-sm">
           <div className="space-y-4">
             <div>
