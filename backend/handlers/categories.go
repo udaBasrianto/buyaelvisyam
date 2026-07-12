@@ -194,6 +194,7 @@ func GetSiteSettings(c *fiber.Ctx) error {
 			RecentTitle:                  "Recent Stories",
 			RecentLimit:                  20,
 			SliderOverlayOpacity:         85,
+			HomepageSectionOrder:         "hero_slider,prayer_times,categories,editors_choice,feature_bar,recent_stories",
 			ProductsMenuLabel:            "Produk",
 			ProductsTitle:                "Daftar Produk",
 			ProductsSubtitle:             "Lihat produk fisik dan digital yang tersedia.",

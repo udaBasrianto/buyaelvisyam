@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Save, ImagePlus, X, Palette } from "lucide-react";
+import { Save, ImagePlus, X, Palette, ArrowUp, ArrowDown, GripVertical, Eye, EyeOff, LayoutDashboard } from "lucide-react";
 import { THEME_PALETTES } from "@/constants/themes";
 import { Button } from "@/components/ui/button";
 import { FeaturesManager } from "./FeaturesManager";
@@ -36,6 +36,7 @@ interface Settings {
   recent_title?: string;
   recent_limit?: number;
   slider_overlay_opacity?: number;
+  homepage_section_order?: string;
   newsletter_title?: string;
   newsletter_description?: string;
   newsletter_button_text?: string;
@@ -194,6 +195,7 @@ export function SiteSettingsManager() {
         recent_title: settings.recent_title?.trim() || "Recent Stories",
         recent_limit: Number(settings.recent_limit) || 20,
         slider_overlay_opacity: Number(settings.slider_overlay_opacity) || 85,
+        homepage_section_order: settings.homepage_section_order || "hero_slider,prayer_times,categories,editors_choice,feature_bar,recent_stories",
         newsletter_title: settings.newsletter_title?.trim() || "",
         newsletter_description: settings.newsletter_description?.trim() || "",
         newsletter_button_text: settings.newsletter_button_text?.trim() || "",
@@ -447,6 +449,84 @@ export function SiteSettingsManager() {
             />
           </div>
         </div>
+      </div>
+
+      {/* Section Reorder UI */}
+      <div className="pt-4 border-t space-y-4">
+        <Label className="text-sm font-bold flex items-center gap-2">
+          <LayoutDashboard className="h-4 w-4 text-primary" /> Urutan Seksi Beranda
+        </Label>
+        <div className="text-[10px] text-muted-foreground mb-2">Atur urutan dan visibilitas seksi pada halaman beranda. Gunakan tombol panah untuk mengubah posisi.</div>
+        {(() => {
+          const ALL_SECTIONS = [
+            { id: "hero_slider", label: "Hero Slider" },
+            { id: "prayer_times", label: "Jadwal Shalat" },
+            { id: "categories", label: "Kategori" },
+            { id: "editors_choice", label: "Editors Choice" },
+            { id: "feature_bar", label: "Feature Bar" },
+            { id: "recent_stories", label: "Recent Stories + Sidebar" },
+          ];
+          const currentOrder = (settings.homepage_section_order || "hero_slider,prayer_times,categories,editors_choice,feature_bar,recent_stories").split(",").filter(Boolean);
+          const hiddenSections = ALL_SECTIONS.filter(s => !currentOrder.includes(s.id));
+
+          const moveUp = (idx: number) => {
+            if (idx === 0) return;
+            const arr = [...currentOrder];
+            [arr[idx - 1], arr[idx]] = [arr[idx], arr[idx - 1]];
+            setSettings({ ...settings, homepage_section_order: arr.join(",") });
+          };
+          const moveDown = (idx: number) => {
+            if (idx >= currentOrder.length - 1) return;
+            const arr = [...currentOrder];
+            [arr[idx], arr[idx + 1]] = [arr[idx + 1], arr[idx]];
+            setSettings({ ...settings, homepage_section_order: arr.join(",") });
+          };
+          const toggleVisibility = (sectionId: string) => {
+            if (currentOrder.includes(sectionId)) {
+              setSettings({ ...settings, homepage_section_order: currentOrder.filter(s => s !== sectionId).join(",") });
+            } else {
+              setSettings({ ...settings, homepage_section_order: [...currentOrder, sectionId].join(",") });
+            }
+          };
+
+          return (
+            <div className="space-y-2">
+              {currentOrder.map((sectionId, idx) => {
+                const section = ALL_SECTIONS.find(s => s.id === sectionId);
+                if (!section) return null;
+                return (
+                  <div key={sectionId} className="flex items-center gap-2 p-3 rounded-xl border bg-card group">
+                    <GripVertical className="h-4 w-4 text-muted-foreground/40 shrink-0" />
+                    <span className="text-xs font-bold text-primary bg-primary/10 rounded-md px-2 py-0.5 w-6 text-center">{idx + 1}</span>
+                    <span className="text-xs font-bold flex-1">{section.label}</span>
+                    <button onClick={() => moveUp(idx)} disabled={idx === 0} className="p-1 rounded hover:bg-accent disabled:opacity-20 transition-all" title="Pindah ke atas">
+                      <ArrowUp className="h-3.5 w-3.5" />
+                    </button>
+                    <button onClick={() => moveDown(idx)} disabled={idx >= currentOrder.length - 1} className="p-1 rounded hover:bg-accent disabled:opacity-20 transition-all" title="Pindah ke bawah">
+                      <ArrowDown className="h-3.5 w-3.5" />
+                    </button>
+                    <button onClick={() => toggleVisibility(sectionId)} className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all" title="Sembunyikan seksi">
+                      <EyeOff className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                );
+              })}
+              {hiddenSections.length > 0 && (
+                <div className="pt-2 border-t mt-3">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Seksi Tersembunyi</p>
+                  {hiddenSections.map(section => (
+                    <div key={section.id} className="flex items-center gap-2 p-3 rounded-xl border border-dashed bg-muted/30 mb-2">
+                      <span className="text-xs font-bold flex-1 text-muted-foreground">{section.label}</span>
+                      <button onClick={() => toggleVisibility(section.id)} className="p-1 rounded hover:bg-primary/10 text-muted-foreground hover:text-primary transition-all" title="Tampilkan seksi">
+                        <Eye className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       <div className="pt-4 border-t space-y-6">
