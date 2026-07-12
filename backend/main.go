@@ -137,6 +137,7 @@ func main() {
 		// Only track public page views, ignore api, static, and admin
 		if !strings.HasPrefix(path, "/api") && !strings.HasPrefix(path, "/uploads") && !strings.Contains(path, ".") {
 			var userID *uuid.UUID
+			isAdmin := false
 
 			// Try to get user ID from JWT if present
 			authHeader := c.Get("Authorization")
@@ -156,23 +157,35 @@ func main() {
 								userID = &uid
 							}
 						}
+						if roleVal, ok := claims["role"].(string); ok && roleVal == "admin" {
+							isAdmin = true
+						}
 					}
 				}
 			}
 
-			// Run DB writes in separate goroutine so they never block / crash handler
-			go func(p string, uid *uuid.UUID, ip, ua string) {
-				defer func() { recover() }()
-				visit := models.Visit{
-					ID:        uuid.New(),
-					UserID:    uid,
-					IP:        ip,
-					Path:      p,
-					UserAgent: ua,
-					CreatedAt: time.Now(),
-				}
-				database.DB.Create(&visit)
-			}(path, userID, c.IP(), c.Get("User-Agent"))
+			// Do not track if user is admin, or accessing admin/auth paths
+			isAuthOrAdminPath := strings.HasPrefix(path, "/admin") || 
+				strings.HasPrefix(path, "/yaakhi") || 
+				strings.HasPrefix(path, "/wp-admin") || 
+				strings.HasPrefix(path, "/auth") || 
+				strings.HasPrefix(path, "/login")
+
+			if !isAdmin && !isAuthOrAdminPath {
+				// Run DB writes in separate goroutine so they never block / crash handler
+				go func(p string, uid *uuid.UUID, ip, ua string) {
+					defer func() { recover() }()
+					visit := models.Visit{
+						ID:        uuid.New(),
+						UserID:    uid,
+						IP:        ip,
+						Path:      p,
+						UserAgent: ua,
+						CreatedAt: time.Now(),
+					}
+					database.DB.Create(&visit)
+				}(path, userID, c.IP(), c.Get("User-Agent"))
+			}
 		}
 		return c.Next()
 	})
