@@ -518,9 +518,16 @@ func ImportExportV1(c *fiber.Ctx) error {
 		q.Set("limit", "1000")
 		legacyURL.RawQuery = q.Encode()
 
-		resp, err := client.Get(legacyURL.String())
+		reqObj, err := http.NewRequest("GET", legacyURL.String(), nil)
 		if err != nil {
-			return fiber.NewError(502, "Gagal mengambil data dari sumber")
+			return fiber.NewError(502, "Gagal membuat request")
+		}
+		reqObj.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+		reqObj.Header.Set("Accept", "application/json")
+
+		resp, err := client.Do(reqObj)
+		if err != nil {
+			return fiber.NewError(502, "Gagal mengambil data dari sumber: " + err.Error())
 		}
 		if resp.Body == nil {
 			return fiber.NewError(502, "Response sumber kosong")
@@ -590,9 +597,16 @@ func ImportExportV1(c *fiber.Ctx) error {
 		}
 		exportURL.RawQuery = q.Encode()
 
-		resp, err := client.Get(exportURL.String())
+		reqObj, err := http.NewRequest("GET", exportURL.String(), nil)
 		if err != nil {
-			return c.Status(502).JSON(fiber.Map{"error": "Gagal mengambil data dari sumber"})
+			return c.Status(502).JSON(fiber.Map{"error": "Gagal membuat request"})
+		}
+		reqObj.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+		reqObj.Header.Set("Accept", "application/json")
+
+		resp, err := client.Do(reqObj)
+		if err != nil {
+			return c.Status(502).JSON(fiber.Map{"error": "Gagal mengambil data dari sumber: " + err.Error()})
 		}
 		var parsed exportListResponse
 		if resp.Body != nil {
