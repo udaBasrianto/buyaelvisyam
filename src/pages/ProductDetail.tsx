@@ -10,6 +10,7 @@ import { SEO } from "@/components/SEO";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { useToast } from "@/hooks/use-toast";
 import { useCart } from "@/contexts/CartContext";
+import { X, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface ProductDetailItem {
   id: string;
@@ -96,6 +97,7 @@ export default function ProductDetail() {
   const [product, setProduct] = useState<ProductDetailItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeImage, setActiveImage] = useState<string>("");
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const { settings } = useSiteSettings();
   const { addToCart } = useCart();
   const { toast } = useToast();
@@ -182,8 +184,11 @@ export default function ProductDetail() {
           <div className="space-y-6">
             <div className="space-y-4">
               {activeImage && (
-                <div className="aspect-[4/3] sm:aspect-[16/9] w-full rounded-[2rem] overflow-hidden shadow-lg border border-border bg-muted">
-                  <img src={activeImage} alt={product.title} className="w-full h-full object-cover transition-all duration-300" />
+                <div 
+                  className="aspect-[4/3] sm:aspect-[16/9] w-full rounded-[2rem] overflow-hidden shadow-lg border border-border bg-muted cursor-zoom-in"
+                  onClick={() => setIsLightboxOpen(true)}
+                >
+                  <img src={activeImage} alt={product.title} className="w-full h-full object-cover transition-all duration-300 hover:scale-105" />
                 </div>
               )}
               
@@ -264,6 +269,54 @@ export default function ProductDetail() {
         </div>
         </div>
       </main>
+
+      {isLightboxOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm transition-all duration-300">
+          <button
+            onClick={() => setIsLightboxOpen(false)}
+            className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition z-50"
+          >
+            <X className="h-6 w-6" />
+          </button>
+
+          {product.images && product.images.length > 1 && (
+            <>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const currentIdx = product.images!.indexOf(activeImage);
+                  const prevIdx = (currentIdx - 1 + product.images!.length) % product.images!.length;
+                  setActiveImage(product.images![prevIdx]);
+                }}
+                className="absolute left-4 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition z-50"
+              >
+                <ChevronLeft className="h-6 w-6" />
+              </button>
+              
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const currentIdx = product.images!.indexOf(activeImage);
+                  const nextIdx = (currentIdx + 1) % product.images!.length;
+                  setActiveImage(product.images![nextIdx]);
+                }}
+                className="absolute right-4 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition z-50"
+              >
+                <ChevronRight className="h-6 w-6" />
+              </button>
+            </>
+          )}
+
+          <div className="max-w-[90vw] max-h-[90vh] flex items-center justify-center" onClick={() => setIsLightboxOpen(false)}>
+            <img
+              src={activeImage}
+              alt={product.title}
+              className="max-w-full max-h-[85vh] object-contain rounded-xl select-none"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
 
       <Footer />
       <BottomNav />
