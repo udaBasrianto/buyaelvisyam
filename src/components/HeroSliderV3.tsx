@@ -1,185 +1,283 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { Calendar, User } from "lucide-react";
+import { ChevronLeft, ChevronRight, Bookmark } from "lucide-react";
 import { heroSlides as defaultSlides } from "@/data/mockData";
 import type { Post } from "@/data/mockData";
 import { motion, AnimatePresence } from "framer-motion";
 
-// Placeholder gradient SVGs (Islamic-themed) - replaces blocked external images
-const STOCK_IMAGES = [
-  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 600'%3E%3Cdefs%3E%3ClinearGradient id='g1' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%238B5CF6;stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:%236366F1;stop-opacity:1' /%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='1200' height='600' fill='url(%23g1)'/%3E%3C/svg%3E",
-  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 600'%3E%3Cdefs%3E%3ClinearGradient id='g2' x1='0%25' y1='100%25' x2='100%25' y2='0%25'%3E%3Cstop offset='0%25' style='stop-color:%23F59E0B;stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:%23DC2626;stop-opacity:1' /%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='1200' height='600' fill='url(%23g2)'/%3E%3C/svg%3E",
-  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 600'%3E%3Cdefs%3E%3ClinearGradient id='g3' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%2310B981;stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:%230891B2;stop-opacity:1' /%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='1200' height='600' fill='url(%23g3)'/%3E%3C/svg%3E",
-  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 600'%3E%3Cdefs%3E%3ClinearGradient id='g4' x1='100%25' y1='0%25' x2='0%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%236366F1;stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:%23A855F7;stop-opacity:1' /%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='1200' height='600' fill='url(%23g4)'/%3E%3C/svg%3E",
-  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 600'%3E%3Cdefs%3E%3ClinearGradient id='g5' x1='50%25' y1='0%25' x2='50%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23EC4899;stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:%238B5CF6;stop-opacity:1' /%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='1200' height='600' fill='url(%23g5)'/%3E%3C/svg%3E",
-];
+const DEFAULT_POST_IMAGE = "https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa?q=80&w=2070&auto=format&fit=crop";
 
 interface HeroSliderV3Props {
   slides?: Post[];
 }
 
 export function HeroSliderV3({ slides }: HeroSliderV3Props) {
-  const allData = slides && slides.length > 0 ? slides : defaultSlides;
-  const [offset, setOffset] = useState(0);
-  const [progress, setProgress] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
-  const CYCLE_TIME = 10000;
+  const data = slides && slides.length > 0 ? slides : defaultSlides;
+  const [current, setCurrent] = useState(0);
+  const [direction, setDirection] = useState(0);
+
+  const next = useCallback(() => {
+    setDirection(1);
+    setCurrent((c) => (c + 1) % data.length);
+  }, [data.length]);
+
+  const prev = useCallback(() => {
+    setDirection(-1);
+    setCurrent((c) => (c - 1 + data.length) % data.length);
+  }, [data.length]);
 
   useEffect(() => {
-    if (isPaused) return;
+    const timer = setInterval(next, 8000);
+    return () => clearInterval(timer);
+  }, [next]);
 
-    const interval = setInterval(() => {
-      setProgress((p) => {
-        if (p >= 100) {
-          setOffset((o) => (o + 1) % allData.length);
-          return 0;
-        }
-        return p + (100 / (CYCLE_TIME / 50));
-      });
-    }, 50);
+  if (!data || data.length === 0) return null;
 
-    return () => clearInterval(interval);
-  }, [isPaused, allData.length]);
+  const currentSlide = data[current];
+  const prevSlide = data[(current - 1 + data.length) % data.length];
+  const nextSlide = data[(current + 1) % data.length];
 
-  const data = Array.from({ length: 5 }, (_, i) => allData[(offset + i) % allData.length]);
-
-  const main = data[0];
-  const side = data[1];
-  const bottom = data.slice(2, 5);
-
-  if (!main) return null;
+  // Upcoming 3 slides for the right card stack
+  const cardStack = [
+    data[(current + 1) % data.length],
+    data[(current + 2) % data.length],
+    data[(current + 3) % data.length],
+  ];
 
   return (
-    <div
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
-      className="relative"
-    >
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={offset}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.8 }}
-          className="flex flex-col lg:grid lg:grid-cols-12 lg:grid-rows-2 gap-4 h-[350px] md:h-[420px] lg:h-[550px]"
-        >
-          {/* Main Big Feature */}
-          <div className="lg:col-span-8 lg:row-span-2 relative rounded-[2.5rem] overflow-hidden group shadow-2xl h-full">
-            <Link to={`/${main.slug || main.id}`} className="block h-full relative">
-              <img
-                src={main.image || STOCK_IMAGES[0]}
-                alt={main.title}
-                className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-[10000ms]"
-                onError={(e) => { (e.target as HTMLImageElement).src = STOCK_IMAGES[0]; }}
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/20 to-transparent" />
+    <section className="relative w-full h-[520px] md:h-[580px] lg:h-[620px] overflow-hidden rounded-[2rem] bg-black text-white shadow-2xl group select-none">
+      
+      {/* Background Image Layer (Blurred, high contrast, matching active slide) */}
+      <div className="absolute inset-0 z-0 overflow-hidden">
+        <AnimatePresence mode="wait">
+          <motion.img
+            key={current}
+            src={currentSlide.image || DEFAULT_POST_IMAGE}
+            alt=""
+            className="w-full h-full object-cover scale-105 brightness-[0.4] filter blur-[6px] transition-all duration-[1000ms]"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.85 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.8 }}
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = DEFAULT_POST_IMAGE;
+            }}
+          />
+        </AnimatePresence>
+        <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/45 to-black/80" />
+      </div>
 
-              {/* Circular Progress */}
-              <div className="absolute top-8 left-8 z-30">
-                <div className="relative h-14 w-14 flex items-center justify-center bg-black/30 backdrop-blur-xl rounded-full border border-white/10">
-                  <svg className="h-12 w-12 -rotate-90" viewBox="0 0 48 48">
-                    <circle cx="24" cy="24" r="20" fill="transparent" stroke="rgba(255,255,255,0.1)" strokeWidth="2" />
-                    <motion.circle
-                      cx="24"
-                      cy="24"
-                      r="20"
-                      fill="transparent"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeDasharray="125.6"
-                      strokeDashoffset={125.6 - (125.6 * progress) / 100}
-                      className="text-primary"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-[9px] font-bold text-white">{Math.round(progress)}%</span>
-                  </div>
-                </div>
+      {/* Main Grid Content Container */}
+      <div className="absolute inset-0 z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center px-6 md:px-12 lg:px-16 py-12">
+        
+        {/* Left Section: Active Slide Details */}
+        <div className="lg:col-span-5 flex flex-row items-center gap-6 md:gap-8 h-full relative">
+          
+          {/* Vertical Index Indicator */}
+          <div className="flex flex-col items-center justify-between h-full max-h-[320px] text-[10px] tracking-widest font-black uppercase text-white/30 hidden md:flex border-r border-white/10 pr-6 select-none">
+            <span className="[writing-mode:vertical-lr] rotate-180">
+              {String(current + 1).padStart(2, "0")} / {String(data.length).padStart(2, "0")}
+            </span>
+            <div className="flex-1 w-[1px] bg-white/10 my-4 relative flex items-center justify-center">
+              <div className="absolute h-6 w-6 rounded-full border border-white/20 bg-black/60 flex items-center justify-center text-[10px] font-bold text-primary-foreground shadow-lg">
+                {current + 1}
               </div>
-
-              <div className="absolute inset-x-0 bottom-0 p-6 md:p-12">
-                <motion.span
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.4 }}
-                  className="px-4 py-1.5 rounded-full bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-widest mb-6 inline-block shadow-xl"
-                >
-                  {main.category}
-                </motion.span>
-                <motion.h1
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5 }}
-                  className="text-3xl md:text-5xl font-black text-white leading-tight mb-6 line-clamp-2 drop-shadow-2xl group-hover:text-primary transition-colors"
-                >
-                  {main.title}
-                </motion.h1>
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.6 }}
-                  className="flex items-center gap-6 text-white/70 text-sm font-bold uppercase tracking-wider"
-                >
-                  <span className="flex items-center gap-2">
-                    <div className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center backdrop-blur-md border border-white/20">
-                      <User className="h-4 w-4" />
-                    </div>
-                    {main.author}
-                  </span>
-                  <span className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-primary" /> {main.date}
-                  </span>
-                </motion.div>
-              </div>
-            </Link>
-          </div>
-
-          {/* Side Featured */}
-          {side && (
-            <div className="hidden lg:block lg:col-span-4 lg:row-span-1 relative rounded-3xl overflow-hidden group shadow-lg">
-              <Link to={`/${side.slug || side.id}`} className="block h-full relative">
-                <img
-                  src={side.image || STOCK_IMAGES[1]}
-                  alt={side.title}
-                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
-                  onError={(e) => { (e.target as HTMLImageElement).src = STOCK_IMAGES[1]; }}
-                />
-                <div className="absolute inset-0 bg-black/50 group-hover:bg-black/30 transition-all" />
-                <div className="absolute inset-0 p-6 flex flex-col justify-end">
-                  <span className="text-primary text-[10px] font-black uppercase tracking-widest mb-1 drop-shadow-md">{side.category}</span>
-                  <h2 className="text-lg font-black text-white line-clamp-2 leading-tight group-hover:text-primary transition-colors drop-shadow-md">
-                    {side.title}
-                  </h2>
-                </div>
-              </Link>
             </div>
-          )}
-
-          {/* Bottom Small Feature */}
-          <div className="hidden lg:grid lg:col-span-4 lg:row-span-1 grid-cols-2 gap-4">
-            {bottom.slice(0, 2).map((item, idx) => (
-              <div key={item.id} className="relative rounded-2xl overflow-hidden group shadow-md">
-                <Link to={`/${item.slug || item.id}`} className="block h-full relative">
-                  <img
-                    src={item.image || STOCK_IMAGES[(idx + 2) % STOCK_IMAGES.length]}
-                    alt={item.title}
-                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                    onError={(e) => { (e.target as HTMLImageElement).src = STOCK_IMAGES[(idx + 2) % STOCK_IMAGES.length]; }}
-                  />
-                  <div className="absolute inset-0 bg-black/60 group-hover:bg-black/40 transition-colors" />
-                  <div className="absolute inset-0 p-4 flex flex-col justify-end">
-                    <h3 className="text-xs font-black text-white line-clamp-2 leading-tight drop-shadow-md">
-                      {item.title}
-                    </h3>
-                  </div>
-                </Link>
-              </div>
-            ))}
+            <span className="[writing-mode:vertical-lr] rotate-180">INDEX</span>
           </div>
-        </motion.div>
-      </AnimatePresence>
-    </div>
+
+          {/* Text Content */}
+          <div className="flex-1 flex flex-col justify-center">
+            
+            {/* Top Label (Previous Category/Tag) */}
+            <div className="overflow-hidden h-6 mb-2">
+              <AnimatePresence mode="wait">
+                <motion.span
+                  key={current}
+                  className="text-xs md:text-sm font-bold uppercase tracking-widest text-white/50 block"
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: -20, opacity: 0 }}
+                  transition={{ duration: 0.5 }}
+                >
+                  {prevSlide.category || "KAJIAN"}
+                </motion.span>
+              </AnimatePresence>
+            </div>
+
+            {/* Giant Title */}
+            <div className="overflow-hidden min-h-[90px] md:min-h-[120px] mb-4">
+              <AnimatePresence mode="wait">
+                <motion.h1
+                  key={current}
+                  className="text-3xl md:text-5xl lg:text-6xl font-black text-white uppercase tracking-tight leading-none line-clamp-2 drop-shadow-2xl"
+                  initial={{ y: 80, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: -80, opacity: 0 }}
+                  transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                >
+                  {currentSlide.title}
+                </motion.h1>
+              </AnimatePresence>
+            </div>
+
+            {/* Excerpt/Description */}
+            <div className="overflow-hidden min-h-[50px] mb-6">
+              <AnimatePresence mode="wait">
+                <motion.p
+                  key={current}
+                  className="text-xs md:text-sm text-white/70 line-clamp-3 leading-relaxed max-w-md"
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -15 }}
+                  transition={{ duration: 0.5, delay: 0.1 }}
+                >
+                  {currentSlide.excerpt || "Baca penjelasan lengkap tentang kajian bermanfaat ini dan temukan wawasan Islami yang mendalam."}
+                </motion.p>
+              </AnimatePresence>
+            </div>
+
+            {/* Explore Button */}
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.3 }}
+            >
+              <Link
+                to={`/artikel/${currentSlide.slug || currentSlide.id}`}
+                className="inline-flex items-center gap-3 px-8 py-3.5 bg-primary text-primary-foreground font-black text-xs uppercase tracking-wider rounded-xl hover:bg-primary/95 transition-all shadow-lg hover:shadow-primary/20 transform hover:-translate-y-0.5 active:translate-y-0 group-hover:scale-[1.02]"
+              >
+                <span>BACA DETAIL</span>
+                <ChevronRight className="h-4 w-4 transform transition-transform group-hover:translate-x-1" />
+              </Link>
+            </motion.div>
+
+            {/* Bottom Label (Next Category/Tag) */}
+            <div className="overflow-hidden h-6 mt-8">
+              <AnimatePresence mode="wait">
+                <motion.span
+                  key={current}
+                  className="text-xs md:text-sm font-bold uppercase tracking-widest text-white/20 block"
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: -20, opacity: 0 }}
+                  transition={{ duration: 0.5, delay: 0.2 }}
+                >
+                  {nextSlide.category || "POSTINGAN"}
+                </motion.span>
+              </AnimatePresence>
+            </div>
+
+          </div>
+
+        </div>
+
+        {/* Right Section: Card Stack (Upcoming Cards) */}
+        <div className="lg:col-span-7 flex items-center h-full relative overflow-x-visible pl-4 select-none">
+          <div className="flex gap-4 md:gap-6 w-full overflow-x-auto lg:overflow-x-visible no-scrollbar py-4">
+            
+            {cardStack.map((slideItem, index) => (
+              <motion.div
+                key={slideItem.id + "-" + index}
+                onClick={() => {
+                  setDirection(1);
+                  setCurrent(data.indexOf(slideItem));
+                }}
+                className={`relative shrink-0 rounded-2xl md:rounded-3xl overflow-hidden cursor-pointer border border-white/10 group/card shadow-xl transition-all duration-300 ${
+                  index === 0 
+                    ? "w-[200px] h-[300px] md:w-[240px] md:h-[360px]" 
+                    : index === 1 
+                      ? "w-[170px] h-[260px] md:w-[200px] md:h-[310px] opacity-70 hover:opacity-100" 
+                      : "w-[140px] h-[220px] md:w-[170px] md:h-[260px] opacity-40 hover:opacity-100 hidden sm:block"
+                }`}
+                whileHover={{ y: -6, scale: 1.02 }}
+                initial={{ opacity: 0, x: 50 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+              >
+                {/* Thumbnail Image */}
+                <img
+                  src={slideItem.image || DEFAULT_POST_IMAGE}
+                  alt=""
+                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover/card:scale-105"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = DEFAULT_POST_IMAGE;
+                  }}
+                />
+                
+                {/* Card Gradient Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
+                
+                {/* Card Title Label (Bangkok, Thailand style) */}
+                <div className="absolute top-4 left-4 right-4 z-10">
+                  <p className="text-[10px] md:text-xs font-black text-white/90 drop-shadow-md truncate uppercase tracking-widest">
+                    {slideItem.title}
+                  </p>
+                </div>
+
+                {/* Bookmark Overlay Button */}
+                <div className="absolute top-4 right-4 z-20">
+                  <div className="p-2 rounded-lg bg-black/40 backdrop-blur-md border border-white/10 text-white/80 hover:text-white transition-colors">
+                    <Bookmark className="h-3 w-3 fill-current" />
+                  </div>
+                </div>
+
+                {/* Bottom Card Tag Info */}
+                <div className="absolute bottom-4 left-4 z-10">
+                  <span className="px-2 py-0.5 text-[8px] font-bold bg-white/20 text-white rounded backdrop-blur-sm uppercase">
+                    {slideItem.category}
+                  </span>
+                </div>
+              </motion.div>
+            ))}
+
+          </div>
+        </div>
+
+      </div>
+
+      {/* Bottom Slider Progress & Navigation Controls */}
+      <div className="absolute bottom-6 left-6 right-6 md:bottom-8 md:left-16 md:right-16 z-20 flex items-center justify-between">
+        
+        {/* Empty left gap or progress block */}
+        <div className="flex items-center gap-3 hidden md:flex">
+          <div className="w-[120px] h-[2px] bg-white/10 rounded-full overflow-hidden relative">
+            <motion.div
+              key={current}
+              className="absolute left-0 top-0 bottom-0 bg-primary"
+              initial={{ width: 0 }}
+              animate={{ width: "100%" }}
+              transition={{ duration: 8, ease: "linear" }}
+            />
+          </div>
+        </div>
+
+        {/* Circular Arrows (<- and ->) */}
+        <div className="flex items-center gap-3 bg-black/40 backdrop-blur-md border border-white/10 p-1.5 rounded-full shadow-lg">
+          <button
+            onClick={prev}
+            className="p-2 rounded-full hover:bg-white/10 text-white transition-all transform active:scale-95"
+            title="Slide Sebelumnya"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <div className="h-4 w-[1px] bg-white/10" />
+          <button
+            onClick={next}
+            className="p-2 rounded-full hover:bg-white/10 text-white transition-all transform active:scale-95"
+            title="Slide Berikutnya"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Large Page Index Number (e.g. 01 style) */}
+        <div className="text-xl font-bold tracking-tight text-white/40 select-none">
+          {String(current + 1).padStart(2, "0")}
+        </div>
+
+      </div>
+
+    </section>
   );
 }
