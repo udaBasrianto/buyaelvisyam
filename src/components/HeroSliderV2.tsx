@@ -4,6 +4,7 @@ import { Eye, Calendar, User, ChevronRight, ChevronLeft, Pause, Play } from "luc
 import { heroSlides as defaultSlides } from "@/data/mockData";
 import type { Post } from "@/data/mockData";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 // Placeholder gradient SVG (Islamic-themed)
 const DEFAULT_POST_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 600'%3E%3Cdefs%3E%3ClinearGradient id='grad1' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%238B5CF6;stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:%236366F1;stop-opacity:1' /%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='1200' height='600' fill='url(%23grad1)'/%3E%3Ctext x='600' y='300' font-size='48' fill='white' opacity='0.3' text-anchor='middle' dominant-baseline='middle' font-family='Arial'%3E📖 Blog Islami%3C/text%3E%3C/svg%3E";
@@ -14,6 +15,8 @@ interface HeroSliderV2Props {
 }
 
 export function HeroSliderV2({ slides }: HeroSliderV2Props) {
+  const { settings } = useSiteSettings();
+  const defaultImage = settings?.default_article_image || DEFAULT_POST_IMAGE;
   const data = slides && slides.length > 0 ? (slides.length > 5 ? slides.slice(0, 5) : slides) : defaultSlides.slice(0, 5);
   const [current, setCurrent] = useState(0);
   const [direction, setDirection] = useState(0);
@@ -115,12 +118,12 @@ export function HeroSliderV2({ slides }: HeroSliderV2Props) {
           >
             <Link to={`/${slide.slug || slide.id}`} className="block h-full relative">
               <img
-                src={slide.image || DEFAULT_POST_IMAGE}
+                src={slide.image || defaultImage}
                 alt={slide.title}
                 className="absolute inset-0 w-full h-full object-cover transition-transform duration-[10000ms] ease-linear"
                 style={{ transform: isPaused ? 'scale(1.05)' : 'scale(1.15)' }}
                 onError={(e) => {
-                  (e.target as HTMLImageElement).src = DEFAULT_POST_IMAGE;
+                  (e.target as HTMLImageElement).src = defaultImage;
                 }}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/20 to-transparent" />
@@ -208,11 +211,11 @@ export function HeroSliderV2({ slides }: HeroSliderV2Props) {
             }`}
           >
             <img
-              src={item.image || DEFAULT_POST_IMAGE}
+              src={item.image || defaultImage}
               alt={item.title}
               className="absolute inset-0 w-full h-full object-cover grayscale-[0.5] group-hover:grayscale-0 transition-all"
               onError={(e) => {
-                (e.target as HTMLImageElement).src = DEFAULT_POST_IMAGE;
+                (e.target as HTMLImageElement).src = defaultImage;
               }}
             />
             <div className={`absolute inset-0 ${index === current ? "bg-black/10" : "bg-black/60"}`} />

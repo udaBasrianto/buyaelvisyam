@@ -4,6 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import api from "@/lib/api";
 import React, { useState, useEffect } from "react";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 const DEFAULT_POST_IMAGE = "https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa?q=80&w=2070&auto=format&fit=crop";
 
@@ -14,6 +15,8 @@ interface PostCardV2Props {
 export function PostCardV2({ post }: PostCardV2Props) {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { settings } = useSiteSettings();
+  const defaultImage = settings?.default_article_image || DEFAULT_POST_IMAGE;
   const [isBookmarked, setIsBookmarked] = useState(false);
 
   useEffect(() => {
@@ -66,11 +69,11 @@ export function PostCardV2({ post }: PostCardV2Props) {
     <article className="group bg-card rounded-2xl overflow-hidden card-shadow hover:translate-y-[-4px] transition-all duration-300 border border-border/50">
       <div className="relative aspect-[16/10] overflow-hidden">
         <img
-          src={post.image || DEFAULT_POST_IMAGE}
+          src={post.image || defaultImage}
           alt={post.title}
           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
           onError={(e) => {
-            (e.target as HTMLImageElement).src = DEFAULT_POST_IMAGE;
+            (e.target as HTMLImageElement).src = defaultImage;
           }}
         />
         <div className="absolute top-4 left-4">

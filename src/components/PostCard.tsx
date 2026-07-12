@@ -2,6 +2,7 @@ import React from "react";
 import { Eye, Clock, Share2 } from "lucide-react";
 import type { Post } from "@/data/mockData";
 import { useToast } from "@/hooks/use-toast";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 const DEFAULT_POST_IMAGE = "https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa?q=80&w=2070&auto=format&fit=crop";
 
@@ -12,6 +13,8 @@ interface PostCardProps {
 
 export function PostCard({ post, featured = false }: PostCardProps) {
   const { toast } = useToast();
+  const { settings } = useSiteSettings();
+  const defaultImage = settings?.default_article_image || DEFAULT_POST_IMAGE;
 
   const handleShare = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -36,14 +39,14 @@ export function PostCard({ post, featured = false }: PostCardProps) {
     return (
       <article className="group relative rounded-xl overflow-hidden card-shadow hover:card-shadow-hover transition-all duration-300 h-full min-h-[320px] md:min-h-[400px]">
         <img
-          src={post.image || DEFAULT_POST_IMAGE}
+          src={post.image || defaultImage}
           alt={post.title}
           className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           loading="lazy"
           width={640}
           height={512}
           onError={(e) => {
-            (e.target as HTMLImageElement).src = DEFAULT_POST_IMAGE;
+            (e.target as HTMLImageElement).src = defaultImage;
           }}
         />
         <div className="absolute inset-0 hero-overlay" />
@@ -82,14 +85,14 @@ export function PostCard({ post, featured = false }: PostCardProps) {
     <article className="group bg-card rounded-xl overflow-hidden card-shadow hover:card-shadow-hover transition-all duration-300">
       <div className="relative overflow-hidden aspect-[4/3]">
         <img
-          src={post.image || DEFAULT_POST_IMAGE}
+          src={post.image || defaultImage}
           alt={post.title}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           loading="lazy"
           width={640}
           height={512}
           onError={(e) => {
-            (e.target as HTMLImageElement).src = DEFAULT_POST_IMAGE;
+            (e.target as HTMLImageElement).src = defaultImage;
           }}
         />
       </div>

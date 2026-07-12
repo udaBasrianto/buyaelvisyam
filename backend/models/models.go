@@ -256,6 +256,7 @@ type SiteSettings struct {
 	SiteDescription              string    `json:"site_description"`
 	LogoURL                      string    `json:"logo_url"`
 	FaviconURL                   string    `json:"favicon_url"`
+	DefaultArticleImage          string    `json:"default_article_image"`
 	FooterText                   string    `json:"footer_text"`
 	GoogleClientID               string    `json:"google_client_id"`
 	WhatsAppNotificationsEnabled bool      `gorm:"default:false" json:"whatsapp_notifications_enabled"`

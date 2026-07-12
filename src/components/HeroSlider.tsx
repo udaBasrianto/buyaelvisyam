@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, Eye, User, Calendar } from "lucide-react";
 import { heroSlides as defaultSlides } from "@/data/mockData";
 import type { Post } from "@/data/mockData";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 // Islamic desert/mosque fallback image
 // Placeholder gradient SVG (Islamic-themed) - replaces blocked external images
@@ -14,6 +15,8 @@ interface HeroSliderProps {
 }
 
 export function HeroSlider({ slides }: HeroSliderProps) {
+  const { settings } = useSiteSettings();
+  const defaultImage = settings?.default_article_image || DEFAULT_POST_IMAGE;
   const data = slides && slides.length > 0 ? slides : defaultSlides;
   const [current, setCurrent] = useState(0);
   const [direction, setDirection] = useState(0);
@@ -63,11 +66,11 @@ export function HeroSlider({ slides }: HeroSliderProps) {
           >
             <Link to={`/${slide.slug || slide.id}`} className="block h-full relative">
               <img
-                src={slide.image || DEFAULT_POST_IMAGE}
+                src={slide.image || defaultImage}
                 alt={slide.title}
                 className="absolute inset-0 w-full h-full object-cover"
                 onError={(e) => {
-                  (e.target as HTMLImageElement).src = DEFAULT_POST_IMAGE;
+                  (e.target as HTMLImageElement).src = defaultImage;
                 }}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />

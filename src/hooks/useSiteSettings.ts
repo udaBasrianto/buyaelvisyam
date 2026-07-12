@@ -7,6 +7,7 @@ export interface SiteSettings {
   site_name: string;
   tagline: string;
   logo_url: string | null;
+  default_article_image: string | null;
   footer_text: string;
   homepage_version: string;
   scroll_to_top_version: string;
@@ -36,6 +37,7 @@ const DEFAULTS: SiteSettings = {
   site_name: "",
   tagline: "",
   logo_url: null,
+  default_article_image: null,
   footer_text: "",
   homepage_version: "v1",
   scroll_to_top_version: "animated",

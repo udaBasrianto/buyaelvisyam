@@ -18,6 +18,7 @@ interface Settings {
   site_description: string;
   logo_url: string | null;
   favicon_url: string | null;
+  default_article_image?: string | null;
   footer_text: string;
   google_client_id?: string;
   whatsapp_notifications_enabled?: boolean;
@@ -173,6 +174,7 @@ export function SiteSettingsManager() {
         site_description: settings.site_description ? settings.site_description.trim() : "",
         logo_url: settings.logo_url,
         favicon_url: settings.favicon_url,
+        default_article_image: settings.default_article_image,
         footer_text: settings.footer_text.trim(),
         google_client_id: settings.google_client_id?.trim() || "",
         whatsapp_notifications_enabled: settings.whatsapp_notifications_enabled ?? false,
@@ -339,6 +341,33 @@ export function SiteSettingsManager() {
             <ImagePlus className="h-4 w-4" />
             {uploadingFavicon ? "Mengupload..." : "Upload Favicon"}
           </Button>
+        )}
+      </div>
+      <div>
+        <Label>Cover Artikel Default</Label>
+        {settings.default_article_image ? (
+          <div className="relative mt-2 inline-block rounded-lg border bg-accent/30 p-3">
+            <img src={settings.default_article_image} alt="Default Article Cover" className="h-16 w-auto object-contain" />
+            <button
+              type="button"
+              className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1"
+              onClick={() => setSettings({ ...settings, default_article_image: null })}
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+        ) : (
+          <div>
+            <Button
+              type="button"
+              variant="outline"
+              className="mt-2 gap-2"
+              onClick={() => handleGeneralUpload('default_article_image')}
+            >
+              <ImagePlus className="h-4 w-4" />
+              Upload Cover Default
+            </Button>
+          </div>
         )}
       </div>
       <div>

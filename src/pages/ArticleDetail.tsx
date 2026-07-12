@@ -15,6 +15,7 @@ import { latestPosts, type Post } from "@/data/mockData";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 const DEFAULT_POST_IMAGE = "https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa?q=80&w=2070&auto=format&fit=crop";
 
@@ -72,6 +73,7 @@ export default function ArticleDetail() {
   const id = params.id || params.slug;
   const { user } = useAuth();
   const { toast } = useToast();
+  const { settings } = useSiteSettings();
   const [article, setArticle] = useState<DbArticle | null>(null);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -265,7 +267,8 @@ export default function ArticleDetail() {
   }
 
   const formattedDate = new Date(article.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
-  const coverImage = article.cover_image || DEFAULT_POST_IMAGE;
+  const defaultImage = settings?.default_article_image || DEFAULT_POST_IMAGE;
+  const coverImage = article.cover_image || defaultImage;
   const categories = normalizeStringList(article.categories, [article.category || "Umum"])
     .map((c) => String(c || "").trim())
     .filter(Boolean);
@@ -287,7 +290,7 @@ export default function ArticleDetail() {
   }
 
   const youtubeThumbnail = youtubeVideoId ? `https://img.youtube.com/vi/${youtubeVideoId}/hqdefault.jpg` : "";
-  const shareImage = youtubeThumbnail || article.cover_image || DEFAULT_POST_IMAGE;
+  const shareImage = youtubeThumbnail || article.cover_image || defaultImage;
   const canonicalPath = `/${article.slug || article.id}`;
   const canonicalURL = `${window.location.origin}${canonicalPath}`;
   const categorySlug = categories[0] ? categories[0].toLowerCase().replace(/\s+/g, "-") : "umum";
@@ -480,7 +483,7 @@ export default function ArticleDetail() {
                     alt={article.title}
                     className="absolute inset-0 h-full w-full object-cover"
                     onError={(e) => {
-                      (e.target as HTMLImageElement).src = DEFAULT_POST_IMAGE;
+                      (e.target as HTMLImageElement).src = defaultImage;
                     }}
                   />
                 </div>
@@ -604,7 +607,7 @@ export default function ArticleDetail() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
               {related.map((p: any) => (
                 <Link key={p.id} to={`/${p.slug || p.id}`}>
-                  <PostCard post={toPostCard(p)} />
+                  <PostCard post={toPostCard(p, defaultImage)} />
                 </Link>
               ))}
             </div>
@@ -617,13 +620,13 @@ export default function ArticleDetail() {
   );
 }
 
-function toPostCard(p: any): Post {
+function toPostCard(p: any, defaultImage: string): Post {
   return {
     id: p.id,
     slug: p.slug || "",
     title: p.title,
     excerpt: p.excerpt || "",
-    image: p.cover_image || DEFAULT_POST_IMAGE,
+    image: p.cover_image || defaultImage,
     category: p.category || "Umum",
     tags: p.tags || [],
     author: p.author || "Ustadz",
