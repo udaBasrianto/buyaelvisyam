@@ -44,11 +44,11 @@ func ServeDynamicSEO(c *fiber.Ctx) error {
 	if siteName == "" {
 		siteName = "E-Kajian"
 	}
-	siteTitle := strings.TrimSpace(settings.SiteTitle)
+	siteTitle := strings.TrimSpace(settings.Tagline)
 	if siteTitle == "" {
 		siteTitle = siteName
 	}
-	siteDesc := strings.TrimSpace(settings.MetaDescription)
+	siteDesc := strings.TrimSpace(settings.SiteDescription)
 	if siteDesc == "" {
 		siteDesc = "Portal Resmi Kajian Online"
 	}
