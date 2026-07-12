@@ -10,6 +10,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"gorm.io/gorm"
 )
 
@@ -298,7 +299,7 @@ func UpdateProduct(c *fiber.Ctx) error {
 		updateMap["flash_sale_end"] = parseTime(body.FlashSaleEnd)
 	}
 	if body.Images != nil {
-		updateMap["images"] = *body.Images
+		updateMap["images"] = pq.StringArray(*body.Images)
 		var currentImage string
 		if body.ImageURL != nil {
 			currentImage = *body.ImageURL
