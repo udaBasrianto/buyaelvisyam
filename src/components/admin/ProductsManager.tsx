@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Edit, Trash2, ImagePlus } from "lucide-react";
+import { Plus, Edit, Trash2, ImagePlus, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
 import { asArray } from "@/lib/api-response";
@@ -217,63 +217,22 @@ export function ProductsManager() {
     }
   };
 
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h3 className="text-lg font-bold">Manajemen Produk</h3>
-          <p className="text-sm text-muted-foreground">Kelola produk fisik dan digital di toko Anda.</p>
+  if (dialogOpen) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" onClick={() => setDialogOpen(false)} disabled={saving} className="pl-0 hover:bg-transparent text-muted-foreground hover:text-foreground">
+            <ArrowLeft className="h-4 w-4 mr-2" /> Kembali ke Daftar Produk
+          </Button>
         </div>
-        <Button onClick={() => openDialog()}>
-          <Plus className="h-4 w-4" /> Tambah Produk
-        </Button>
-      </div>
 
-      {loading ? (
-        <div className="text-center py-12">Memuat produk...</div>
-      ) : (
-        <div className="overflow-hidden rounded-xl border bg-card">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nama</TableHead>
-                <TableHead>Jenis</TableHead>
-                <TableHead>Harga</TableHead>
-                <TableHead>Stok</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {products.map((product) => (
-                <TableRow key={product.id}>
-                  <TableCell>{product.title}</TableCell>
-                  <TableCell className="capitalize">{product.product_type}</TableCell>
-                  <TableCell>{product.currency} {product.price.toLocaleString("id-ID")}</TableCell>
-                  <TableCell>{product.product_type === "digital" ? "N/A" : product.stock}</TableCell>
-                  <TableCell>{product.is_active ? "Aktif" : "Nonaktif"}</TableCell>
-                  <TableCell className="space-x-2">
-                    <Button variant="outline" size="sm" onClick={() => openDialog(product)}>
-                      <Edit className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleDelete(product.id)}>
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
-
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>{editing ? "Edit Produk" : "Tambah Produk"}</DialogTitle>
-            <DialogDescription>{editing ? "Perbarui informasi produk." : "Tambahkan produk fisik atau digital baru."}</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
+        <div className="rounded-[2rem] border border-border bg-card p-6 md:p-8 shadow-sm space-y-6">
+          <div>
+            <h3 className="text-xl font-bold">{editing ? "Edit Produk" : "Tambah Produk"}</h3>
+            <p className="text-sm text-muted-foreground">{editing ? "Perbarui informasi produk." : "Tambahkan produk fisik atau digital baru."}</p>
+          </div>
+          
+          <div className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label>Judul</Label>
@@ -431,12 +390,65 @@ export function ProductsManager() {
               </div>
             )}
           </div>
-          <DialogFooter>
+          
+          <div className="flex justify-end gap-3 pt-6 border-t mt-4">
             <Button variant="secondary" onClick={() => setDialogOpen(false)} disabled={saving}>Batal</Button>
-            <Button onClick={handleSave} disabled={saving}>{editing ? "Simpan" : "Tambah"}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <Button onClick={handleSave} disabled={saving}>{saving ? "Menyimpan..." : (editing ? "Simpan Perubahan" : "Tambah Produk")}</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h3 className="text-lg font-bold">Manajemen Produk</h3>
+          <p className="text-sm text-muted-foreground">Kelola produk fisik dan digital di toko Anda.</p>
+        </div>
+        <Button onClick={() => openDialog()}>
+          <Plus className="h-4 w-4 mr-2" /> Tambah Produk
+        </Button>
+      </div>
+
+      {loading ? (
+        <div className="text-center py-12">Memuat produk...</div>
+      ) : (
+        <div className="overflow-hidden rounded-xl border bg-card">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nama</TableHead>
+                <TableHead>Jenis</TableHead>
+                <TableHead>Harga</TableHead>
+                <TableHead>Stok</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Aksi</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {products.map((product) => (
+                <TableRow key={product.id}>
+                  <TableCell className="font-medium">{product.title}</TableCell>
+                  <TableCell className="capitalize">{product.product_type}</TableCell>
+                  <TableCell>{product.currency} {product.price.toLocaleString("id-ID")}</TableCell>
+                  <TableCell>{product.product_type === "digital" ? "N/A" : product.stock}</TableCell>
+                  <TableCell>{product.is_active ? "Aktif" : "Nonaktif"}</TableCell>
+                  <TableCell className="space-x-2">
+                    <Button variant="outline" size="sm" onClick={() => openDialog(product)}>
+                      <Edit className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10" onClick={() => handleDelete(product.id)}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
     </div>
   );
 }
