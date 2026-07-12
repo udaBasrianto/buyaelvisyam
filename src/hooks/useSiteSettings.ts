@@ -14,6 +14,7 @@ export interface SiteSettings {
   admin_slug?: string;
   hero_title?: string;
   recent_title?: string;
+  recent_limit?: number;
   google_client_id?: string;
   site_description?: string;
   products_menu_label?: string;

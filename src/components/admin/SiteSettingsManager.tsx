@@ -34,6 +34,7 @@ interface Settings {
   admin_slug?: string;
   hero_title?: string;
   recent_title?: string;
+  recent_limit?: number;
   newsletter_title?: string;
   newsletter_description?: string;
   newsletter_button_text?: string;
@@ -190,6 +191,7 @@ export function SiteSettingsManager() {
         admin_slug: settings.admin_slug?.trim() || "yaakhi",
         hero_title: settings.hero_title?.trim() || "Editors Choice",
         recent_title: settings.recent_title?.trim() || "Recent Stories",
+        recent_limit: Number(settings.recent_limit) || 20,
         newsletter_title: settings.newsletter_title?.trim() || "",
         newsletter_description: settings.newsletter_description?.trim() || "",
         newsletter_button_text: settings.newsletter_button_text?.trim() || "",
@@ -396,6 +398,17 @@ export function SiteSettingsManager() {
               value={settings.recent_title || ""} 
               onChange={(e) => setSettings({ ...settings, recent_title: e.target.value })} 
               placeholder="Contoh: Recent Stories"
+            />
+          </div>
+          <div>
+            <Label className="text-[10px]">Jumlah Tampilan Artikel Terbaru</Label>
+            <Input 
+              type="number"
+              min={1}
+              max={100}
+              value={settings.recent_limit ?? 20} 
+              onChange={(e) => setSettings({ ...settings, recent_limit: parseInt(e.target.value) || 20 })} 
+              placeholder="Contoh: 20"
             />
           </div>
           <div>

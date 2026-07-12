@@ -192,6 +192,7 @@ func GetSiteSettings(c *fiber.Ctx) error {
 			AdminSlug:                    "yaakhi",
 			HeroTitle:                    "Editors Choice",
 			RecentTitle:                  "Recent Stories",
+			RecentLimit:                  20,
 			ProductsMenuLabel:            "Produk",
 			ProductsTitle:                "Daftar Produk",
 			ProductsSubtitle:             "Lihat produk fisik dan digital yang tersedia.",

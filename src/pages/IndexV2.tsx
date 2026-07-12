@@ -32,8 +32,9 @@ export function IndexV2() {
   useEffect(() => {
     const fetchArticles = async () => {
       try {
+        const limit = settings?.recent_limit || 20;
         const [latestRes, featuredRes] = await Promise.all([
-          api.get("/articles", { params: { limit: 20, status: "published" } }),
+          api.get("/articles", { params: { limit: limit, status: "published" } }),
           api.get("/articles", { params: { limit: 6, status: "published", featured: "true" } })
         ]);
 
@@ -74,8 +75,11 @@ export function IndexV2() {
         setLoading(false);
       }
     };
-    fetchArticles();
-  }, []);
+    
+    if (!settingsLoading) {
+      fetchArticles();
+    }
+  }, [settingsLoading, settings?.recent_limit]);
 
   if (loading || settingsLoading) {
     return <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
