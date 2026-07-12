@@ -16,7 +16,6 @@ import (
 func ServeDynamicSEO(c *fiber.Ctx) error {
 	slug := c.Params("slug")
 	if slug == "" {
-		// Fallback slug from other routes or query
 		parts := strings.Split(c.Path(), "/")
 		if len(parts) > 2 && parts[1] == "artikel" {
 			slug = parts[2]
@@ -38,29 +37,34 @@ func ServeDynamicSEO(c *fiber.Ctx) error {
 
 	htmlContent := string(data)
 
+	// Fetch site settings from DB
+	var settings models.SiteSettings
+	database.DB.First(&settings)
+	siteName := strings.TrimSpace(settings.SiteName)
+	if siteName == "" {
+		siteName = "E-Kajian"
+	}
+	siteTitle := strings.TrimSpace(settings.SiteTitle)
+	if siteTitle == "" {
+		siteTitle = siteName
+	}
+	siteDesc := strings.TrimSpace(settings.MetaDescription)
+	if siteDesc == "" {
+		siteDesc = "Portal Resmi Kajian Online"
+	}
+
+	dynamicTitle := siteTitle
+	dynamicDesc := siteDesc
+
 	// Fetch article from database if slug exists
 	var article models.Article
+	articleFound := false
 	if slug != "" {
 		slug = strings.Split(slug, "?")[0]
 		if err := database.DB.Where("slug = ? AND status = ?", slug, "published").First(&article).Error; err == nil {
-			// Found article! Dynamically construct SEO tags
-			baseURL := c.Protocol() + "://" + c.Hostname()
-			fullURL := baseURL + c.Path()
-
-			// Prepare Cover Image URL
-			coverImage := article.CoverImage
-			if coverImage == "" {
-				coverImage = "/og-image.jpg"
-			}
-			if !strings.HasPrefix(coverImage, "http") {
-				if strings.HasPrefix(coverImage, "/") {
-					coverImage = baseURL + coverImage
-				} else {
-					coverImage = baseURL + "/" + coverImage
-				}
-			}
-
-			// Prepare Description Excerpt
+			articleFound = true
+			dynamicTitle = fmt.Sprintf("%s | %s", article.Title, siteName)
+			
 			excerpt := article.Excerpt
 			if excerpt == "" {
 				excerpt = stripHTML(article.Content)
@@ -68,26 +72,64 @@ func ServeDynamicSEO(c *fiber.Ctx) error {
 					excerpt = excerpt[:157] + "..."
 				}
 			}
-
-			// Build meta tags injection
-			var seoInjection strings.Builder
-			seoInjection.WriteString(fmt.Sprintf("\n  <title>%s | Buya Muhammad Elvisyam</title>", article.Title))
-			seoInjection.WriteString(fmt.Sprintf("\n  <meta name=\"description\" content=\"%s\" />", excerpt))
-			seoInjection.WriteString("\n  <meta property=\"og:type\" content=\"article\" />")
-			seoInjection.WriteString(fmt.Sprintf("\n  <meta property=\"og:title\" content=\"%s\" />", article.Title))
-			seoInjection.WriteString(fmt.Sprintf("\n  <meta property=\"og:description\" content=\"%s\" />", excerpt))
-			seoInjection.WriteString(fmt.Sprintf("\n  <meta property=\"og:image\" content=\"%s\" />", coverImage))
-			seoInjection.WriteString(fmt.Sprintf("\n  <meta property=\"og:url\" content=\"%s\" />", fullURL))
-			seoInjection.WriteString("\n  <meta name=\"twitter:card\" content=\"summary_large_image\" />")
-			seoInjection.WriteString(fmt.Sprintf("\n  <meta name=\"twitter:title\" content=\"%s\" />", article.Title))
-			seoInjection.WriteString(fmt.Sprintf("\n  <meta name=\"twitter:description\" content=\"%s\" />", excerpt))
-			seoInjection.WriteString(fmt.Sprintf("\n  <meta name=\"twitter:image\" content=\"%s\" />", coverImage))
-			seoInjection.WriteString("\n")
-
-			// Inject right before </head>
-			htmlContent = strings.Replace(htmlContent, "</head>", seoInjection.String()+"</head>", 1)
+			dynamicDesc = excerpt
 		}
 	}
+
+	// Replace the hardcoded placeholders in index.html shell
+	htmlContent = strings.ReplaceAll(htmlContent, "<title>Buya Muhammad Elvisyam</title>", fmt.Sprintf("<title>%s</title>", dynamicTitle))
+	htmlContent = strings.ReplaceAll(htmlContent, "<meta name=\"description\" content=\"Akhimedia Generated Project\">", fmt.Sprintf("<meta name=\"description\" content=\"%s\">", dynamicDesc))
+
+	// Inject Open Graph tags
+	baseURL := c.Protocol() + "://" + c.Hostname()
+	fullURL := baseURL + c.Path()
+	var ogInjection strings.Builder
+
+	if articleFound {
+		coverImage := article.CoverImage
+		if coverImage == "" {
+			coverImage = "/og-image.jpg"
+		}
+		if !strings.HasPrefix(coverImage, "http") {
+			if strings.HasPrefix(coverImage, "/") {
+				coverImage = baseURL + coverImage
+			} else {
+				coverImage = baseURL + "/" + coverImage
+			}
+		}
+
+		ogInjection.WriteString("\n  <meta property=\"og:type\" content=\"article\" />")
+		ogInjection.WriteString(fmt.Sprintf("\n  <meta property=\"og:title\" content=\"%s\" />", article.Title))
+		ogInjection.WriteString(fmt.Sprintf("\n  <meta property=\"og:description\" content=\"%s\" />", dynamicDesc))
+		ogInjection.WriteString(fmt.Sprintf("\n  <meta property=\"og:image\" content=\"%s\" />", coverImage))
+		ogInjection.WriteString(fmt.Sprintf("\n  <meta property=\"og:url\" content=\"%s\" />", fullURL))
+		ogInjection.WriteString("\n  <meta name=\"twitter:card\" content=\"summary_large_image\" />")
+		ogInjection.WriteString(fmt.Sprintf("\n  <meta name=\"twitter:title\" content=\"%s\" />", article.Title))
+		ogInjection.WriteString(fmt.Sprintf("\n  <meta name=\"twitter:description\" content=\"%s\" />", dynamicDesc))
+		ogInjection.WriteString(fmt.Sprintf("\n  <meta name=\"twitter:image\" content=\"%s\" />", coverImage))
+		ogInjection.WriteString("\n")
+	} else {
+		logoImage := settings.LogoURL
+		if logoImage == "" {
+			logoImage = "/og-image.jpg"
+		}
+		if !strings.HasPrefix(logoImage, "http") {
+			if strings.HasPrefix(logoImage, "/") {
+				logoImage = baseURL + logoImage
+			} else {
+				logoImage = baseURL + "/" + logoImage
+			}
+		}
+
+		ogInjection.WriteString("\n  <meta property=\"og:type\" content=\"website\" />")
+		ogInjection.WriteString(fmt.Sprintf("\n  <meta property=\"og:title\" content=\"%s\" />", siteTitle))
+		ogInjection.WriteString(fmt.Sprintf("\n  <meta property=\"og:description\" content=\"%s\" />", siteDesc))
+		ogInjection.WriteString(fmt.Sprintf("\n  <meta property=\"og:image\" content=\"%s\" />", logoImage))
+		ogInjection.WriteString(fmt.Sprintf("\n  <meta property=\"og:url\" content=\"%s\" />", fullURL))
+		ogInjection.WriteString("\n")
+	}
+
+	htmlContent = strings.Replace(htmlContent, "</head>", ogInjection.String()+"</head>", 1)
 
 	c.Set("Content-Type", "text/html")
 	return c.SendString(htmlContent)
