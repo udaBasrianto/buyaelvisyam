@@ -15,6 +15,7 @@ export interface SiteSettings {
   hero_title?: string;
   recent_title?: string;
   recent_limit?: number;
+  slider_overlay_opacity?: number;
   google_client_id?: string;
   site_description?: string;
   products_menu_label?: string;

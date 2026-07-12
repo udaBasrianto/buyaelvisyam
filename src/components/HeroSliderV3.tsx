@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Bookmark } from "lucide-react";
 import { heroSlides as defaultSlides } from "@/data/mockData";
 import type { Post } from "@/data/mockData";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { motion, AnimatePresence } from "framer-motion";
 
 const DEFAULT_POST_IMAGE = "https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa?q=80&w=2070&auto=format&fit=crop";
@@ -12,6 +13,7 @@ interface HeroSliderV3Props {
 }
 
 export function HeroSliderV3({ slides }: HeroSliderV3Props) {
+  const { settings } = useSiteSettings();
   const data = slides && slides.length > 0 ? slides : defaultSlides;
   const [current, setCurrent] = useState(0);
   const [direction, setDirection] = useState(0);
@@ -44,6 +46,10 @@ export function HeroSliderV3({ slides }: HeroSliderV3Props) {
     data[(current + 3) % data.length],
   ];
 
+  const opacityVal = settings?.slider_overlay_opacity ?? 85;
+  const overlayOpacity = opacityVal / 100;
+  const imgBrightness = Math.max(0.05, 1 - overlayOpacity);
+
   return (
     <section className="relative w-full h-[520px] md:h-[580px] lg:h-[620px] overflow-hidden rounded-[2rem] bg-black text-white shadow-2xl group select-none">
       
@@ -54,7 +60,8 @@ export function HeroSliderV3({ slides }: HeroSliderV3Props) {
             key={current}
             src={currentSlide.image || DEFAULT_POST_IMAGE}
             alt=""
-            className="w-full h-full object-cover scale-105 brightness-[0.4] filter blur-[6px] transition-all duration-[1000ms]"
+            className="w-full h-full object-cover scale-105 filter transition-all duration-[1000ms]"
+            style={{ filter: `blur(6px) brightness(${imgBrightness})` }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 0.85 }}
             exit={{ opacity: 0 }}
@@ -64,7 +71,10 @@ export function HeroSliderV3({ slides }: HeroSliderV3Props) {
             }}
           />
         </AnimatePresence>
-        <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/45 to-black/80" />
+        <div 
+          className="absolute inset-0 bg-gradient-to-r from-black via-black/40 to-black transition-opacity duration-300" 
+          style={{ opacity: overlayOpacity }}
+        />
       </div>
 
       {/* Main Grid Content Container */}

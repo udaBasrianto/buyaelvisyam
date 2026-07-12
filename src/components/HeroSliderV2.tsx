@@ -126,7 +126,10 @@ export function HeroSliderV2({ slides }: HeroSliderV2Props) {
                   (e.target as HTMLImageElement).src = defaultImage;
                 }}
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/20 to-transparent" />
+              <div 
+                className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent transition-opacity duration-300" 
+                style={{ opacity: (settings?.slider_overlay_opacity ?? 95) / 100 }}
+              />
               
               <div className="absolute inset-x-0 bottom-0 p-8 md:p-14">
                  <motion.div 

@@ -277,6 +277,7 @@ type SiteSettings struct {
 	HeroTitle                    string    `gorm:"default:'Editors Choice'" json:"hero_title"`
 	RecentTitle                  string    `gorm:"default:'Recent Stories'" json:"recent_title"`
 	RecentLimit                  int       `gorm:"default:20" json:"recent_limit"`
+	SliderOverlayOpacity         int       `gorm:"default:85" json:"slider_overlay_opacity"`
 	ThemeColor                   string    `gorm:"default:'emerald'" json:"theme_color"`
 	AboutHeroImage               string    `json:"about_hero_image"`
 	AboutVisionImage1            string    `json:"about_vision_image_1"`

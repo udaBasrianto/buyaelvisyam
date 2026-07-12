@@ -35,6 +35,7 @@ interface Settings {
   hero_title?: string;
   recent_title?: string;
   recent_limit?: number;
+  slider_overlay_opacity?: number;
   newsletter_title?: string;
   newsletter_description?: string;
   newsletter_button_text?: string;
@@ -192,6 +193,7 @@ export function SiteSettingsManager() {
         hero_title: settings.hero_title?.trim() || "Editors Choice",
         recent_title: settings.recent_title?.trim() || "Recent Stories",
         recent_limit: Number(settings.recent_limit) || 20,
+        slider_overlay_opacity: Number(settings.slider_overlay_opacity) || 85,
         newsletter_title: settings.newsletter_title?.trim() || "",
         newsletter_description: settings.newsletter_description?.trim() || "",
         newsletter_button_text: settings.newsletter_button_text?.trim() || "",
@@ -410,6 +412,23 @@ export function SiteSettingsManager() {
               onChange={(e) => setSettings({ ...settings, recent_limit: parseInt(e.target.value) || 20 })} 
               placeholder="Contoh: 20"
             />
+          </div>
+          <div>
+            <Label className="text-[10px]">Kegelapan Overlay Slider Beranda (%)</Label>
+            <div className="flex items-center gap-3 mt-1">
+              <input
+                type="range"
+                min="0"
+                max="100"
+                step="5"
+                value={settings.slider_overlay_opacity ?? 85}
+                onChange={(e) => setSettings({ ...settings, slider_overlay_opacity: parseInt(e.target.value) || 0 })}
+                className="w-full h-1.5 bg-secondary rounded-lg appearance-none cursor-pointer accent-primary"
+              />
+              <span className="text-xs font-bold text-muted-foreground w-8 text-right">
+                {settings.slider_overlay_opacity ?? 85}%
+              </span>
+            </div>
           </div>
           <div>
             <Label className="text-[10px]">Judul Seksi Kategori Terpopuler</Label>

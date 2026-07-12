@@ -73,7 +73,10 @@ export function HeroSlider({ slides }: HeroSliderProps) {
                   (e.target as HTMLImageElement).src = defaultImage;
                 }}
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
+              <div 
+                className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent transition-opacity duration-300" 
+                style={{ opacity: (settings?.slider_overlay_opacity ?? 90) / 100 }}
+              />
 
               <div className="absolute inset-0 flex flex-col justify-end p-8 md:p-16">
                 <motion.div 
