@@ -26,12 +26,24 @@ interface ProductItem {
   image_url?: string;
   is_active: boolean;
   sort_order: number;
+  discount_price?: number;
+  is_flash_sale?: boolean;
+  flash_sale_start?: string;
+  flash_sale_end?: string;
 }
 
 const PRODUCT_TYPES = [
   { id: "physical", label: "Fisika" },
   { id: "digital", label: "Digital" },
 ];
+
+const formatForDateTimeLocal = (isoString?: string) => {
+  if (!isoString) return "";
+  const date = new Date(isoString);
+  if (isNaN(date.getTime())) return "";
+  const pad = (num: number) => String(num).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+};
 
 export function ProductsManager() {
   const { toast } = useToast();
@@ -54,6 +66,10 @@ export function ProductsManager() {
     image_url: "",
     is_active: true,
     sort_order: 0,
+    discount_price: undefined as number | undefined,
+    is_flash_sale: false,
+    flash_sale_start: "",
+    flash_sale_end: "",
   });
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -89,6 +105,10 @@ export function ProductsManager() {
         image_url: product.image_url || "",
         is_active: product.is_active,
         sort_order: product.sort_order,
+        discount_price: product.discount_price || undefined,
+        is_flash_sale: product.is_flash_sale || false,
+        flash_sale_start: formatForDateTimeLocal(product.flash_sale_start),
+        flash_sale_end: formatForDateTimeLocal(product.flash_sale_end),
       });
     } else {
       setEditing(null);
@@ -105,6 +125,10 @@ export function ProductsManager() {
         image_url: "",
         is_active: true,
         sort_order: products.length,
+        discount_price: undefined,
+        is_flash_sale: false,
+        flash_sale_start: "",
+        flash_sale_end: "",
       });
     }
     setDialogOpen(true);
@@ -304,6 +328,30 @@ export function ProductsManager() {
               <Label>Urutan Tampilan</Label>
               <Input type="number" value={form.sort_order} onChange={(e) => setForm({ ...form, sort_order: Number(e.target.value) })} />
             </div>
+            
+            <div className="grid gap-4 md:grid-cols-2 border-t pt-4">
+              <div className="space-y-2">
+                <Label>Harga Diskon (opsional)</Label>
+                <Input type="number" value={form.discount_price || ""} onChange={(e) => setForm({ ...form, discount_price: e.target.value ? Number(e.target.value) : undefined })} placeholder="Kosongkan jika tidak diskon" />
+              </div>
+              <div className="space-y-2 flex items-center gap-2 pt-6">
+                <Switch checked={form.is_flash_sale} onCheckedChange={(value) => setForm({ ...form, is_flash_sale: value })} />
+                <span className="text-sm font-medium">Aktifkan Flash Sale</span>
+              </div>
+            </div>
+
+            {form.is_flash_sale && (
+              <div className="grid gap-4 md:grid-cols-2 border-l-2 border-primary/20 pl-4 py-2 space-y-2 md:space-y-0">
+                <div className="space-y-2">
+                  <Label>Waktu Mulai Flash Sale (opsional)</Label>
+                  <Input type="datetime-local" value={form.flash_sale_start} onChange={(e) => setForm({ ...form, flash_sale_start: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Waktu Selesai Flash Sale</Label>
+                  <Input type="datetime-local" value={form.flash_sale_end} onChange={(e) => setForm({ ...form, flash_sale_end: e.target.value })} />
+                </div>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="secondary" onClick={() => setDialogOpen(false)} disabled={saving}>Batal</Button>

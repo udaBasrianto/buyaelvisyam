@@ -26,6 +26,29 @@ type productRequest struct {
 	ImageURL       *string  `json:"image_url"`
 	IsActive       *bool    `json:"is_active"`
 	SortOrder      *int     `json:"sort_order"`
+	DiscountPrice  *float64 `json:"discount_price"`
+	IsFlashSale    *bool    `json:"is_flash_sale"`
+	FlashSaleStart *string  `json:"flash_sale_start"`
+	FlashSaleEnd   *string  `json:"flash_sale_end"`
+}
+
+func parseTime(s *string) *time.Time {
+	if s == nil || strings.TrimSpace(*s) == "" {
+		return nil
+	}
+	formats := []string{
+		"2006-01-02T15:04:05Z07:00",
+		"2006-01-02T15:04:05",
+		"2006-01-02T15:04",
+		"2006-01-02 15:04:05",
+		time.RFC3339,
+	}
+	for _, f := range formats {
+		if t, err := time.ParseInLocation(f, *s, time.Local); err == nil {
+			return &t
+		}
+	}
+	return nil
 }
 
 func slugifyProduct(value string) string {
@@ -150,6 +173,16 @@ func CreateProduct(c *fiber.Ctx) error {
 		imageURL = *body.ImageURL
 	}
 
+	discountPrice := 0.0
+	if body.DiscountPrice != nil {
+		discountPrice = *body.DiscountPrice
+	}
+
+	isFlashSale := false
+	if body.IsFlashSale != nil {
+		isFlashSale = *body.IsFlashSale
+	}
+
 	product := models.Product{
 		ID:             uuid.New(),
 		Title:          body.Title,
@@ -164,6 +197,10 @@ func CreateProduct(c *fiber.Ctx) error {
 		ImageURL:       imageURL,
 		IsActive:       true,
 		SortOrder:      0,
+		DiscountPrice:  discountPrice,
+		IsFlashSale:    isFlashSale,
+		FlashSaleStart: parseTime(body.FlashSaleStart),
+		FlashSaleEnd:   parseTime(body.FlashSaleEnd),
 		CreatedAt:      time.Now(),
 		UpdatedAt:      time.Now(),
 	}
@@ -237,6 +274,18 @@ func UpdateProduct(c *fiber.Ctx) error {
 	}
 	if body.SortOrder != nil {
 		updateMap["sort_order"] = *body.SortOrder
+	}
+	if body.DiscountPrice != nil {
+		updateMap["discount_price"] = *body.DiscountPrice
+	}
+	if body.IsFlashSale != nil {
+		updateMap["is_flash_sale"] = *body.IsFlashSale
+	}
+	if body.FlashSaleStart != nil {
+		updateMap["flash_sale_start"] = parseTime(body.FlashSaleStart)
+	}
+	if body.FlashSaleEnd != nil {
+		updateMap["flash_sale_end"] = parseTime(body.FlashSaleEnd)
 	}
 
 	if strings.TrimSpace(body.Slug) != "" && body.Slug != product.Slug {

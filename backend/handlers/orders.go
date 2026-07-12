@@ -303,7 +303,8 @@ func CreateOrder(c *fiber.Ctx) error {
 				return fiber.NewError(fiber.StatusBadRequest, "Produk tidak ditemukan atau tidak aktif")
 			}
 
-			lineTotal := float64(rawItem.Quantity) * product.Price
+			activePrice := product.GetActivePrice()
+			lineTotal := float64(rawItem.Quantity) * activePrice
 			orderItems = append(orderItems, models.ProductOrderItem{
 				ID:           uuid.New(),
 				OrderID:      order.ID,
@@ -312,7 +313,7 @@ func CreateOrder(c *fiber.Ctx) error {
 				ProductSlug:  product.Slug,
 				ProductType:  product.ProductType,
 				Quantity:     rawItem.Quantity,
-				UnitPrice:    product.Price,
+				UnitPrice:    activePrice,
 				LineTotal:    lineTotal,
 				Currency:     product.Currency,
 				ImageURL:     product.ImageURL,

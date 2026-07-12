@@ -478,10 +478,38 @@ type Product struct {
 	Stock          int       `gorm:"default:0" json:"stock"`
 	DigitalFileURL string    `json:"digital_file_url"`
 	ImageURL       string    `json:"image_url"`
-	IsActive       bool      `gorm:"default:true" json:"is_active"`
-	SortOrder      int       `gorm:"default:0" json:"sort_order"`
-	CreatedAt      time.Time `json:"created_at"`
-	UpdatedAt      time.Time `json:"updated_at"`
+	IsActive       bool       `gorm:"default:true" json:"is_active"`
+	SortOrder      int        `gorm:"default:0" json:"sort_order"`
+	Views          int        `gorm:"default:0" json:"views"`
+	DiscountPrice  float64    `gorm:"default:0" json:"discount_price"`
+	IsFlashSale    bool       `gorm:"default:false" json:"is_flash_sale"`
+	FlashSaleStart *time.Time `json:"flash_sale_start"`
+	FlashSaleEnd   *time.Time `json:"flash_sale_end"`
+	CreatedAt      time.Time  `json:"created_at"`
+	UpdatedAt      time.Time  `json:"updated_at"`
+}
+
+// GetActivePrice returns the active price taking discount & flash sale into account
+func (p *Product) GetActivePrice() float64 {
+	if p.DiscountPrice > 0 && p.DiscountPrice < p.Price {
+		if p.IsFlashSale {
+			now := time.Now()
+			if p.FlashSaleStart != nil && p.FlashSaleEnd != nil {
+				if now.After(*p.FlashSaleStart) && now.Before(*p.FlashSaleEnd) {
+					return p.DiscountPrice
+				}
+			} else if p.FlashSaleEnd != nil {
+				if now.Before(*p.FlashSaleEnd) {
+					return p.DiscountPrice
+				}
+			} else {
+				return p.DiscountPrice
+			}
+		} else {
+			return p.DiscountPrice
+		}
+	}
+	return p.Price
 }
 
 type ProductOrder struct {

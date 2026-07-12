@@ -77,6 +77,11 @@ func ConnectDB() {
 	db.Exec(`UPDATE site_settings SET checkout_flat_shipping_label = 'Ongkos Kirim' WHERE checkout_flat_shipping_label IS NULL OR checkout_flat_shipping_label = ''`)
 	db.Exec(`UPDATE site_settings SET checkout_payment_due_hours = 24 WHERE checkout_payment_due_hours IS NULL OR checkout_payment_due_hours <= 0`)
 	db.Exec(`ALTER TABLE product_orders ADD COLUMN IF NOT EXISTS public_token text`)
+	db.Exec(`ALTER TABLE products ADD COLUMN IF NOT EXISTS views integer DEFAULT 0`)
+	db.Exec(`ALTER TABLE products ADD COLUMN IF NOT EXISTS discount_price double precision DEFAULT 0`)
+	db.Exec(`ALTER TABLE products ADD COLUMN IF NOT EXISTS is_flash_sale boolean DEFAULT false`)
+	db.Exec(`ALTER TABLE products ADD COLUMN IF NOT EXISTS flash_sale_start timestamp with time zone`)
+	db.Exec(`ALTER TABLE products ADD COLUMN IF NOT EXISTS flash_sale_end timestamp with time zone`)
 	db.Exec(`UPDATE product_orders
 		SET public_token = md5(random()::text || clock_timestamp()::text || id::text) || md5(random()::text || id::text)
 		WHERE public_token IS NULL OR public_token = ''`)

@@ -193,21 +193,31 @@ func TrackVisit(c *fiber.Ctx) error {
 		Count(&existingVisit)
 
 	if existingVisit == 0 {
-		// New unique visit for this path today
-		// 1. Handle old style path: /artikel/:slug
-		// 2. Handle new style path: /:slug
 		slug := body.Path
-		if strings.HasPrefix(slug, "/artikel/") {
-			slug = strings.TrimPrefix(slug, "/artikel/")
+		if strings.HasPrefix(slug, "/produk/") {
+			productSlug := strings.TrimPrefix(slug, "/produk/")
+			productSlug = strings.Split(productSlug, "?")[0] // Strip query parameters
+			if productSlug != "" {
+				database.DB.Model(&models.Product{}).
+					Where("slug = ?", productSlug).
+					UpdateColumn("views", gorm.Expr("views + 1"))
+			}
 		} else {
-			slug = strings.TrimPrefix(slug, "/")
-		}
+			// New unique visit for this path today
+			// 1. Handle old style path: /artikel/:slug
+			// 2. Handle new style path: /:slug
+			if strings.HasPrefix(slug, "/artikel/") {
+				slug = strings.TrimPrefix(slug, "/artikel/")
+			} else {
+				slug = strings.TrimPrefix(slug, "/")
+			}
 
-		// Try to find the article by slug or ID and increment view
-		if slug != "" {
-			database.DB.Model(&models.Article{}).
-				Where("slug = ? OR id::text = ?", slug, slug).
-				UpdateColumn("views", gorm.Expr("views + 1"))
+			// Try to find the article by slug or ID and increment view
+			if slug != "" {
+				database.DB.Model(&models.Article{}).
+					Where("slug = ? OR id::text = ?", slug, slug).
+					UpdateColumn("views", gorm.Expr("views + 1"))
+			}
 		}
 	}
 

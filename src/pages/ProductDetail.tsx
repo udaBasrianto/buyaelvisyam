@@ -24,7 +24,71 @@ interface ProductDetailItem {
   digital_file_url?: string;
   image_url?: string;
   is_active: boolean;
+  discount_price?: number;
+  is_flash_sale?: boolean;
+  flash_sale_start?: string;
+  flash_sale_end?: string;
 }
+
+function FlashSaleCountdown({ endDate }: { endDate: string }) {
+  const [timeLeft, setTimeLeft] = useState<{ hours: number; minutes: number; seconds: number } | null>(null);
+
+  useEffect(() => {
+    const target = new Date(endDate).getTime();
+    
+    const update = () => {
+      const now = new Date().getTime();
+      const diff = target - now;
+      if (diff <= 0) {
+        setTimeLeft(null);
+        return;
+      }
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+      setTimeLeft({ hours, minutes, seconds });
+    };
+
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [endDate]);
+
+  if (!timeLeft) return null;
+
+  return (
+    <div className="flex flex-col sm:flex-row sm:items-center gap-2 bg-red-500/10 border border-red-500/20 text-red-500 rounded-2xl p-4 text-sm font-bold w-full">
+      <span className="uppercase tracking-wider">Flash Sale berakhir dalam:</span>
+      <div className="flex items-center gap-1.5">
+        <span className="bg-red-500 text-white rounded-lg px-2 py-1 font-mono">{String(timeLeft.hours).padStart(2, '0')}</span> jam
+        <span className="bg-red-500 text-white rounded-lg px-2 py-1 font-mono">{String(timeLeft.minutes).padStart(2, '0')}</span> menit
+        <span className="bg-red-500 text-white rounded-lg px-2 py-1 font-mono">{String(timeLeft.seconds).padStart(2, '0')}</span> detik
+      </div>
+    </div>
+  );
+}
+
+const isFlashSaleActive = (p: ProductDetailItem) => {
+  if (!p.is_flash_sale) return false;
+  const now = new Date();
+  if (p.flash_sale_start && p.flash_sale_end) {
+    return now >= new Date(p.flash_sale_start) && now <= new Date(p.flash_sale_end);
+  }
+  if (p.flash_sale_end) {
+    return now <= new Date(p.flash_sale_end);
+  }
+  return true;
+};
+
+const getActivePrice = (p: ProductDetailItem) => {
+  if (p.discount_price && p.discount_price > 0 && p.discount_price < p.price) {
+    if (p.is_flash_sale) {
+      return isFlashSaleActive(p) ? p.discount_price : p.price;
+    }
+    return p.discount_price;
+  }
+  return p.price;
+};
 
 export default function ProductDetail() {
   const { slug } = useParams<{ slug: string }>();
@@ -40,7 +104,7 @@ export default function ProductDetail() {
     addToCart({
       id: product.id,
       title: product.title,
-      price: product.price,
+      price: getActivePrice(product),
       currency: product.currency,
       image: product.image_url,
       product_type: product.product_type
@@ -56,7 +120,7 @@ export default function ProductDetail() {
     addToCart({
       id: product.id,
       title: product.title,
-      price: product.price,
+      price: getActivePrice(product),
       currency: product.currency,
       image: product.image_url,
       product_type: product.product_type
@@ -97,6 +161,10 @@ export default function ProductDetail() {
     );
   }
 
+  const isFlash = isFlashSaleActive(product);
+  const hasDiscount = product.discount_price && product.discount_price > 0 && product.discount_price < product.price && (!product.is_flash_sale || isFlash);
+  const activePrice = hasDiscount ? product.discount_price! : product.price;
+
   return (
     <div className="min-h-screen bg-background">
       <SEO title={`${product.title} - ${settings.site_name}`} description={product.description} />
@@ -109,6 +177,9 @@ export default function ProductDetail() {
           <div className="space-y-4">
             <p className="text-sm uppercase tracking-[0.3em] text-primary">{product.product_type === "digital" ? "Produk Digital" : "Produk Fisik"}</p>
             <h1 className="text-4xl font-bold">{product.title}</h1>
+            {isFlash && product.flash_sale_end && (
+              <FlashSaleCountdown endDate={product.flash_sale_end} />
+            )}
             <p className="text-muted-foreground leading-relaxed whitespace-pre-line">{product.description}</p>
           </div>
         </div>
@@ -116,7 +187,18 @@ export default function ProductDetail() {
           <div className="space-y-4">
             <div>
               <p className="text-sm text-muted-foreground">Harga</p>
-              <p className="text-3xl font-bold">{product.currency} {product.price.toLocaleString("id-ID")}</p>
+              {hasDiscount ? (
+                <div className="flex items-baseline gap-3 mt-1">
+                  <span className="text-3xl font-bold text-red-600 dark:text-red-400">
+                    {product.currency} {activePrice.toLocaleString("id-ID")}
+                  </span>
+                  <span className="text-lg text-muted-foreground line-through">
+                    {product.currency} {product.price.toLocaleString("id-ID")}
+                  </span>
+                </div>
+              ) : (
+                <p className="text-3xl font-bold mt-1">{product.currency} {product.price.toLocaleString("id-ID")}</p>
+              )}
             </div>
             {product.product_type === "physical" ? (
               <div>
