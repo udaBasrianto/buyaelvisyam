@@ -20,6 +20,7 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	"github.com/joho/godotenv"
+	"gorm.io/gorm"
 )
 
 func seedAdminIfRequested() {
@@ -83,6 +84,7 @@ func main() {
 
 	// Connect Database
 	database.ConnectDB()
+	registerSitemapHooks(database.DB)
 
 	seedAdminIfRequested()
 
@@ -420,10 +422,36 @@ func main() {
 	// SPA Wildcard fallback
 	app.Get("*", handlers.ServeDynamicSEO)
 
+	// Generate sitemap on startup
+	handlers.GenerateSitemapFile()
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "4000"
 	}
 
 	log.Fatal(app.Listen(":" + port))
+}
+
+func registerSitemapHooks(db *gorm.DB) {
+	cb := func(d *gorm.DB) {
+		if d.Error != nil {
+			return
+		}
+		var tableName string
+		if d.Statement != nil {
+			if d.Statement.Table != "" {
+				tableName = d.Statement.Table
+			} else if d.Statement.Schema != nil {
+				tableName = d.Statement.Schema.Table
+			}
+		}
+		if tableName == "articles" || tableName == "pages" || tableName == "categories" || tableName == "courses" || tableName == "lessons" {
+			go handlers.GenerateSitemapFile()
+		}
+	}
+
+	db.Callback().Create().After("gorm:create").Register("sitemap:create", cb)
+	db.Callback().Update().After("gorm:update").Register("sitemap:update", cb)
+	db.Callback().Delete().After("gorm:delete").Register("sitemap:delete", cb)
 }

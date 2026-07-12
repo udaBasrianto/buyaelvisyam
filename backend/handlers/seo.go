@@ -5,6 +5,7 @@ import (
 	"backend/models"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"strings"
 	"time"
@@ -151,7 +152,149 @@ func stripHTML(html string) string {
 	return strings.TrimSpace(plainText.String())
 }
 
+func GenerateSitemapFile() {
+	db := database.DB
+	if db == nil {
+		log.Println("[Sitemap Warning] Database not connected, skipping sitemap file generation.")
+		return
+	}
+
+	var articles []models.Article
+	var pages []models.Page
+	var categories []models.Category
+	var courses []models.Course
+	var lessons []models.Lesson
+
+	db.Where("status = ?", "published").Find(&articles)
+	db.Where("status = ?", "published").Find(&pages)
+	db.Find(&categories)
+	db.Where("is_published = ?", true).Find(&courses)
+	db.Where("is_free = ?", true).Find(&lessons)
+
+	baseURL := strings.TrimRight(strings.TrimSpace(os.Getenv("PUBLIC_BASE_URL")), "/")
+	if baseURL == "" {
+		baseURL = strings.TrimRight(strings.TrimSpace(os.Getenv("SITE_URL")), "/")
+	}
+	if baseURL == "" {
+		baseURL = strings.TrimRight(strings.TrimSpace(os.Getenv("VITE_SITE_URL")), "/")
+	}
+	if baseURL == "" {
+		baseURL = "https://e-kajian.web.id"
+	}
+
+	var b strings.Builder
+	b.WriteString(`<?xml version="1.0" encoding="UTF-8"?>` + "\n")
+	b.WriteString(`<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`)
+
+	// Homepage
+	b.WriteString(fmt.Sprintf(`
+  <url>
+    <loc>%s/</loc>
+    <lastmod>%s</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>`, baseURL, time.Now().Format("2006-01-02")))
+
+	b.WriteString(fmt.Sprintf(`
+  <url>
+    <loc>%s/donasi</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>`, baseURL))
+
+	b.WriteString(fmt.Sprintf(`
+  <url>
+    <loc>%s/lms</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>`, baseURL))
+
+	// Articles
+	for _, a := range articles {
+		slug := a.Slug
+		if slug == "" {
+			slug = a.ID.String()
+		}
+		b.WriteString(fmt.Sprintf(`
+  <url>
+    <loc>%s/artikel/%s</loc>
+    <lastmod>%s</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>`, baseURL, slug, a.UpdatedAt.Format("2006-01-02")))
+	}
+
+	// Categories
+	for _, cat := range categories {
+		b.WriteString(fmt.Sprintf(`
+  <url>
+    <loc>%s/kategori/%s</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>`, baseURL, cat.Slug))
+	}
+
+	// Dynamic Pages
+	for _, p := range pages {
+		b.WriteString(fmt.Sprintf(`
+  <url>
+    <loc>%s/p/%s</loc>
+    <lastmod>%s</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>`, baseURL, p.Slug, p.UpdatedAt.Format("2006-01-02")))
+	}
+
+	for _, cse := range courses {
+		b.WriteString(fmt.Sprintf(`
+  <url>
+    <loc>%s/lms/course/%s</loc>
+    <lastmod>%s</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>`, baseURL, cse.Slug, cse.UpdatedAt.Format("2006-01-02")))
+	}
+
+	for _, l := range lessons {
+		b.WriteString(fmt.Sprintf(`
+  <url>
+    <loc>%s/lms/lesson/%s</loc>
+    <lastmod>%s</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
+  </url>`, baseURL, l.Slug, l.CreatedAt.Format("2006-01-02")))
+	}
+
+	b.WriteString("\n</urlset>")
+
+	xmlContent := b.String()
+
+	// Direct paths to write sitemap
+	paths := []string{
+		"../dist/sitemap.xml",
+		"dist/sitemap.xml",
+		"../public/sitemap.xml",
+		"public/sitemap.xml",
+	}
+
+	for _, path := range paths {
+		dir := path
+		if idx := strings.LastIndex(path, "/"); idx != -1 {
+			dir = path[:idx]
+		}
+		if _, err := os.Stat(dir); err == nil {
+			err = ioutil.WriteFile(path, []byte(xmlContent), 0644)
+			if err == nil {
+				log.Printf("[Sitemap] Successfully wrote static sitemap.xml to %s", path)
+			}
+		}
+	}
+}
+
 func GetSitemap(c *fiber.Ctx) error {
+	// Dynamically generate first
+	GenerateSitemapFile()
+
 	db := database.DB
 	var articles []models.Article
 	var pages []models.Page
