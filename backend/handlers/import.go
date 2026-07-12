@@ -372,6 +372,15 @@ func ImportExportV1(c *fiber.Ctx) error {
 		return c.Status(400).JSON(fiber.Map{"error": "base_url harus http/https"})
 	}
 
+	isSupabase := false
+	if strings.Contains(strings.ToLower(baseURL), "kajiansunnah.lovable.app") {
+		baseURL = "https://unidkjwwftehyxjfgjom.supabase.co/rest/v1"
+		isSupabase = true
+		u, _ = url.Parse(baseURL)
+	} else if strings.Contains(strings.ToLower(baseURL), "supabase.co") {
+		isSupabase = true
+	}
+
 	host := strings.TrimSpace(strings.ToLower(u.Hostname()))
 	if host == "" {
 		return c.Status(400).JSON(fiber.Map{"error": "base_url tidak valid"})
@@ -512,11 +521,19 @@ func ImportExportV1(c *fiber.Ctx) error {
 	}
 
 	importLegacy := func() *fiber.Error {
-		legacyURL, _ := url.Parse(baseURL + "/api/articles")
-		q := legacyURL.Query()
-		q.Set("status", "published")
-		q.Set("limit", "1000")
-		legacyURL.RawQuery = q.Encode()
+		var legacyURL *url.URL
+		if isSupabase {
+			legacyURL, _ = url.Parse(baseURL + "/articles")
+			q := legacyURL.Query()
+			q.Set("select", "*")
+			legacyURL.RawQuery = q.Encode()
+		} else {
+			legacyURL, _ = url.Parse(baseURL + "/api/articles")
+			q := legacyURL.Query()
+			q.Set("status", "published")
+			q.Set("limit", "1000")
+			legacyURL.RawQuery = q.Encode()
+		}
 
 		reqObj, err := http.NewRequest("GET", legacyURL.String(), nil)
 		if err != nil {
@@ -524,6 +541,11 @@ func ImportExportV1(c *fiber.Ctx) error {
 		}
 		reqObj.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
 		reqObj.Header.Set("Accept", "application/json")
+		if isSupabase {
+			supabaseKey := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVuaWRrand3ZnRlaHl4amZnam9tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNDQ3ODksImV4cCI6MjA5MTcyMDc4OX0.8U9t6tPWN8tQcnuA1dbmFDjNIQbaXIifC3b_M55iWIU"
+			reqObj.Header.Set("apikey", supabaseKey)
+			reqObj.Header.Set("Authorization", "Bearer "+supabaseKey)
+		}
 
 		resp, err := client.Do(reqObj)
 		if err != nil {
@@ -583,6 +605,19 @@ func ImportExportV1(c *fiber.Ctx) error {
 		}
 
 		return nil
+	}
+
+	if isSupabase {
+		if ferr := importLegacy(); ferr != nil {
+			return c.Status(ferr.Code).JSON(fiber.Map{"error": ferr.Message})
+		}
+		return c.JSON(fiber.Map{
+			"imported": imported,
+			"updated":  updated,
+			"skipped":  skipped,
+			"failed":   failed,
+			"source":   "supabase",
+		})
 	}
 
 	page := 1
