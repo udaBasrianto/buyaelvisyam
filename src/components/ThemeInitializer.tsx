@@ -15,6 +15,9 @@ export function ThemeInitializer() {
     root.style.setProperty("--primary", palette.primary);
     root.style.setProperty("--ring", palette.primary);
     root.style.setProperty("--sidebar-primary", palette.primary);
+    root.style.setProperty("--sidebar-accent", palette.accent);
+    root.style.setProperty("--sidebar-accent-foreground", palette.primary);
+    root.style.setProperty("--sidebar-ring", palette.primary);
     
     // Derived values for accent/background
     root.style.setProperty("--accent", palette.accent);
