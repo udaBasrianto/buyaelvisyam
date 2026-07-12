@@ -15,7 +15,8 @@ import {
   Trophy,
   User,
   HandHeart,
-  ShoppingBag
+  ShoppingBag,
+  Receipt
 } from "lucide-react";
 import {
   Sidebar,
@@ -41,26 +42,56 @@ export function AdminSidebar({ activeTab, setActiveTab }: AdminSidebarProps) {
   const { signOut } = useAuth();
   const { settings } = useSiteSettings();
 
-  const menuItems = [
-    { id: "analytics", label: "Statistik", icon: LayoutDashboard },
-    { id: "articles", label: "Artikel", icon: FileText },
-    { id: "categories", label: "Kategori", icon: FolderOpen },
-    { id: "products", label: "Produk", icon: ShoppingBag },
-    { id: "orders", label: "Order Produk", icon: ShoppingBag },
-    { id: "lms", label: "Akademi LMS", icon: GraduationCap },
-    { id: "wallet", label: "Keuangan", icon: Wallet },
-    { id: "donations", label: "Donasi", icon: HandHeart },
-    { id: "leaderboard", label: "Peringkat", icon: Trophy },
-    { id: "navigation", label: "Menu Navigasi", icon: Menu },
-    { id: "access_logs", label: "Security Logs", icon: ShieldAlert },
-    { id: "widgets", label: "Widget Sidebar", icon: FileCode },
-    { id: "pages", label: "Halaman", icon: FileCode },
-    { id: "features", label: "Feature Bar", icon: Sparkles },
-    { id: "settings", label: "Pengaturan", icon: Settings },
-    { id: "whatsapp", label: "WhatsApp Bot", icon: MessageCircle },
-    { id: "comments", label: "Komentar", icon: MessageCircle },
-    { id: "users", label: "Pengguna", icon: Users },
-    { id: "profile", label: "Profil", icon: User },
+  const groups = [
+    {
+      label: "Ikhtisar",
+      items: [
+        { id: "analytics", label: "Statistik", icon: LayoutDashboard },
+      ]
+    },
+    {
+      label: "Manajemen Konten",
+      items: [
+        { id: "articles", label: "Artikel", icon: FileText },
+        { id: "pages", label: "Halaman", icon: FileCode },
+        { id: "categories", label: "Kategori", icon: FolderOpen },
+        { id: "comments", label: "Komentar", icon: MessageCircle },
+      ]
+    },
+    {
+      label: "Bisnis & Donasi",
+      items: [
+        { id: "products", label: "Produk", icon: ShoppingBag },
+        { id: "orders", label: "Order Masuk", icon: Receipt },
+        { id: "wallet", label: "Keuangan", icon: Wallet },
+        { id: "donations", label: "Donasi", icon: HandHeart },
+      ]
+    },
+    {
+      label: "Akademi & Pembelajaran",
+      items: [
+        { id: "lms", label: "Akademi LMS", icon: GraduationCap },
+        { id: "leaderboard", label: "Peringkat", icon: Trophy },
+      ]
+    },
+    {
+      label: "Konfigurasi Sistem",
+      items: [
+        { id: "whatsapp", label: "WhatsApp Bot", icon: MessageCircle },
+        { id: "navigation", label: "Menu Navigasi", icon: Menu },
+        { id: "widgets", label: "Widget Sidebar", icon: FileCode },
+        { id: "features", label: "Feature Bar", icon: Sparkles },
+        { id: "users", label: "Pengguna", icon: Users },
+        { id: "access_logs", label: "Security Logs", icon: ShieldAlert },
+        { id: "settings", label: "Pengaturan", icon: Settings },
+      ]
+    },
+    {
+      label: "Akun",
+      items: [
+        { id: "profile", label: "Profil Saya", icon: User },
+      ]
+    }
   ];
 
   return (
@@ -89,25 +120,29 @@ export function AdminSidebar({ activeTab, setActiveTab }: AdminSidebarProps) {
         </div>
       </SidebarHeader>
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Menu Utama</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {menuItems.map((item) => (
-                <SidebarMenuItem key={item.id}>
-                  <SidebarMenuButton
-                    isActive={activeTab === item.id}
-                    onClick={() => setActiveTab(item.id)}
-                    tooltip={item.label}
-                  >
-                    <item.icon className="h-4 w-4" />
-                    <span>{item.label}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {groups.map((group, gIdx) => (
+          <SidebarGroup key={gIdx} className={gIdx > 0 ? "pt-0" : ""}>
+            <SidebarGroupLabel className="px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
+              {group.label}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {group.items.map((item) => (
+                  <SidebarMenuItem key={item.id}>
+                    <SidebarMenuButton
+                      isActive={activeTab === item.id}
+                      onClick={() => setActiveTab(item.id)}
+                      tooltip={item.label}
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.label}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
       <SidebarFooter className="border-t p-4">
         <SidebarMenu>
