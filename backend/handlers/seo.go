@@ -114,6 +114,7 @@ func ServeDynamicSEO(c *fiber.Ctx) error {
 	// Replace the hardcoded placeholders in index.html shell
 	htmlContent = strings.ReplaceAll(htmlContent, "<title>Buya Muhammad Elvisyam</title>", fmt.Sprintf("<title>%s</title>", dynamicTitle))
 	htmlContent = strings.ReplaceAll(htmlContent, "<meta name=\"description\" content=\"Akhimedia Generated Project\">", fmt.Sprintf("<meta name=\"description\" content=\"%s\">", dynamicDesc))
+	htmlContent = strings.ReplaceAll(htmlContent, "<meta name=\"description\" content=\"Portal Resmi Kajian Islam & Artikel Pilihan\">", fmt.Sprintf("<meta name=\"description\" content=\"%s\">", dynamicDesc))
 
 	// Inject Open Graph tags
 	baseURL := c.Protocol() + "://" + c.Hostname()

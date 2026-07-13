@@ -413,6 +413,9 @@ func main() {
 	log.Println("Registering AI Chat route...")
 	api.Post("/ai/chat", handlers.AIChat)
 
+	// Serve homepage dynamically for SEO tags injection
+	app.Get("/", handlers.ServeDynamicSEO)
+
 	// Serve frontend static assets in production (Vite built files)
 	app.Static("/", "../dist")
 
