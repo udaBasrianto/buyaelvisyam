@@ -31,6 +31,7 @@ import AccountDeletion from "./pages/AccountDeletion.tsx";
 import ProductsPage from "./pages/ProductsPage.tsx";
 import ProductDetail from "./pages/ProductDetail.tsx";
 import Checkout, { CheckoutSuccess } from "./pages/Checkout";
+import Arsip from "./pages/Arsip.tsx";
 import { ScrollToTop } from "./components/ScrollToTop";
 import { ThemeInitializer } from "./components/ThemeInitializer";
 import { GoogleAnalytics } from "./components/GoogleAnalytics";
@@ -119,6 +120,7 @@ const App = () => (
             <Route path="/lms" element={<Courses />} />
             <Route path="/lms/course/:slug" element={<CourseDetail />} />
             <Route path="/lms/lesson/:slug" element={<LessonView />} />
+            <Route path="/arsip" element={<Arsip />} />
             
             {/* Backward compatibility */}
             <Route path="/artikel/:id" element={<ArticleDetail />} />
