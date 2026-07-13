@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 )
 
 // ServeDynamicSEO serves index.html with dynamically injected Open Graph SEO tags for articles
@@ -62,7 +63,14 @@ func ServeDynamicSEO(c *fiber.Ctx) error {
 	articleFound := false
 	if slug != "" {
 		slug = strings.Split(slug, "?")[0]
-		if err := database.DB.Where("slug = ? AND status = ?", slug, "published").First(&article).Error; err == nil {
+		var dbErr error
+		if _, uuidErr := uuid.Parse(slug); uuidErr == nil {
+			dbErr = database.DB.Where("(slug = ? OR id = ?) AND status = ?", slug, slug, "published").First(&article).Error
+		} else {
+			dbErr = database.DB.Where("slug = ? AND status = ?", slug, "published").First(&article).Error
+		}
+
+		if dbErr == nil {
 			articleFound = true
 			dynamicTitle = fmt.Sprintf("%s | %s", article.Title, siteName)
 			
