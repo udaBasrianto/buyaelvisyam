@@ -8,6 +8,34 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
 import api from "@/lib/api";
+import * as Lucide from "lucide-react";
+
+const PRESET_ICONS = [
+  { name: "Home", label: "Beranda" },
+  { name: "Book", label: "Buku / Kajian" },
+  { name: "BookOpen", label: "Artikel / Jurnal" },
+  { name: "GraduationCap", label: "Akademi / Belajar" },
+  { name: "ShoppingBag", label: "Produk / Toko" },
+  { name: "HandHeart", label: "Donasi / Sosial" },
+  { name: "Calendar", label: "Jadwal / Kegiatan" },
+  { name: "Video", label: "Video / Streaming" },
+  { name: "Headphones", label: "Audio / Podcast" },
+  { name: "Info", label: "Tentang / Profil" },
+  { name: "Phone", label: "Kontak / Telepon" },
+  { name: "Mail", label: "Email / Hubungi" },
+  { name: "MapPin", label: "Lokasi / Alamat" },
+  { name: "Users", label: "Jamaah / Komunitas" },
+  { name: "MessageSquare", label: "Komentar / Tanya Jawab" },
+  { name: "Newspaper", label: "Berita / Warta" },
+  { name: "Compass", label: "Arah Kiblat / Jelajah" },
+  { name: "Heart", label: "Favorit / Sosial" },
+  { name: "FileText", label: "Halaman Statis" },
+  { name: "Award", label: "Prestasi / Sanad" },
+  { name: "Shield", label: "Keamanan / Kebijakan" },
+  { name: "HelpCircle", label: "Bantuan / FAQ" },
+  { name: "Settings", label: "Pengaturan" },
+  { name: "Search", label: "Pencarian" }
+];
 
 type NavItem = {
   id: string;
@@ -239,9 +267,47 @@ export function NavigationManager() {
               <Input placeholder="Contoh: /artikel atau https://..." value={form.url} onChange={e => setForm({ ...form, url: e.target.value })} />
             </div>
             <div className="space-y-2">
-              <Label>Nama Icon Lucide</Label>
-              <Input placeholder="Contoh: Home, BookOpen, Heart (opsional)" value={form.icon} onChange={e => setForm({ ...form, icon: e.target.value })} />
-              <p className="text-[9px] text-muted-foreground italic">Gunakan nama icon yang valid dari <a href="https://lucide.dev/icons" target="_blank" rel="noreferrer" className="text-primary hover:underline">lucide.dev/icons</a>.</p>
+              <Label className="text-xs font-bold uppercase tracking-widest text-primary">Pilih Ikon Menu</Label>
+              <div className="grid grid-cols-6 gap-2 p-2 bg-muted/40 rounded-xl max-h-36 overflow-y-auto border border-border">
+                {PRESET_ICONS.map((icon) => {
+                  const IconComp = (Lucide as any)[icon.name];
+                  const isSelected = form.icon === icon.name;
+                  return (
+                    <button
+                      key={icon.name}
+                      type="button"
+                      title={`${icon.label} (${icon.name})`}
+                      onClick={() => setForm({ ...form, icon: icon.name })}
+                      className={`flex items-center justify-center p-2 rounded-lg border transition-all hover:scale-105 h-10
+                        ${isSelected 
+                          ? "bg-primary border-primary text-white shadow-sm" 
+                          : "bg-background border-border hover:border-primary/50 text-foreground"
+                        }`}
+                    >
+                      {IconComp && <IconComp className="h-5 w-5" />}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="flex gap-2 items-center mt-2">
+                <Input 
+                  placeholder="Kustom (Contoh: BookOpen, User)" 
+                  value={form.icon} 
+                  onChange={e => setForm({ ...form, icon: e.target.value })}
+                  className="flex-1"
+                />
+                {form.icon && (
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setForm({ ...form, icon: "" })}
+                    className="shrink-0 rounded-xl"
+                  >
+                    Hapus Ikon
+                  </Button>
+                )}
+              </div>
+              <p className="text-[9px] text-muted-foreground italic">Klik ikon grid di atas untuk memilih instan, atau ketik nama ikon kustom dari <a href="https://lucide.dev/icons" target="_blank" rel="noreferrer" className="text-primary hover:underline">lucide.dev/icons</a>.</p>
             </div>
             <div className="space-y-2">
               <Label>Menu Induk (Sub-menu dari...)</Label>
