@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
-  FileText, Users, ArrowLeft, TrendingUp, Download, Menu, MessageCircle, ShieldAlert
+  FileText, Users, ArrowLeft, TrendingUp, Download, Menu, MessageCircle, ShieldAlert, Globe
 } from "lucide-react";
 import { PagesManager } from "@/components/admin/PagesManager";
 import { ArticlesManager } from "@/components/admin/ArticlesManager";
@@ -208,6 +208,11 @@ export default function AdminDashboard() {
                   </span>
                 </div>
                 <div className="h-4 w-px bg-border hidden sm:block mx-1" />
+                <Link to="/" target="_blank" rel="noopener noreferrer" title="Lihat Website">
+                  <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-accent text-muted-foreground hover:text-primary">
+                    <Globe className="h-5 w-5" />
+                  </Button>
+                </Link>
                 <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full bg-accent/50">
                   <Badge className="h-2 w-2 p-0 rounded-full bg-primary" />
                 </Button>
