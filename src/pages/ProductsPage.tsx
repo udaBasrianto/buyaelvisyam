@@ -22,6 +22,7 @@ interface ProductCard {
   currency: string;
   image_url?: string;
   views?: number;
+  sold?: number;
   discount_price?: number;
   is_flash_sale?: boolean;
   flash_sale_start?: string;
@@ -134,9 +135,15 @@ export default function ProductsPage() {
                   <p className="text-sm text-muted-foreground mb-5 line-clamp-3">{product.description}</p>
                 </div>
               <div className="flex items-center justify-between mt-auto">
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Eye className="h-4 w-4 text-muted-foreground/70" />
-                  <span>{product.views || 0} views</span>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1.5">
+                    <Eye className="h-4 w-4 text-muted-foreground/70" />
+                    <span>{product.views || 0}</span>
+                  </div>
+                  <div className="h-3 w-px bg-border/60" />
+                  <div className="font-semibold text-emerald-600 dark:text-emerald-400">
+                    {product.sold || 0} terjual
+                  </div>
                 </div>
                 <Button onClick={() => navigate(`/produk/${product.slug}`)}>Lihat Detail</Button>
               </div>

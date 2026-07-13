@@ -486,6 +486,7 @@ type Product struct {
 	IsActive       bool           `gorm:"default:true" json:"is_active"`
 	SortOrder      int            `gorm:"default:0" json:"sort_order"`
 	Views          int        `gorm:"default:0" json:"views"`
+	Sold           int        `gorm:"-" json:"sold"`
 	DiscountPrice  float64    `gorm:"default:0" json:"discount_price"`
 	IsFlashSale    bool       `gorm:"default:false" json:"is_flash_sale"`
 	FlashSaleStart *time.Time `json:"flash_sale_start"`

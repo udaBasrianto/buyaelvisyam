@@ -114,6 +114,16 @@ func GetProducts(c *fiber.Ctx) error {
 		return c.Status(500).JSON(fiber.Map{"error": "Gagal memuat produk"})
 	}
 
+	for i := range products {
+		var sold int64
+		db.Model(&models.ProductOrderItem{}).
+			Joins("JOIN product_orders ON product_orders.id = product_order_items.order_id").
+			Where("product_order_items.product_id = ? AND product_orders.status IN ?", products[i].ID, []string{"confirmed", "processed", "completed"}).
+			Select("COALESCE(SUM(product_order_items.quantity), 0)").
+			Row().Scan(&sold)
+		products[i].Sold = int(sold)
+	}
+
 	return c.JSON(products)
 }
 
@@ -128,6 +138,14 @@ func GetProduct(c *fiber.Ctx) error {
 	if err := db.Where("slug = ?", slug).Where("is_active = ?", true).First(&product).Error; err != nil {
 		return c.Status(404).JSON(fiber.Map{"error": "Produk tidak ditemukan"})
 	}
+
+	var sold int64
+	db.Model(&models.ProductOrderItem{}).
+		Joins("JOIN product_orders ON product_orders.id = product_order_items.order_id").
+		Where("product_order_items.product_id = ? AND product_orders.status IN ?", product.ID, []string{"confirmed", "processed", "completed"}).
+		Select("COALESCE(SUM(product_order_items.quantity), 0)").
+		Row().Scan(&sold)
+	product.Sold = int(sold)
 
 	return c.JSON(product)
 }

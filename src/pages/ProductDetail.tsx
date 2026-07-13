@@ -29,6 +29,7 @@ interface ProductDetailItem {
   is_flash_sale?: boolean;
   flash_sale_start?: string;
   flash_sale_end?: string;
+  sold?: number;
 }
 
 function FlashSaleCountdown({ endDate }: { endDate: string }) {
@@ -248,6 +249,10 @@ export default function ProductDetail() {
                 <p className="text-lg font-semibold">{product.digital_file_url ? "Tersedia" : "Tidak tersedia"}</p>
               </div>
             )}
+            <div>
+              <p className="text-sm text-muted-foreground">Terjual</p>
+              <p className="text-lg font-semibold text-emerald-600 dark:text-emerald-400">{product.sold || 0} produk</p>
+            </div>
             {product.sku && (
               <div>
                 <p className="text-sm text-muted-foreground">SKU</p>
