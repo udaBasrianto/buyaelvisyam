@@ -1,6 +1,7 @@
 package id.buyaelvisyam.app.data.api
 
 import android.content.Context
+import id.buyaelvisyam.app.BuildConfig
 import id.buyaelvisyam.app.data.model.Article
 import id.buyaelvisyam.app.data.model.LoginResponse
 import id.buyaelvisyam.app.data.model.UserProfile
@@ -60,8 +61,9 @@ object ApiClient {
             .addInterceptor(loggingInterceptor)
             .build()
 
+        val baseUrl = if (BuildConfig.DEBUG) DEV_BASE_URL else PROD_BASE_URL
         retrofit = Retrofit.Builder()
-            .baseUrl(DEV_BASE_URL)
+            .baseUrl(baseUrl)
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
