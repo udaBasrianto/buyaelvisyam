@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Menu, X, LogIn, LogOut, ShieldCheck, Edit, LayoutDashboard, User, ChevronDown, Shield, PenTool, ShoppingCart } from "lucide-react";
+import { Menu, X, LogIn, LogOut, ShieldCheck, Edit, LayoutDashboard, User, ChevronDown, Shield, PenTool, ShoppingCart, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -27,6 +27,8 @@ export function Navbar() {
   const navigate = useNavigate();
   const { settings } = useSiteSettings();
   const { totalCount } = useCart();
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     api.get("/categories").then(({ data }) => setCategories(asArray<any>(data))).catch(() => {});
@@ -137,6 +139,44 @@ export function Navbar() {
 
           {/* Right controls */}
           <div className="flex items-center gap-1.5">
+            {/* Search Input toggle */}
+            <div className="relative flex items-center">
+              {searchOpen && (
+                <input
+                  type="text"
+                  placeholder="Cari artikel..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && searchQuery.trim()) {
+                      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+                      setSearchOpen(false);
+                      setSearchQuery("");
+                    }
+                  }}
+                  className="w-32 sm:w-44 md:w-56 h-9 px-3 mr-1 text-xs rounded-full border bg-background focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all duration-300 animate-in slide-in-from-right-3"
+                  autoFocus
+                />
+              )}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-foreground/70 hover:text-primary transition-colors shrink-0"
+                onClick={() => {
+                  if (searchOpen && searchQuery.trim()) {
+                    navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+                    setSearchOpen(false);
+                    setSearchQuery("");
+                  } else {
+                    setSearchOpen(!searchOpen);
+                  }
+                }}
+                title="Cari Artikel"
+              >
+                {searchOpen ? <X className="h-5 w-5" /> : <Search className="h-5 w-5" />}
+              </Button>
+            </div>
+
             {/* Shopping Cart Link */}
             <Button
               variant="ghost"

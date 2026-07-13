@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { BottomNav } from "@/components/BottomNav";
 import { Footer } from "@/components/Footer";
@@ -8,9 +8,24 @@ import api from "@/lib/api";
 import { Search, ArrowRight, CornerDownRight, Eye } from "lucide-react";
 
 export default function SearchPage() {
-  const [query, setQuery] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialQuery = searchParams.get("q") || "";
+  const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // Sync state query to search params if URL changes (e.g. from navbar search)
+  useEffect(() => {
+    const q = searchParams.get("q") || "";
+    if (q !== query) {
+      setQuery(q);
+    }
+  }, [searchParams]);
+
+  const handleInputChange = (val: string) => {
+    setQuery(val);
+    setSearchParams(val ? { q: val } : {}, { replace: true });
+  };
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(async () => {
@@ -43,7 +58,7 @@ export default function SearchPage() {
                   className="h-16 pl-14 pr-6 rounded-[2rem] text-lg font-bold border-2 focus:border-primary/50 transition-all shadow-xl shadow-black/5"
                   autoFocus
                   value={query}
-                  onChange={(e) => setQuery(e.target.value)}
+                  onChange={(e) => handleInputChange(e.target.value)}
                 />
              </div>
           </div>
