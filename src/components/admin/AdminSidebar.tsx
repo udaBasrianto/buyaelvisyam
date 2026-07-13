@@ -30,8 +30,10 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
+import api from "@/lib/api";
 
 interface AdminSidebarProps {
   activeTab: string;
@@ -41,6 +43,28 @@ interface AdminSidebarProps {
 export function AdminSidebar({ activeTab, setActiveTab }: AdminSidebarProps) {
   const { signOut } = useAuth();
   const { settings } = useSiteSettings();
+  const [notifications, setNotifications] = useState({ comments: 0, donations: 0, orders: 0 });
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const { data } = await api.get("/admin/notifications/count");
+        if (data?.status === "success" && data?.data) {
+          setNotifications({
+            comments: Number(data.data.comments) || 0,
+            donations: Number(data.data.donations) || 0,
+            orders: Number(data.data.orders) || 0,
+          });
+        }
+      } catch (err) {
+        console.error("Failed to fetch notification counts", err);
+      }
+    };
+
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 30000); // 30s polling
+    return () => clearInterval(interval);
+  }, []);
 
   const groups = [
     {
@@ -126,18 +150,34 @@ export function AdminSidebar({ activeTab, setActiveTab }: AdminSidebarProps) {
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {group.items.map((item) => (
-                  <SidebarMenuItem key={item.id}>
-                    <SidebarMenuButton
-                      isActive={activeTab === item.id}
-                      onClick={() => setActiveTab(item.id)}
-                      tooltip={item.label}
-                    >
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.label}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
+                 {group.items.map((item) => {
+                  const badgeCount =
+                    item.id === "comments" ? notifications.comments :
+                    item.id === "donations" ? notifications.donations :
+                    item.id === "orders" ? notifications.orders : 0;
+
+                  return (
+                    <SidebarMenuItem key={item.id}>
+                      <SidebarMenuButton
+                        isActive={activeTab === item.id}
+                        onClick={() => setActiveTab(item.id)}
+                        tooltip={item.label}
+                      >
+                        <div className="flex items-center justify-between w-full">
+                          <div className="flex items-center gap-2">
+                            <item.icon className="h-4 w-4" />
+                            <span>{item.label}</span>
+                          </div>
+                          {badgeCount > 0 && (
+                            <span className="flex h-5 min-w-[20px] px-1.5 items-center justify-center rounded-full bg-destructive text-[10px] font-extrabold text-destructive-foreground animate-in zoom-in-50 duration-300">
+                              {badgeCount}
+                            </span>
+                          )}
+                        </div>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

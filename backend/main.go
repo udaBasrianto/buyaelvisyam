@@ -332,6 +332,7 @@ func main() {
 	api.Post("/import-export", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.ImportExportV1)
 	api.Post("/analytics/track", handlers.TrackVisit)
 	api.Get("/admin/analytics", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.GetAnalytics)
+	api.Get("/admin/notifications/count", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.GetAdminNotificationCounts)
 	api.Get("/admin/donations", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.AdminGetDonations)
 	api.Put("/admin/donations/settings", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.AdminUpdateDonationSettings)
 	api.Put("/admin/donations/:id/status", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.AdminUpdateDonationStatus)

@@ -257,3 +257,25 @@ func GetPublicStats(c *fiber.Ctx) error {
 		"total_categories": totalCategories,
 	})
 }
+
+func GetAdminNotificationCounts(c *fiber.Ctx) error {
+	db := database.DB
+
+	var commentsCount int64
+	db.Model(&models.Comment{}).Where("status = ?", "pending").Count(&commentsCount)
+
+	var donationsCount int64
+	db.Model(&models.Donation{}).Where("status = ?", "pending").Count(&donationsCount)
+
+	var ordersCount int64
+	db.Model(&models.ProductOrder{}).Where("status = ?", "pending").Count(&ordersCount)
+
+	return c.JSON(fiber.Map{
+		"status": "success",
+		"data": fiber.Map{
+			"comments":  commentsCount,
+			"donations": donationsCount,
+			"orders":    ordersCount,
+		},
+	})
+}
