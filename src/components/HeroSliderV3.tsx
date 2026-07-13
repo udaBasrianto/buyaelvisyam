@@ -51,7 +51,7 @@ export function HeroSliderV3({ slides }: HeroSliderV3Props) {
   const imgBrightness = Math.max(0.05, 1 - overlayOpacity);
 
   return (
-    <section className="relative w-full h-[520px] md:h-[580px] lg:h-[620px] overflow-hidden rounded-[2rem] bg-black text-white shadow-2xl group select-none">
+    <section className="relative w-full h-[260px] md:h-[580px] lg:h-[620px] overflow-hidden rounded-[2rem] bg-black text-white shadow-2xl group select-none">
       
       {/* Background Image Layer (Blurred, high contrast, matching active slide) */}
       <div className="absolute inset-0 z-0 overflow-hidden">
@@ -78,7 +78,7 @@ export function HeroSliderV3({ slides }: HeroSliderV3Props) {
       </div>
 
       {/* Main Grid Content Container */}
-      <div className="absolute inset-0 z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center px-6 md:px-12 lg:px-16 py-12">
+      <div className="absolute inset-0 z-10 grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-8 items-center px-6 md:px-12 lg:px-16 py-6 md:py-12">
         
         {/* Left Section: Active Slide Details */}
         <div className="lg:col-span-5 flex flex-row items-center gap-6 md:gap-8 h-full relative">
@@ -100,11 +100,11 @@ export function HeroSliderV3({ slides }: HeroSliderV3Props) {
           <div className="flex-1 flex flex-col justify-center">
             
             {/* Top Label (Previous Category/Tag) */}
-            <div className="overflow-hidden h-6 mb-2">
+            <div className="overflow-hidden h-5 md:h-6 mb-1 md:mb-2">
               <AnimatePresence mode="wait">
                 <motion.span
                   key={current}
-                  className="text-xs md:text-sm font-bold uppercase tracking-widest text-white/50 block"
+                  className="text-[10px] md:text-sm font-bold uppercase tracking-widest text-white/50 block"
                   initial={{ y: 20, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   exit={{ y: -20, opacity: 0 }}
@@ -116,11 +116,11 @@ export function HeroSliderV3({ slides }: HeroSliderV3Props) {
             </div>
 
             {/* Giant Title */}
-            <div className="overflow-hidden min-h-[90px] md:min-h-[120px] mb-4">
+            <div className="overflow-hidden min-h-[50px] md:min-h-[120px] mb-2 md:mb-4">
               <AnimatePresence mode="wait">
                 <motion.h1
                   key={current}
-                  className="text-3xl md:text-5xl lg:text-6xl font-black text-white uppercase tracking-tight leading-none line-clamp-2 drop-shadow-2xl"
+                  className="text-lg md:text-5xl lg:text-6xl font-black text-white uppercase tracking-tight leading-tight line-clamp-2 drop-shadow-2xl"
                   initial={{ y: 80, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   exit={{ y: -80, opacity: 0 }}
@@ -132,7 +132,7 @@ export function HeroSliderV3({ slides }: HeroSliderV3Props) {
             </div>
 
             {/* Excerpt/Description */}
-            <div className="overflow-hidden min-h-[50px] mb-6">
+            <div className="overflow-hidden hidden md:block min-h-[50px] mb-6">
               <AnimatePresence mode="wait">
                 <motion.p
                   key={current}
@@ -155,7 +155,7 @@ export function HeroSliderV3({ slides }: HeroSliderV3Props) {
             >
               <Link
                 to={`/artikel/${currentSlide.slug || currentSlide.id}`}
-                className="inline-flex items-center gap-3 px-8 py-3.5 bg-primary text-primary-foreground font-black text-xs uppercase tracking-wider rounded-xl hover:bg-primary/95 transition-all shadow-lg hover:shadow-primary/20 transform hover:-translate-y-0.5 active:translate-y-0 group-hover:scale-[1.02]"
+                className="inline-flex items-center gap-2 md:gap-3 px-5 py-2.5 md:px-8 md:py-3.5 bg-primary text-primary-foreground font-black text-[10px] md:text-xs uppercase tracking-wider rounded-xl hover:bg-primary/95 transition-all shadow-lg hover:shadow-primary/20 transform hover:-translate-y-0.5 active:translate-y-0 group-hover:scale-[1.02]"
               >
                 <span>BACA DETAIL</span>
                 <ChevronRight className="h-4 w-4 transform transition-transform group-hover:translate-x-1" />
@@ -163,7 +163,7 @@ export function HeroSliderV3({ slides }: HeroSliderV3Props) {
             </motion.div>
 
             {/* Bottom Label (Next Category/Tag) */}
-            <div className="overflow-hidden h-6 mt-8">
+            <div className="overflow-hidden hidden md:block h-6 mt-8">
               <AnimatePresence mode="wait">
                 <motion.span
                   key={current}
@@ -183,7 +183,7 @@ export function HeroSliderV3({ slides }: HeroSliderV3Props) {
         </div>
 
         {/* Right Section: Card Stack (Upcoming Cards) */}
-        <div className="lg:col-span-7 flex items-center h-full relative overflow-x-visible pl-4 select-none">
+        <div className="lg:col-span-7 hidden md:flex items-center h-full relative overflow-x-visible pl-4 select-none">
           <div className="flex gap-4 md:gap-6 w-full overflow-x-auto lg:overflow-x-visible no-scrollbar py-4">
             
             {cardStack.map((slideItem, index) => (
@@ -247,7 +247,7 @@ export function HeroSliderV3({ slides }: HeroSliderV3Props) {
       </div>
 
       {/* Bottom Slider Progress & Navigation Controls */}
-      <div className="absolute bottom-6 left-6 right-6 md:bottom-8 md:left-16 md:right-16 z-20 flex items-center justify-between">
+      <div className="absolute bottom-4 left-6 right-6 md:bottom-8 md:left-16 md:right-16 z-20 flex items-center justify-between">
         
         {/* Empty left gap or progress block */}
         <div className="flex items-center gap-3 hidden md:flex">
