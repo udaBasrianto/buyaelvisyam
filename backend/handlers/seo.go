@@ -14,16 +14,19 @@ import (
 	"github.com/google/uuid"
 )
 
-// ServeDynamicSEO serves index.html with dynamically injected Open Graph SEO tags for articles
+// ServeDynamicSEO serves index.html with dynamically injected Open Graph SEO tags for articles, products, and categories
 func ServeDynamicSEO(c *fiber.Ctx) error {
 	slug := c.Params("slug")
-	if slug == "" {
-		parts := strings.Split(c.Path(), "/")
-		if len(parts) > 2 && parts[1] == "artikel" {
+	contentType := "article"
+	
+	parts := strings.Split(c.Path(), "/")
+	if len(parts) > 2 {
+		if parts[1] == "artikel" || parts[1] == "produk" || parts[1] == "kategori" {
+			contentType = parts[1]
 			slug = parts[2]
-		} else if len(parts) > 1 {
-			slug = parts[1]
 		}
+	} else if len(parts) > 1 && slug == "" {
+		slug = parts[1]
 	}
 
 	// Try reading index.html from dist folder
@@ -57,31 +60,54 @@ func ServeDynamicSEO(c *fiber.Ctx) error {
 
 	dynamicTitle := siteTitle
 	dynamicDesc := siteDesc
-
-	// Fetch article from database if slug exists
-	var article models.Article
 	articleFound := false
+	var shareImage string
+
+	// Fetch data from database depending on contentType
 	if slug != "" {
 		slug = strings.Split(slug, "?")[0]
-		var dbErr error
-		if _, uuidErr := uuid.Parse(slug); uuidErr == nil {
-			dbErr = database.DB.Where("(slug = ? OR id = ?) AND status = ?", slug, slug, "published").First(&article).Error
-		} else {
-			dbErr = database.DB.Where("slug = ? AND status = ?", slug, "published").First(&article).Error
-		}
-
-		if dbErr == nil {
-			articleFound = true
-			dynamicTitle = fmt.Sprintf("%s | %s", article.Title, siteName)
-			
-			excerpt := article.Excerpt
-			if excerpt == "" {
-				excerpt = stripHTML(article.Content)
-				if len(excerpt) > 160 {
-					excerpt = excerpt[:157] + "..."
+		
+		if contentType == "produk" {
+			var product models.Product
+			if err := database.DB.Where("slug = ? AND is_active = ?", slug, true).First(&product).Error; err == nil {
+				articleFound = true
+				dynamicTitle = fmt.Sprintf("%s | %s", product.Title, siteName)
+				dynamicDesc = product.Description
+				if len(dynamicDesc) > 160 {
+					dynamicDesc = dynamicDesc[:157] + "..."
 				}
+				shareImage = product.ImageURL
 			}
-			dynamicDesc = excerpt
+		} else if contentType == "kategori" {
+			var category models.Category
+			if err := database.DB.Where("slug = ? AND is_active = ?", slug, true).First(&category).Error; err == nil {
+				articleFound = true
+				dynamicTitle = fmt.Sprintf("Kategori %s | %s", category.Name, siteName)
+				dynamicDesc = fmt.Sprintf("Daftar artikel kajian terbaik dalam kategori %s.", category.Name)
+			}
+		} else { // default to article
+			var article models.Article
+			var dbErr error
+			if _, uuidErr := uuid.Parse(slug); uuidErr == nil {
+				dbErr = database.DB.Where("(slug = ? OR id = ?) AND status = ?", slug, slug, "published").First(&article).Error
+			} else {
+				dbErr = database.DB.Where("slug = ? AND status = ?", slug, "published").First(&article).Error
+			}
+
+			if dbErr == nil {
+				articleFound = true
+				dynamicTitle = fmt.Sprintf("%s | %s", article.Title, siteName)
+				
+				excerpt := article.Excerpt
+				if excerpt == "" {
+					excerpt = stripHTML(article.Content)
+					if len(excerpt) > 160 {
+						excerpt = excerpt[:157] + "..."
+					}
+				}
+				dynamicDesc = excerpt
+				shareImage = article.CoverImage
+			}
 		}
 	}
 
@@ -95,7 +121,7 @@ func ServeDynamicSEO(c *fiber.Ctx) error {
 	var ogInjection strings.Builder
 
 	if articleFound {
-		coverImage := article.CoverImage
+		coverImage := shareImage
 		if coverImage == "" {
 			coverImage = "/og-image.jpg"
 		}
@@ -107,13 +133,13 @@ func ServeDynamicSEO(c *fiber.Ctx) error {
 			}
 		}
 
-		ogInjection.WriteString("\n  <meta property=\"og:type\" content=\"article\" />")
-		ogInjection.WriteString(fmt.Sprintf("\n  <meta property=\"og:title\" content=\"%s\" />", article.Title))
+		ogInjection.WriteString(fmt.Sprintf("\n  <meta property=\"og:type\" content=\"%s\" />", contentType))
+		ogInjection.WriteString(fmt.Sprintf("\n  <meta property=\"og:title\" content=\"%s\" />", dynamicTitle))
 		ogInjection.WriteString(fmt.Sprintf("\n  <meta property=\"og:description\" content=\"%s\" />", dynamicDesc))
 		ogInjection.WriteString(fmt.Sprintf("\n  <meta property=\"og:image\" content=\"%s\" />", coverImage))
 		ogInjection.WriteString(fmt.Sprintf("\n  <meta property=\"og:url\" content=\"%s\" />", fullURL))
 		ogInjection.WriteString("\n  <meta name=\"twitter:card\" content=\"summary_large_image\" />")
-		ogInjection.WriteString(fmt.Sprintf("\n  <meta name=\"twitter:title\" content=\"%s\" />", article.Title))
+		ogInjection.WriteString(fmt.Sprintf("\n  <meta name=\"twitter:title\" content=\"%s\" />", dynamicTitle))
 		ogInjection.WriteString(fmt.Sprintf("\n  <meta name=\"twitter:description\" content=\"%s\" />", dynamicDesc))
 		ogInjection.WriteString(fmt.Sprintf("\n  <meta name=\"twitter:image\" content=\"%s\" />", coverImage))
 		ogInjection.WriteString("\n")
