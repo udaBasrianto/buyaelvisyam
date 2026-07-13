@@ -6,10 +6,11 @@ import { Footer } from "@/components/Footer";
 import { PostCard } from "@/components/PostCard";
 import api from "@/lib/api";
 import type { Post } from "@/data/mockData";
-import { ArrowLeft, BookOpen } from "lucide-react";
+import { ArrowLeft, BookOpen, Search } from "lucide-react";
 
 export default function Arsip() {
   const [posts, setPosts] = useState<Post[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -43,6 +44,12 @@ export default function Arsip() {
     fetchArticles();
   }, []);
 
+  const filteredPosts = posts.filter(post => 
+    post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (post.excerpt && post.excerpt.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (post.category && post.category.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -58,7 +65,24 @@ export default function Arsip() {
             </div>
             <h1 className="text-3xl font-black tracking-tight italic">ARSIP ARTIKEL</h1>
             <p className="text-sm text-muted-foreground font-medium uppercase tracking-widest">Semua Artikel Dan Kajian Yang Telah Diterbitkan</p>
-            <p className="text-xs bg-muted text-muted-foreground px-3 py-1 rounded-full inline-block font-semibold mt-2">{posts.length} Artikel</p>
+            <p className="text-xs bg-muted text-muted-foreground px-3 py-1 rounded-full inline-block font-semibold mt-2">
+              {searchQuery ? `${filteredPosts.length} dari ${posts.length}` : posts.length} Artikel
+            </p>
+          </div>
+
+          {/* Search Box */}
+          <div className="max-w-md mx-auto mb-12 relative group">
+            <div className="absolute inset-0 bg-primary/10 blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity rounded-xl" />
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+              <input
+                type="text"
+                placeholder="Cari judul atau topik kajian..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full h-12 pl-11 pr-4 rounded-xl border bg-background text-sm focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all shadow-sm outline-none font-medium"
+              />
+            </div>
           </div>
 
           {loading ? (
@@ -67,11 +91,16 @@ export default function Arsip() {
                 <div key={i} className="h-80 bg-muted animate-pulse rounded-2xl" />
               ))}
             </div>
-          ) : posts.length === 0 ? (
-            <p className="text-center text-muted-foreground py-12 italic">Belum ada artikel yang diterbitkan.</p>
+          ) : filteredPosts.length === 0 ? (
+            <div className="text-center py-20 text-muted-foreground">
+              <div className="h-16 w-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4 opacity-50">
+                <Search className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <p className="italic text-sm">Tidak ada artikel ditemukan untuk "{searchQuery}".</p>
+            </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {posts.map((post) => (
+              {filteredPosts.map((post) => (
                 <Link key={post.id} to={`/${post.slug || post.id}`} className="transition-all hover:scale-[1.01] active:scale-[0.99]">
                   <PostCard post={post} />
                 </Link>
