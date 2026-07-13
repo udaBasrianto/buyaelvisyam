@@ -115,6 +115,13 @@ func ServeDynamicSEO(c *fiber.Ctx) error {
 	htmlContent = strings.ReplaceAll(htmlContent, "<title>Buya Muhammad Elvisyam</title>", fmt.Sprintf("<title>%s</title>", dynamicTitle))
 	htmlContent = strings.ReplaceAll(htmlContent, "<meta name=\"description\" content=\"Akhimedia Generated Project\">", fmt.Sprintf("<meta name=\"description\" content=\"%s\">", dynamicDesc))
 	htmlContent = strings.ReplaceAll(htmlContent, "<meta name=\"description\" content=\"Portal Resmi Kajian Islam & Artikel Pilihan\">", fmt.Sprintf("<meta name=\"description\" content=\"%s\">", dynamicDesc))
+	htmlContent = strings.ReplaceAll(htmlContent, "<meta name=\"author\" content=\"Buya Muhammad Elvisyam\" />", fmt.Sprintf("<meta name=\"author\" content=\"%s\" />", siteName))
+	htmlContent = strings.ReplaceAll(htmlContent, "<meta name=\"author\" content=\"Akhimedia\" />", fmt.Sprintf("<meta name=\"author\" content=\"%s\" />", siteName))
+
+	// Dynamically replace Google Analytics ID
+	if settings.GoogleAnalyticsID != "" {
+		htmlContent = strings.ReplaceAll(htmlContent, "G-5DQ01JS2EP", settings.GoogleAnalyticsID)
+	}
 
 	// Inject Open Graph tags
 	baseURL := c.Protocol() + "://" + c.Hostname()
