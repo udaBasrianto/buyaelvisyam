@@ -29,6 +29,29 @@ export function Navbar() {
   const { totalCount } = useCart();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchSuggestions, setSearchSuggestions] = useState<any[]>([]);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+
+  useEffect(() => {
+    if (searchQuery.trim().length < 4) {
+      setSearchSuggestions([]);
+      return;
+    }
+
+    const delayDebounce = setTimeout(async () => {
+      setSuggestionsLoading(true);
+      try {
+        const { data } = await api.get(`/blog/search?q=${encodeURIComponent(searchQuery.trim())}`);
+        setSearchSuggestions(Array.isArray(data) ? data.slice(0, 5) : []);
+      } catch (err) {
+        console.error("Failed to fetch search suggestions", err);
+      } finally {
+        setSuggestionsLoading(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounce);
+  }, [searchQuery]);
 
   useEffect(() => {
     api.get("/categories").then(({ data }) => setCategories(asArray<any>(data))).catch(() => {});
@@ -142,21 +165,79 @@ export function Navbar() {
             {/* Search Input toggle */}
             <div className="relative flex items-center">
               {searchOpen && (
-                <input
-                  type="text"
-                  placeholder="Cari artikel..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && searchQuery.trim()) {
-                      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-                      setSearchOpen(false);
-                      setSearchQuery("");
-                    }
-                  }}
-                  className="w-32 sm:w-44 md:w-56 h-9 px-3 mr-1 text-xs rounded-full border bg-background focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all duration-300 animate-in slide-in-from-right-3"
-                  autoFocus
-                />
+                <>
+                  <input
+                    type="text"
+                    placeholder="Cari artikel..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && searchQuery.trim()) {
+                        navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+                        setSearchOpen(false);
+                        setSearchQuery("");
+                        setSearchSuggestions([]);
+                      }
+                    }}
+                    onBlur={() => {
+                      setTimeout(() => {
+                        setSearchOpen(false);
+                        setSearchQuery("");
+                        setSearchSuggestions([]);
+                      }, 250);
+                    }}
+                    className="w-32 sm:w-44 md:w-56 h-9 px-3 mr-1 text-xs rounded-full border bg-background focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all duration-300 animate-in slide-in-from-right-3"
+                    autoFocus
+                  />
+                  
+                  {/* Suggestions Dropdown */}
+                  {searchQuery.trim().length >= 4 && (
+                    <div className="absolute top-full right-0 mt-2 w-72 sm:w-80 md:w-96 bg-card border border-border/60 rounded-2xl shadow-2xl p-3 z-[60] flex flex-col gap-1.5 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest px-2 pb-1 border-b border-border/40 flex items-center justify-between">
+                        <span>Rekomendasi Artikel</span>
+                        {suggestionsLoading && <span className="animate-pulse text-primary lowercase font-medium">mencari...</span>}
+                      </div>
+                      
+                      {suggestionsLoading && searchSuggestions.length === 0 ? (
+                        <div className="text-center py-4 text-xs text-muted-foreground italic">
+                          Mencari kajian...
+                        </div>
+                      ) : searchSuggestions.length === 0 ? (
+                        <div className="text-center py-4 text-xs text-muted-foreground italic">
+                          Tidak ada hasil yang cocok
+                        </div>
+                      ) : (
+                        <div className="max-h-[250px] overflow-y-auto space-y-1 pr-1">
+                          {searchSuggestions.map((item) => (
+                            <a
+                              key={item.id}
+                              href={`/${item.slug || item.id}`}
+                              className="flex items-center gap-3 p-2 rounded-xl hover:bg-primary/10 transition-all group/item text-left"
+                            >
+                              <div className="h-9 w-9 rounded overflow-hidden bg-muted shrink-0">
+                                <img
+                                  src={item.cover_image || "/placeholder.svg"}
+                                  alt=""
+                                  className="h-full w-full object-cover group-hover/item:scale-105 transition-transform"
+                                />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="text-[11px] font-bold text-foreground group-hover/item:text-primary transition-colors line-clamp-2 leading-tight">
+                                  {item.title}
+                                </h4>
+                                {item.category && (
+                                  <span className="text-[7px] font-black uppercase text-primary bg-primary/5 px-1.5 py-0.5 rounded mt-0.5 inline-block">
+                                    {item.category}
+                                  </span>
+                                )}
+                              </div>
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
               )}
               <Button
                 variant="ghost"
@@ -167,6 +248,7 @@ export function Navbar() {
                     navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
                     setSearchOpen(false);
                     setSearchQuery("");
+                    setSearchSuggestions([]);
                   } else {
                     setSearchOpen(!searchOpen);
                   }
