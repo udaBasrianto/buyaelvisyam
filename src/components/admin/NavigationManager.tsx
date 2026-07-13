@@ -13,6 +13,7 @@ type NavItem = {
   id: string;
   label: string;
   url: string;
+  icon?: string;
   sort_order: number;
   is_active: boolean;
   is_external: boolean;
@@ -25,7 +26,7 @@ export function NavigationManager() {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<NavItem | null>(null);
-  const [form, setForm] = useState({ label: "", url: "", is_active: true, is_external: false, parent_id: "" });
+  const [form, setForm] = useState({ label: "", url: "", icon: "", is_active: true, is_external: false, parent_id: "" });
 
   // Drag state
   const dragItem = useRef<number | null>(null);
@@ -137,7 +138,7 @@ export function NavigationManager() {
           <h3 className="text-lg font-black uppercase tracking-tight">Manajemen Navigasi</h3>
           <p className="text-xs text-muted-foreground">Seret & lepas ikon <GripVertical className="inline h-3 w-3" /> untuk mengubah urutan menu.</p>
         </div>
-        <Button onClick={() => { setEditing(null); setForm({ label: "", url: "", is_active: true, is_external: false, parent_id: "" }); setOpen(true); }} className="gap-2">
+        <Button onClick={() => { setEditing(null); setForm({ label: "", url: "", icon: "", is_active: true, is_external: false, parent_id: "" }); setOpen(true); }} className="gap-2">
           <Plus className="h-4 w-4" /> Tambah Menu
         </Button>
       </div>
@@ -191,7 +192,7 @@ export function NavigationManager() {
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
                   setEditing(item);
-                  setForm({ label: item.label, url: item.url, is_active: item.is_active, is_external: item.is_external, parent_id: item.parent_id || "" });
+                  setForm({ label: item.label, url: item.url, icon: item.icon || "", is_active: item.is_active, is_external: item.is_external, parent_id: item.parent_id || "" });
                   setOpen(true);
                 }}>
                   <Edit className="h-4 w-4" />
@@ -236,6 +237,11 @@ export function NavigationManager() {
             <div className="space-y-2">
               <Label>URL / Link</Label>
               <Input placeholder="Contoh: /artikel atau https://..." value={form.url} onChange={e => setForm({ ...form, url: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label>Nama Icon Lucide</Label>
+              <Input placeholder="Contoh: Home, BookOpen, Heart (opsional)" value={form.icon} onChange={e => setForm({ ...form, icon: e.target.value })} />
+              <p className="text-[9px] text-muted-foreground italic">Gunakan nama icon yang valid dari <a href="https://lucide.dev/icons" target="_blank" rel="noreferrer" className="text-primary hover:underline">lucide.dev/icons</a>.</p>
             </div>
             <div className="space-y-2">
               <Label>Menu Induk (Sub-menu dari...)</Label>

@@ -10,6 +10,27 @@ import { NewsTicker } from "@/components/NewsTicker";
 import { AnimatedLogoText } from "@/components/AnimatedLogoText";
 import api from "@/lib/api";
 import { asArray } from "@/lib/api-response";
+import * as LucideIcons from "lucide-react";
+
+function DynamicIcon({ name, className }: { name: string; className?: string }) {
+  if (!name) return null;
+  const formattedName = name.charAt(0).toUpperCase() + name.slice(1);
+  const IconComponent = (LucideIcons as any)[formattedName];
+  if (!IconComponent) return null;
+  return <IconComponent className={className} />;
+}
+
+const getFallbackIconName = (label: string): string => {
+  const l = label.toLowerCase();
+  if (l.includes("beranda") || l.includes("home")) return "Home";
+  if (l.includes("produk") || l.includes("shop") || l.includes("toko")) return "ShoppingBag";
+  if (l.includes("akademi") || l.includes("lms") || l.includes("course") || l.includes("belajar")) return "GraduationCap";
+  if (l.includes("donasi") || l.includes("sedekah") || l.includes("donation")) return "HandHeart";
+  if (l.includes("tentang") || l.includes("about")) return "Info";
+  if (l.includes("kontak") || l.includes("contact")) return "Phone";
+  if (l.includes("kategori")) return "LayoutGrid";
+  return "";
+};
 
 // Menu items dari database - fallback default menu jika belum ada konfigurasi yang tersimpan
 const baseNavItems = [
@@ -70,8 +91,8 @@ export function Navbar() {
   const lmsLabel = (settings as any).lms_menu_label || "Akademi";
   const productsLabel = (settings as any).products_menu_label || "Produk";
   const rawNavItems = dbNavItems.length > 0 
-    ? dbNavItems.filter(i => i.is_active).map(i => ({ id: i.id, label: i.label === "Produk" ? productsLabel : i.label, href: i.url, isExternal: i.is_external, parent_id: i.parent_id }))
-    : baseNavItems.map(i => ({ ...i, id: i.id, label: i.label === "__PRODUCTS__" ? productsLabel : i.label === "__LMS__" ? lmsLabel : i.label, isExternal: false, parent_id: null }));
+    ? dbNavItems.filter(i => i.is_active).map(i => ({ id: i.id, label: i.label === "Produk" ? productsLabel : i.label, href: i.url, isExternal: i.is_external, parent_id: i.parent_id, icon: i.icon }))
+    : baseNavItems.map(i => ({ ...i, id: i.id, label: i.label === "__PRODUCTS__" ? productsLabel : i.label === "__LMS__" ? lmsLabel : i.label, isExternal: false, parent_id: null, icon: "" }));
 
   // Nest children under parents
   const navItems = rawNavItems.filter(item => !item.parent_id).map(parent => ({
@@ -116,12 +137,15 @@ export function Navbar() {
           <div className="hidden md:flex items-center gap-8">
             {navItems.map((item) => {
               const hasChildren = item.children && item.children.length > 0;
+              const iconName = item.icon || getFallbackIconName(item.label);
               
               if (item.label.toLowerCase() === "kategori" || hasChildren) {
                 return (
                   <div key={item.id} className="relative group">
-                    <button className="flex items-center gap-1 text-sm font-medium text-foreground/80 hover:text-primary transition-colors py-2">
-                      {item.label} <ChevronDown className="h-4 w-4 transition-transform group-hover:rotate-180" />
+                    <button className="flex items-center gap-1.5 text-sm font-medium text-foreground/80 hover:text-primary transition-colors py-2 group/btn">
+                      {iconName && <DynamicIcon name={iconName} className="h-4 w-4 shrink-0 opacity-75 group-hover/btn:text-primary transition-colors" />}
+                      <span>{item.label}</span>
+                      <ChevronDown className="h-4 w-4 transition-transform group-hover:rotate-180" />
                     </button>
                     <div className="absolute top-full left-0 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform translate-y-2 group-hover:translate-y-0 z-50">
                       <div className={`bg-card rounded-2xl shadow-xl border border-border/50 p-4 ring-1 ring-black/5 ${
@@ -135,12 +159,19 @@ export function Navbar() {
                              </a>
                            )) : <div className="px-3 py-2 text-sm text-muted-foreground italic text-center">Memuat...</div>
                          ) : (
-                           item.children.map((child: any) => (
-                             <a key={child.id} href={child.href} className="px-3 py-2 text-sm rounded-xl hover:bg-primary/10 hover:text-primary transition-all flex items-center gap-2 group/item">
-                               <div className="h-1 w-3 rounded-full bg-primary/20 group-hover/item:bg-primary transition-all" />
-                               <span className="font-medium truncate">{child.label}</span>
-                             </a>
-                           ))
+                           item.children.map((child: any) => {
+                             const childIconName = child.icon || getFallbackIconName(child.label);
+                             return (
+                               <a key={child.id} href={child.href} className="px-3 py-2 text-sm rounded-xl hover:bg-primary/10 hover:text-primary transition-all flex items-center gap-2 group/item">
+                                 {childIconName ? (
+                                   <DynamicIcon name={childIconName} className="h-3.5 w-3.5 shrink-0 opacity-60 group-hover/item:opacity-100 transition-opacity" />
+                                 ) : (
+                                   <div className="h-1 w-3 rounded-full bg-primary/20 group-hover/item:bg-primary transition-all" />
+                                 )}
+                                 <span className="font-medium truncate">{child.label}</span>
+                               </a>
+                             );
+                           })
                          )}
                       </div>
                     </div>
@@ -152,9 +183,10 @@ export function Navbar() {
                 <a 
                   key={item.href} 
                   href={item.href} 
-                  className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors relative after:absolute after:bottom-[-2px] after:left-0 after:w-0 after:h-0.5 after:bg-primary after:transition-all hover:after:w-full"
+                  className="flex items-center gap-1.5 text-sm font-medium text-foreground/80 hover:text-primary transition-colors relative after:absolute after:bottom-[-2px] after:left-0 after:w-0 after:h-0.5 after:bg-primary after:transition-all hover:after:w-full group/link"
                 >
-                  {item.label}
+                  {iconName && <DynamicIcon name={iconName} className="h-4 w-4 shrink-0 opacity-75 group-hover/link:text-primary transition-colors" />}
+                  <span>{item.label}</span>
                 </a>
               );
             })}
@@ -335,14 +367,19 @@ export function Navbar() {
         {mobileOpen && (
           <div className="md:hidden border-t bg-card px-4 py-4 space-y-3 animate-in slide-in-from-top-2 duration-200">
             {navItems.map((item) => {
-              if (item.label.toLowerCase() === "kategori") {
+              const iconName = item.icon || getFallbackIconName(item.label);
+              if (item.label.toLowerCase() === "kategori" || (item.children && item.children.length > 0)) {
                 return (
                   <div key="mobile-kategori">
                     <button 
                       onClick={() => setIsMobileCategoryOpen(!isMobileCategoryOpen)} 
                       className="flex items-center justify-between w-full text-sm font-medium text-foreground/80 hover:text-primary py-2"
                     >
-                      {item.label} <ChevronDown className={`h-4 w-4 transition-transform ${isMobileCategoryOpen ? "rotate-180" : ""}`} />
+                      <div className="flex items-center gap-2">
+                        {iconName && <DynamicIcon name={iconName} className="h-4 w-4 shrink-0 opacity-75" />}
+                        <span>{item.label}</span>
+                      </div>
+                      <ChevronDown className={`h-4 w-4 transition-transform ${isMobileCategoryOpen ? "rotate-180" : ""}`} />
                     </button>
                     {isMobileCategoryOpen && (
                       <div className="pl-4 space-y-2 border-l-2 border-primary/20 ml-2 my-1">
@@ -357,8 +394,9 @@ export function Navbar() {
                 );
               }
               return (
-                <a key={item.href} href={item.href} className="block text-sm font-medium text-foreground/80 hover:text-primary py-2">
-                  {item.label}
+                <a key={item.href} href={item.href} className="flex items-center gap-2 text-sm font-medium text-foreground/80 hover:text-primary py-2">
+                  {iconName && <DynamicIcon name={iconName} className="h-4 w-4 shrink-0 opacity-75" />}
+                  <span>{item.label}</span>
                 </a>
               );
             })}

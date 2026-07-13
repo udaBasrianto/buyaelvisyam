@@ -639,6 +639,7 @@ type NavItem struct {
 	ID         uuid.UUID  `gorm:"type:uuid;primaryKey" json:"id"`
 	Label      string     `json:"label"`
 	URL        string     `json:"url"`
+	Icon       string     `json:"icon"`
 	SortOrder  int        `json:"sort_order"`
 	IsActive   bool       `gorm:"default:true" json:"is_active"`
 	IsExternal bool       `gorm:"default:false" json:"is_external"`
