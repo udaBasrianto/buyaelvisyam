@@ -416,6 +416,9 @@ func main() {
 	// Serve homepage dynamically for SEO tags injection
 	app.Get("/", handlers.ServeDynamicSEO)
 
+	// Serve sitemap dynamically to automatically detect host domain
+	app.Get("/sitemap.xml", handlers.GetSitemap)
+
 	// Serve frontend static assets in production (Vite built files)
 	app.Static("/", "../dist")
 
