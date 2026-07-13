@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
@@ -88,9 +89,15 @@ fun HomeScreen(
                             color = Teal700,
                             fontSize = 18.sp
                         )
-                        userProfile?.let {
+                        if (userProfile != null) {
                             Text(
-                                text = "Assalamualaikum, ${it.displayName}",
+                                text = "Assalamualaikum, ${userProfile.displayName}",
+                                fontSize = 11.sp,
+                                color = Color.Gray
+                            )
+                        } else {
+                            Text(
+                                text = "Selamat datang, Tamu",
                                 fontSize = 11.sp,
                                 color = Color.Gray
                             )
@@ -102,7 +109,11 @@ fun HomeScreen(
                         Icon(Icons.Default.Refresh, contentDescription = "Refresh")
                     }
                     IconButton(onClick = onLogout) {
-                        Icon(Icons.Default.ExitToApp, contentDescription = "Log Keluar", tint = Color.Red)
+                        if (userProfile != null) {
+                            Icon(Icons.Default.ExitToApp, contentDescription = "Log Keluar", tint = Color.Red)
+                        } else {
+                            Icon(Icons.Default.Lock, contentDescription = "Log Masuk", tint = Teal700)
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)

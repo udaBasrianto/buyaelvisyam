@@ -20,7 +20,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
-    override fun onCreate(Bundle savedInstanceState) {
+    override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
         // Initialize API Client with application context
@@ -49,26 +49,24 @@ sealed class Screen {
 fun AppNavigation(context: Context) {
     val sharedPreferences = remember { context.getSharedPreferences("buya_prefs", Context.MODE_PRIVATE) }
     var currentScreen by remember { 
-        mutableStateOf<Screen>(
-            if (sharedPreferences.getString("token", null) != null) Screen.Home else Screen.Auth
-        ) 
+        mutableStateOf<Screen>(Screen.Home) 
     }
     var selectedArticle by remember { mutableStateOf<Article?>(null) }
     var currentUserProfile by remember { mutableStateOf<UserProfile?>(null) }
 
     // Fetch user profile if token is present
     LaunchedEffect(currentScreen) {
-        if (currentScreen == Screen.Home && currentUserProfile == null) {
+        val token = sharedPreferences.getString("token", null)
+        if (currentScreen == Screen.Home && currentUserProfile == null && token != null) {
             CoroutineScope(Dispatchers.IO).launch {
                 try {
                     val response = ApiClient.apiService.getMe()
                     if (response.isSuccessful && response.body() != null) {
                         currentUserProfile = response.body()
                     } else {
-                        // Clear invalid token and send to Login
+                        // Clear invalid token
                         ApiClient.clearToken(context)
                         currentUserProfile = null
-                        currentScreen = Screen.Auth
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()
