@@ -5,6 +5,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { Footer } from "@/components/Footer";
 import { Input } from "@/components/ui/input";
 import api from "@/lib/api";
+import { asArray } from "@/lib/api-response";
 import { Search, ArrowRight, CornerDownRight, Eye } from "lucide-react";
 
 export default function SearchPage() {
@@ -36,7 +37,7 @@ export default function SearchPage() {
       setLoading(true);
       try {
         const { data } = await api.get(`/blog/search?q=${query}`);
-        setResults(data || []);
+        setResults(asArray<any>(data));
       } catch (err) {}
       setLoading(false);
     }, 500);

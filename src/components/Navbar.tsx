@@ -42,7 +42,7 @@ export function Navbar() {
       setSuggestionsLoading(true);
       try {
         const { data } = await api.get(`/blog/search?q=${encodeURIComponent(searchQuery.trim())}`);
-        setSearchSuggestions(Array.isArray(data) ? data.slice(0, 5) : []);
+        setSearchSuggestions(asArray<any>(data).slice(0, 5));
       } catch (err) {
         console.error("Failed to fetch search suggestions", err);
       } finally {
