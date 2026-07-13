@@ -32,8 +32,7 @@ interface ApiService {
 }
 
 object ApiClient {
-    // 10.0.2.2 points to localhost of the development computer from Android emulator
-    private const val DEV_BASE_URL = "http://10.0.2.2:4000/api/"
+    private const val DEV_BASE_URL = "http://192.168.100.100:4000/api/"
     private const val PROD_BASE_URL = "https://buyaelvisyam.id/api/"
 
     private var retrofit: Retrofit? = null
