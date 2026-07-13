@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { Heart } from "lucide-react";
 import api from "@/lib/api";
 import { asNumber, asObject } from "@/lib/api-response";
 
@@ -239,8 +240,21 @@ export function Footer() {
 
         {/* Footer Bottom */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-semibold text-zinc-500 uppercase tracking-[0.15em]">
-          <p>{settings.footer_text || "© 2026 Buyaelvisyam.id"}</p>
-          <p className="normal-case tracking-normal">Optimized for SEO & Speed</p>
+          <div className="flex flex-wrap items-center gap-1.5 justify-center sm:justify-start">
+            <span>{settings.footer_text || "© 2026 Buyaelvisyam.id"}</span>
+            <span className="text-zinc-700 select-none hidden sm:inline">•</span>
+            <span className="normal-case tracking-normal text-zinc-400">Developed by</span>
+            <a 
+              href="https://akhimedia.id" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="flex items-center gap-1 text-primary hover:text-primary/80 transition-colors normal-case tracking-normal"
+            >
+              Akhimedia
+              <Heart className="h-3.5 w-3.5 fill-destructive text-destructive animate-pulse shrink-0" />
+            </a>
+          </div>
+          <p className="normal-case tracking-normal text-zinc-500">Optimized for SEO & Speed</p>
         </div>
       </div>
     </footer>
