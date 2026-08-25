@@ -202,6 +202,7 @@ type Article struct {
 	Status             string         `gorm:"default:'draft'" json:"status"`
 	TemplateType       string         `gorm:"default:'kajian'" json:"template_type"`
 	ScheduledPublishAt *time.Time     `json:"scheduled_publish_at"`
+	PublishedAt        *time.Time     `json:"published_at"`
 	Views              int            `gorm:"default:0" json:"views"`
 	IsFeatured         bool           `gorm:"default:false" json:"is_featured"`
 	LocationName       string         `json:"location_name"`
@@ -229,6 +230,7 @@ type ArticleRevision struct {
 	Status             string         `json:"status"`
 	TemplateType       string         `json:"template_type"`
 	ScheduledPublishAt *time.Time     `json:"scheduled_publish_at"`
+	PublishedAt        *time.Time     `json:"published_at"`
 	SavedBy            uuid.UUID      `gorm:"type:uuid" json:"saved_by"`
 	CreatedAt          time.Time      `json:"created_at"`
 }

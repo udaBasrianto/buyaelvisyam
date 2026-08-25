@@ -9,7 +9,7 @@ import (
 // GetLatestArticles for Mobile Slider/Feed
 func GetLatestArticles(c *fiber.Ctx) error {
 	var articles []models.Article
-	database.DB.Order("created_at desc").Limit(10).Find(&articles)
+	database.DB.Order("published_at desc").Limit(10).Find(&articles)
 	
 	return c.JSON(fiber.Map{
 		"status": "success",
@@ -27,7 +27,7 @@ func GetArticlesByCategory(c *fiber.Ctx) error {
 	}
 
 	var articles []models.Article
-	database.DB.Where("category_id = ?", category.ID).Order("created_at desc").Find(&articles)
+	database.DB.Where("category_id = ?", category.ID).Order("published_at desc").Find(&articles)
 
 	return c.JSON(fiber.Map{
 		"status":   "success",
@@ -44,7 +44,7 @@ func SearchArticles(c *fiber.Ctx) error {
 	}
 
 	var articles []models.Article
-	database.DB.Where("title ILIKE ? OR content ILIKE ?", "%"+query+"%", "%"+query+"%").Limit(20).Find(&articles)
+	database.DB.Where("title ILIKE ? OR content ILIKE ?", "%"+query+"%", "%"+query+"%").Order("published_at desc").Limit(20).Find(&articles)
 
 	return c.JSON(fiber.Map{
 		"status": "success",

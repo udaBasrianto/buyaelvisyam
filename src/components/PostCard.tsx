@@ -55,7 +55,11 @@ export function PostCard({ post, featured = false }: PostCardProps) {
           <div>{post.date.split(" ")[1]}</div>
         </div>
         <div className="absolute inset-0 flex flex-col justify-end p-5">
-          <span className="tag-badge gold-gradient text-primary-foreground text-xs w-fit mb-2">{post.category}</span>
+          <div className="flex flex-wrap gap-1 mb-2">
+            {(post.categories && post.categories.length > 0 ? post.categories : [post.category]).map((cat) => (
+              <span key={cat} className="tag-badge gold-gradient text-primary-foreground text-xs">{cat}</span>
+            ))}
+          </div>
           <h3 className="text-lg font-bold text-primary-foreground leading-snug line-clamp-2">{post.title}</h3>
           <div className="flex items-center gap-2 text-primary-foreground/70 text-sm mt-1.5">
             <span>{post.author}</span>

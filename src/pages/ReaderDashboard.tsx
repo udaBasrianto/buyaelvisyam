@@ -218,7 +218,7 @@ export default function ReaderDashboard() {
     category: a.category || "Umum",
     tags: asArray<string>(a.tags),
     author: a.author || "Ustadz",
-    date: new Date(a.created_at).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric'}),
+    date: new Date(a.published_at || a.created_at).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric'}),
     views: a.views || 0,
     commentCount: a.comment_count || 0,
   });

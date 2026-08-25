@@ -45,9 +45,10 @@ const CategoryPage = () => {
               excerpt: a.excerpt || "",
               image: a.cover_image || "/placeholder.svg",
               category: a.category,
+              categories: Array.isArray(a.categories) && a.categories.length > 0 ? a.categories : (a.category ? [a.category] : []),
               tags: a.tags || [],
               author: a.author || "Anonim",
-              date: new Date(a.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }),
+              date: new Date(a.published_at || a.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }),
               views: a.views,
               readingMinutes: Math.max(1, Math.ceil(words / 200)),
             };

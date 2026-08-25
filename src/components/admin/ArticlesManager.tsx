@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { Plus, Search, Edit, Trash2, Eye, Save, Send, ImagePlus, X, CheckCircle2, Download, Image, Youtube, Calendar, FileText } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Plus, Search, Edit, Trash2, Eye, X, CheckCircle2, Download, Image, ImagePlus, Calendar, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -7,12 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { RichTextEditor } from "@/components/RichTextEditor";
 import api from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { QuizManager } from "./QuizManager";
 import { Switch } from "@/components/ui/switch";
 
 interface Article {
@@ -26,6 +24,7 @@ interface Article {
   status: string;
   template_type?: string;
   scheduled_publish_at?: string | null;
+  published_at?: string | null;
   views: number;
   is_featured: boolean;
   author_id: string;
@@ -34,27 +33,6 @@ interface Article {
   author: string;
   youtube_url?: string;
   categories?: string[];
-}
-
-interface UploadAsset {
-  id: string;
-  url: string;
-  filename: string;
-  mime_type: string;
-  size_bytes: number;
-  uploader_id: string;
-  created_at: string;
-}
-
-interface ArticleRevision {
-  id: string;
-  article_id: string;
-  title: string;
-  excerpt: string;
-  status: string;
-  template_type?: string;
-  scheduled_publish_at?: string | null;
-  created_at: string;
 }
 
 const statusColor: Record<string, string> = {
@@ -139,14 +117,15 @@ const normalizeCategoryList = (value: unknown): DynamicCategory[] => {
 export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [articles, setArticles] = useState<Article[]>([]);
   const [dbCategories, setDbCategories] = useState<DynamicCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [editorOpen, setEditorOpen] = useState(false);
-  const [editing, setEditing] = useState<Article | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [filterCategory, setFilterCategory] = useState("all");
+  const [filterStartDate, setFilterStartDate] = useState("");
+  const [filterEndDate, setFilterEndDate] = useState("");
 
   // Selection & Pagination States
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -157,28 +136,14 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
   useEffect(() => {
     setCurrentPage(1);
     setSelectedIds([]);
-  }, [search, filterCategory]);
+  }, [search, filterCategory, filterStartDate, filterEndDate]);
 
-  const [form, setForm] = useState({
-    title: "", excerpt: "", content: "", category: "Umum", categories: ["Umum"] as string[], cover_image: "", status: "draft", is_featured: false,
-    template_type: "kajian",
-    youtube_url: "", scheduled_publish_at: "",
-  });
-  const [uploading, setUploading] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [mediaDialogOpen, setMediaDialogOpen] = useState(false);
-  const [mediaSearch, setMediaSearch] = useState("");
-  const [mediaLoading, setMediaLoading] = useState(false);
-  const [mediaItems, setMediaItems] = useState<UploadAsset[]>([]);
-  const [revisions, setRevisions] = useState<ArticleRevision[]>([]);
-  const [revisionsLoading, setRevisionsLoading] = useState(false);
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [bulkDeleteFilters, setBulkDeleteFilters] = useState({
     category: "all",
     startDate: "",
     endDate: "",
   });
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // --- Bulk Image Update State ---
   const [bulkImageDialogOpen, setBulkImageDialogOpen] = useState(false);
@@ -284,148 +249,6 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
 
   useEffect(() => { fetchArticles(); }, []);
 
-  const fetchMedia = async (q?: string) => {
-    setMediaLoading(true);
-    try {
-      const { data } = await api.get("/admin/assets", { params: { q: (q ?? mediaSearch).trim(), limit: 100 } });
-      setMediaItems(Array.isArray(data?.items) ? (data.items as UploadAsset[]) : []);
-    } catch (error: any) {
-      toast({ title: "Gagal memuat media", description: error.response?.data?.error || error.message, variant: "destructive" });
-    } finally {
-      setMediaLoading(false);
-    }
-  };
-
-  const fetchRevisions = async (articleId: string) => {
-    setRevisionsLoading(true);
-    try {
-      const { data } = await api.get(`/articles/${articleId}/revisions`, { params: { limit: 50 } });
-      setRevisions(Array.isArray(data) ? (data as ArticleRevision[]) : []);
-    } catch (error: any) {
-      toast({ title: "Gagal memuat revisi", description: error.response?.data?.error || error.message, variant: "destructive" });
-    } finally {
-      setRevisionsLoading(false);
-    }
-  };
-
-  const generateSlug = (title: string) =>
-    title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user) return;
-    if (!file.type.startsWith("image/")) {
-      toast({ title: "Error", description: "Hanya file gambar", variant: "destructive" });
-      return;
-    }
-    setUploading(true);
-
-    const formData = new FormData();
-    formData.append("image", file);
-
-    try {
-      const { data } = await api.post("/upload", formData, {
-        headers: { "Content-Type": "multipart/form-data" }
-      });
-      setForm((f) => ({ ...f, cover_image: data.url }));
-      setPreviewUrl(data.url);
-    } catch (error: any) {
-      toast({ title: "Gagal upload", description: error.message, variant: "destructive" });
-    }
-    setUploading(false);
-  };
-
-  const openEditor = (article?: Article) => {
-    if (article) {
-      const normalizedArticle = normalizeArticle(article);
-      setEditing(normalizedArticle);
-      setForm({
-        title: normalizedArticle.title,
-        excerpt: normalizedArticle.excerpt || "",
-        content: normalizedArticle.content,
-        category: normalizedArticle.category,
-        categories: normalizeStringList(normalizedArticle.categories, [normalizedArticle.category]),
-        cover_image: normalizedArticle.cover_image || "",
-        status: normalizedArticle.status,
-        is_featured: normalizedArticle.is_featured || false,
-        template_type: normalizedArticle.template_type || "kajian",
-        youtube_url: normalizedArticle.youtube_url || "",
-        scheduled_publish_at: normalizedArticle.scheduled_publish_at ? new Date(normalizedArticle.scheduled_publish_at).toISOString().slice(0, 16) : "",
-      });
-      setPreviewUrl(normalizedArticle.cover_image || null);
-      fetchRevisions(normalizedArticle.id).catch(() => {});
-    } else {
-      setEditing(null);
-      setForm({ title: "", excerpt: "", content: "", category: "Umum", categories: ["Umum"], cover_image: "", status: "draft", is_featured: false, template_type: "kajian", youtube_url: "", scheduled_publish_at: "" });
-      setPreviewUrl(null);
-      setRevisions([]);
-    }
-    setEditorOpen(true);
-  };
-
-  const handleSave = async (status: string) => {
-    if (!user || !form.title.trim() || !form.content.trim()) {
-      toast({ title: "Error", description: "Judul dan konten wajib diisi", variant: "destructive" });
-      return;
-    }
-    const payload = {
-      title: form.title.trim(),
-      slug: editing?.slug || generateSlug(form.title),
-      excerpt: form.excerpt.trim() || "",
-      content: form.content.trim(),
-      category: form.categories.length > 0 ? form.categories[0] : "Umum",
-      categories: form.categories.length > 0 ? form.categories : ["Umum"],
-      cover_image: form.cover_image.trim() || "",
-      status,
-      template_type: form.template_type,
-      is_featured: form.is_featured,
-      youtube_url: form.youtube_url.trim(),
-      scheduled_publish_at: form.scheduled_publish_at ? new Date(form.scheduled_publish_at).toISOString() : undefined,
-    };
-    
-    try {
-      if (editing) {
-        await api.put(`/articles/${editing.id}`, payload);
-      } else {
-        await api.post("/articles", payload);
-      }
-      toast({ title: "Berhasil", description: editing ? "Artikel diperbarui" : "Artikel ditambahkan" });
-      setEditorOpen(false);
-      fetchArticles();
-    } catch (error: any) {
-      toast({ title: "Gagal", description: error.response?.data?.error || "Gagal menyimpan artikel", variant: "destructive" });
-    }
-  };
-
-  const handleRestoreRevision = async (revId: string) => {
-    if (!editing) return;
-    if (!confirm("Restore revisi ini? Perubahan terbaru akan disimpan sebagai revisi baru.")) return;
-    try {
-      const { data } = await api.post(`/articles/${editing.id}/revisions/${revId}/restore`);
-      const restoredArticle = normalizeArticle(data);
-      setEditing(restoredArticle);
-      setForm({
-        title: restoredArticle.title || "",
-        excerpt: restoredArticle.excerpt || "",
-        content: restoredArticle.content || "",
-        category: restoredArticle.category || "Umum",
-        categories: normalizeStringList(restoredArticle.categories, [restoredArticle.category || "Umum"]),
-        cover_image: restoredArticle.cover_image || "",
-        status: restoredArticle.status || "draft",
-        is_featured: !!restoredArticle.is_featured,
-        template_type: restoredArticle.template_type || "kajian",
-        youtube_url: restoredArticle.youtube_url || "",
-        scheduled_publish_at: restoredArticle.scheduled_publish_at ? new Date(restoredArticle.scheduled_publish_at).toISOString().slice(0, 16) : "",
-      });
-      setPreviewUrl(restoredArticle.cover_image || null);
-      toast({ title: "Berhasil", description: "Revisi berhasil direstore" });
-      fetchRevisions(editing.id).catch(() => {});
-      fetchArticles();
-    } catch (error: any) {
-      toast({ title: "Gagal restore revisi", description: error.response?.data?.error || error.message, variant: "destructive" });
-    }
-  };
-
   const handleDelete = async () => {
     if (!deleteId) return;
     try {
@@ -527,27 +350,26 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
   const filtered = articles.filter((a) => {
     const matchesSearch = a.title.toLowerCase().includes(search.toLowerCase());
     const matchesCategory = filterCategory === "all" || a.category === filterCategory;
-    return matchesSearch && matchesCategory;
+    let matchesDate = true;
+    if (filterStartDate) {
+      const articleDate = new Date(a.created_at);
+      const startDate = new Date(filterStartDate);
+      startDate.setHours(0, 0, 0, 0);
+      if (articleDate < startDate) matchesDate = false;
+    }
+    if (filterEndDate) {
+      const articleDate = new Date(a.created_at);
+      const endDate = new Date(filterEndDate);
+      endDate.setHours(23, 59, 59, 999);
+      if (articleDate > endDate) matchesDate = false;
+    }
+    return matchesSearch && matchesCategory && matchesDate;
   });
 
   // Pagination Calculations
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedArticles = filtered.slice(startIndex, startIndex + itemsPerPage);
-  const editorActionButtons = (
-    <div className="flex flex-col gap-2 sm:flex-row xl:flex-col">
-      <Button variant="outline" onClick={() => handleSave("draft")} className="gap-1.5">
-        <Save className="h-4 w-4" /> Simpan Draf
-      </Button>
-      <Button variant="secondary" onClick={() => handleSave("review")} className="gap-1.5">
-        <Send className="h-4 w-4" /> Review
-      </Button>
-      <Button onClick={() => handleSave("published")} className="gap-1.5">
-        <CheckCircle2 className="h-4 w-4" /> Publikasikan
-      </Button>
-    </div>
-  );
-
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row gap-3 justify-between">
@@ -570,6 +392,41 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
                ))}
              </SelectContent>
            </Select>
+           {filterStartDate || filterEndDate ? (
+             <div className="flex items-center gap-1.5">
+               <Input
+                 type="date"
+                 value={filterStartDate}
+                 onChange={(e) => setFilterStartDate(e.target.value)}
+                 className="w-[140px] h-9 text-xs"
+               />
+               <span className="text-xs text-muted-foreground">–</span>
+               <Input
+                 type="date"
+                 value={filterEndDate}
+                 onChange={(e) => setFilterEndDate(e.target.value)}
+                 className="w-[140px] h-9 text-xs"
+               />
+               <Button
+                 variant="ghost"
+                 size="icon"
+                 className="h-7 w-7"
+                 onClick={() => { setFilterStartDate(""); setFilterEndDate(""); }}
+                 title="Hapus filter tanggal"
+               >
+                 <X className="h-3.5 w-3.5" />
+               </Button>
+             </div>
+           ) : (
+             <Button
+               variant="outline"
+               size="sm"
+               className="gap-1.5 text-xs h-9 shrink-0"
+               onClick={() => { setFilterStartDate(new Date().toISOString().slice(0, 10)); }}
+             >
+               <Calendar className="h-3.5 w-3.5" /> Filter Tanggal
+             </Button>
+           )}
         </div>
         <div className="flex gap-2">
           {onWpImportClick && (
@@ -600,7 +457,7 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
           <Button variant="outline" className="gap-1.5 text-destructive border-destructive/20 hover:bg-destructive/5" onClick={() => setBulkDeleteDialogOpen(true)}>
             <Trash2 className="h-4 w-4" /> Hapus Massal
           </Button>
-          <Button className="gap-1.5" onClick={() => openEditor()}>
+          <Button className="gap-1.5" onClick={() => navigate("/admin/articles/new")}>
             <Plus className="h-4 w-4" /> Tambah Artikel
           </Button>
         </div>
@@ -679,6 +536,7 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
                     <th className="text-center py-3 px-4 font-semibold">Choice</th>
                     <th className="text-left py-3 px-4 font-semibold">Status</th>
                     <th className="text-left py-3 px-4 font-semibold">Views</th>
+                    <th className="text-left py-3 px-4 font-semibold whitespace-nowrap">Tanggal Terbit</th>
                     <th className="text-right py-3 px-4 font-semibold">Aksi</th>
                   </tr>
                 </thead>
@@ -732,12 +590,13 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
                         <Badge variant="outline" className={statusColor[a.status]}>{statusLabel[a.status] || a.status}</Badge>
                       </td>
                       <td className="py-3 px-4 text-muted-foreground">{a.views}</td>
+                      <td className="py-3 px-4 text-muted-foreground text-xs whitespace-nowrap">{new Date(a.published_at || a.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Jakarta" })}</td>
                       <td className="py-3 px-4 text-right">
                         <div className="flex items-center justify-end gap-1">
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleQuickPublish(a)} title={a.status === "published" ? "Unpublish" : "Publish"}>
                             <CheckCircle2 className={`h-4 w-4 ${a.status === "published" ? "text-primary" : ""}`} />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditor(a)} title="Edit">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/admin/articles/edit/${a.id}`)} title="Edit">
                             <Edit className="h-4 w-4" />
                           </Button>
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteId(a.id)} title="Hapus">
@@ -797,13 +656,14 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
                           )}
                         </div>
                         <span className="text-xs text-muted-foreground flex items-center gap-0.5"><Eye className="h-3 w-3" />{a.views}</span>
+                        <span className="text-[10px] text-muted-foreground">{new Date(a.published_at || a.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Jakarta" })}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleQuickPublish(a)}>
                         <CheckCircle2 className={`h-4 w-4 ${a.status === "published" ? "text-primary" : ""}`} />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditor(a)}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/admin/articles/edit/${a.id}`)}>
                         <Edit className="h-4 w-4" />
                       </Button>
                       <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteId(a.id)}>
@@ -954,295 +814,6 @@ export function ArticlesManager({ onWpImportClick }: ArticlesManagerProps) {
         </DialogContent>
       </Dialog>
 
-      {editorOpen && (
-        <div className="rounded-2xl border bg-card p-4 md:p-6 shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
-          <div className="flex flex-col gap-3 border-b pb-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <h2 className="text-xl font-bold">{editing ? "Edit Artikel" : "Tambah Artikel Baru"}</h2>
-              <p className="text-sm text-muted-foreground">
-                Mode split panel: fokus menulis di kiri, pengaturan artikel tetap terlihat di kanan.
-              </p>
-            </div>
-            <Button variant="outline" onClick={() => setEditorOpen(false)} className="gap-2 self-start md:self-auto">
-              <X className="h-4 w-4" /> Tutup Editor
-            </Button>
-          </div>
-
-          <Tabs defaultValue="content" className="w-full mt-4">
-            <TabsList className="grid w-full grid-cols-3 mb-4 xl:w-auto">
-              <TabsTrigger value="content">Konten Artikel</TabsTrigger>
-              <TabsTrigger value="quiz" disabled={!editing}>Kuis Artikel</TabsTrigger>
-              <TabsTrigger value="revisions" disabled={!editing}>Revisi</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="content" className="space-y-4">
-              <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_360px] 2xl:grid-cols-[minmax(0,1fr)_400px]">
-                <div className="min-w-0 space-y-4 rounded-2xl border bg-background/40 p-4 md:p-5">
-                  <div>
-                    <Label>Judul</Label>
-                    <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Judul artikel..." />
-                  </div>
-                  <div>
-                    <Label>Ringkasan</Label>
-                    <Input value={form.excerpt} onChange={(e) => setForm({ ...form, excerpt: e.target.value })} placeholder="Ringkasan singkat..." />
-                  </div>
-                  <div>
-                    <Label>Konten</Label>
-                    <RichTextEditor
-                      value={form.content}
-                      onChange={(html) => setForm({ ...form, content: html })}
-                      placeholder="Tulis konten artikel..."
-                      minHeight="640px"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-4 xl:sticky xl:top-24">
-                  <div className="rounded-2xl border bg-background/70 p-4 space-y-3">
-                    <div>
-                      <div className="text-sm font-bold">Aksi Artikel</div>
-                      <p className="text-xs text-muted-foreground">
-                        Simpan perubahan tanpa perlu scroll ke bawah.
-                      </p>
-                    </div>
-                    {editorActionButtons}
-                  </div>
-                  <div className="rounded-2xl border bg-background/70 p-4 space-y-3">
-                    <Label className="flex items-center gap-1.5">
-                      <Calendar className="h-3.5 w-3.5 text-primary" /> Jadwalkan Publish (Opsional)
-                    </Label>
-                    <Input
-                      type="datetime-local"
-                      value={form.scheduled_publish_at}
-                      onChange={(e) => setForm({ ...form, scheduled_publish_at: e.target.value })}
-                      className="h-9"
-                    />
-                    <p className="text-[10px] text-muted-foreground mt-1">Jika diisi dan status artikel “Review”, sistem akan publish otomatis sesuai jadwal.</p>
-                  </div>
-                  <div className="rounded-2xl border bg-background/70 p-4 space-y-3">
-                    <Label>Template Artikel</Label>
-                    <Select value={form.template_type} onValueChange={(v) => setForm({ ...form, template_type: v })}>
-                      <SelectTrigger className="h-10">
-                        <SelectValue placeholder="Pilih template" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="kajian">Kajian</SelectItem>
-                        <SelectItem value="berita">Berita</SelectItem>
-                        <SelectItem value="quote">Quote</SelectItem>
-                        <SelectItem value="tanya_jawab">Tanya Jawab</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="rounded-2xl border bg-background/70 p-4 space-y-3">
-                    <Label className="block mb-2 text-sm font-semibold">Kategori (Bisa pilih lebih dari satu)</Label>
-                    <div className="flex flex-wrap gap-2 p-3 rounded-lg border bg-accent/5">
-                      {dbCategories.length > 0 ? (
-                        dbCategories.map((c) => {
-                          const isSelected = form.categories.includes(c.name);
-                          return (
-                            <button
-                              key={c.id}
-                              type="button"
-                              onClick={() => {
-                                let nextCategories = [...form.categories];
-                                if (isSelected) {
-                                  if (nextCategories.length > 1) {
-                                    nextCategories = nextCategories.filter((name) => name !== c.name);
-                                  } else {
-                                    toast({
-                                      title: "Info",
-                                      description: "Minimal harus memilih satu kategori.",
-                                    });
-                                  }
-                                } else {
-                                  nextCategories.push(c.name);
-                                }
-                                setForm({
-                                  ...form,
-                                  categories: nextCategories,
-                                  category: nextCategories[0] || "Umum"
-                                });
-                              }}
-                              className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all duration-200 active:scale-95 hover:scale-105 flex items-center gap-1.5 ${
-                                isSelected
-                                  ? "bg-primary border-primary text-primary-foreground shadow-sm shadow-primary/25"
-                                  : "bg-background border-input text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                              }`}
-                            >
-                              {isSelected && <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />}
-                              {c.name}
-                            </button>
-                          );
-                        })
-                      ) : (
-                        <span className="text-xs text-muted-foreground">Tidak ada kategori.</span>
-                      )}
-                    </div>
-                    <p className="text-[10px] text-muted-foreground mt-1">Kategori pertama yang Anda pilih akan digunakan sebagai kategori utama.</p>
-                  </div>
-                  <div className="flex items-center justify-between rounded-2xl border bg-accent/10 p-4">
-                    <div className="space-y-0.5">
-                      <Label className="text-sm font-bold">Editor's Choice</Label>
-                      <p className="text-xs text-muted-foreground">Tampilkan artikel ini di bagian Editor's Choice beranda</p>
-                    </div>
-                    <Switch 
-                      checked={form.is_featured} 
-                      onCheckedChange={(v) => setForm({ ...form, is_featured: v })} 
-                    />
-                  </div>
-                  <div className="rounded-2xl border bg-muted/30 p-4 space-y-3">
-                     <div className="flex items-center gap-2 mb-2">
-                        <Youtube className="h-4 w-4 text-red-500" />
-                        <Label className="text-sm font-bold uppercase tracking-wider">Video YouTube (Optional)</Label>
-                     </div>
-                     <div>
-                        <Label className="text-[10px] font-bold uppercase">Link YouTube</Label>
-                        <Input
-                           value={form.youtube_url}
-                           onChange={(e) => setForm({ ...form, youtube_url: e.target.value })}
-                           placeholder="https://www.youtube.com/watch?v=... atau https://youtu.be/..."
-                           className="h-9"
-                        />
-                        <p className="text-[10px] text-muted-foreground italic mt-1">Video akan tampil otomatis di akhir artikel.</p>
-                     </div>
-                     {form.youtube_url && (
-                        <div className="text-[10px] text-emerald-600 font-bold flex items-center gap-1">
-                           ✓ Link YouTube terdeteksi
-                        </div>
-                     )}
-                  </div>
-                  <div className="rounded-2xl border bg-background/70 p-4 space-y-3">
-                    <Label>Gambar Cover</Label>
-                    <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-                    {previewUrl || form.cover_image ? (
-                      <div className="relative mt-2 rounded-lg overflow-hidden border">
-                        <img src={previewUrl || form.cover_image} alt="Cover" className="w-full h-40 object-cover" />
-                        <button
-                          type="button"
-                          className="absolute top-2 right-2 bg-destructive text-destructive-foreground rounded-full p-1"
-                          onClick={() => { setPreviewUrl(null); setForm((f) => ({ ...f, cover_image: "" })); }}
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      </div>
-                    ) : (
-                      <Button type="button" variant="outline" className="w-full mt-1 gap-2" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
-                        <ImagePlus className="h-4 w-4" />
-                        {uploading ? "Mengupload..." : "Upload Gambar Cover"}
-                      </Button>
-                    )}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full mt-2 gap-2"
-                      onClick={() => { setMediaDialogOpen(true); fetchMedia("").catch(() => {}); }}
-                    >
-                      <Image className="h-4 w-4" />
-                      Pilih dari Media Library
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              <DialogFooter className="gap-2 sm:gap-0 flex-wrap pt-4 xl:hidden">
-                {editorActionButtons}
-              </DialogFooter>
-            </TabsContent>
-
-            <TabsContent value="quiz">
-              {editing ? (
-                <QuizManager articleId={editing.id} articleContent={form.content} />
-              ) : (
-                <div className="py-8 text-center text-muted-foreground">
-                  Simpan artikel terlebih dahulu untuk mengelola kuis.
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="revisions" className="space-y-4">
-              {!editing ? (
-                <div className="py-8 text-center text-muted-foreground">
-                  Simpan artikel terlebih dahulu untuk melihat revisi.
-                </div>
-              ) : revisionsLoading ? (
-                <div className="py-8 text-center text-muted-foreground">Memuat revisi...</div>
-              ) : revisions.length === 0 ? (
-                <div className="py-8 text-center text-muted-foreground">Belum ada revisi.</div>
-              ) : (
-                <div className="space-y-3">
-                  {revisions.map((r) => (
-                    <div key={r.id} className="rounded-2xl border bg-background/50 p-4 flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="text-sm font-bold truncate">{r.title || "Tanpa Judul"}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {new Date(r.created_at).toLocaleString("id-ID")} · {statusLabel[r.status] || r.status}
-                        </div>
-                      </div>
-                      <Button variant="outline" size="sm" onClick={() => handleRestoreRevision(r.id)}>
-                        Restore
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
-        </div>
-      )}
-
-      <Dialog open={mediaDialogOpen} onOpenChange={setMediaDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Media Library</DialogTitle>
-            <DialogDescription className="sr-only">
-              Pilih gambar dari media library untuk cover artikel.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex items-center gap-2">
-            <Input
-              value={mediaSearch}
-              onChange={(e) => setMediaSearch(e.target.value)}
-              placeholder="Cari URL / nama file..."
-            />
-            <Button variant="outline" onClick={() => fetchMedia().catch(() => {})} disabled={mediaLoading}>
-              Cari
-            </Button>
-          </div>
-          {mediaLoading ? (
-            <div className="py-10 text-center text-muted-foreground">Memuat media...</div>
-          ) : mediaItems.length === 0 ? (
-            <div className="py-10 text-center text-muted-foreground">Belum ada media.</div>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 py-2">
-              {mediaItems.map((m) => (
-                <button
-                  key={m.id}
-                  type="button"
-                  className="rounded-2xl border overflow-hidden text-left hover:bg-muted/30 transition-colors"
-                  onClick={() => {
-                    setForm((f) => ({ ...f, cover_image: m.url }));
-                    setPreviewUrl(m.url);
-                    setMediaDialogOpen(false);
-                  }}
-                >
-                  <div className="w-full h-28 bg-muted/20">
-                    <img src={m.url} alt={m.filename || "media"} className="w-full h-28 object-cover" />
-                  </div>
-                  <div className="p-3">
-                    <div className="text-xs font-bold truncate">{m.filename || m.url}</div>
-                    <div className="text-[10px] text-muted-foreground truncate">{m.url}</div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setMediaDialogOpen(false)}>
-              Tutup
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Delete confirm */}
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>

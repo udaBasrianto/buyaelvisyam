@@ -77,9 +77,13 @@ export function PostCardV2({ post }: PostCardV2Props) {
           }}
         />
         <div className="absolute top-4 left-4">
-          <span className="px-3 py-1 rounded-md bg-white/90 backdrop-blur-sm text-primary text-[10px] font-bold uppercase tracking-wider">
-            {post.category}
-          </span>
+          <div className="flex flex-wrap gap-1">
+            {(post.categories && post.categories.length > 0 ? post.categories : [post.category]).map((cat) => (
+              <span key={cat} className="px-3 py-1 rounded-md bg-white/90 backdrop-blur-sm text-primary text-[10px] font-bold uppercase tracking-wider">
+                {cat}
+              </span>
+            ))}
+          </div>
         </div>
         <div className="absolute top-4 right-4">
            <button 

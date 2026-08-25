@@ -47,3 +47,4 @@ backend/uploads/
 # Scratch/temp files
 scratch/
 backend/debug_env.go
+backend/buya-backend

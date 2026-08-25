@@ -1,6 +1,6 @@
 import { useParams, Link } from "react-router-dom";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Eye, Calendar, User, Share2, Bookmark, AArrowDown, AArrowUp, RotateCcw, Clock, MessageCircle, Link2, ChevronUp } from "lucide-react";
+import { ArrowLeft, Eye, Calendar, User, Share2, Bookmark, AArrowDown, AArrowUp, RotateCcw, Clock, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/Navbar";
 import { BottomNav } from "@/components/BottomNav";
@@ -32,6 +32,7 @@ interface DbArticle {
   status: string;
   views: number;
   created_at: string;
+  published_at?: string | null;
   author_id: string;
   author: string;
   comment_count: number;
@@ -147,22 +148,6 @@ export default function ArticleDetail() {
     }
   };
 
-  const handleCopyLink = async () => {
-    const baseFromTitle = (article?.title || "")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "");
-    const shouldShareBase =
-      !!article?.slug &&
-      !!baseFromTitle &&
-      article.slug.startsWith(baseFromTitle + "-") &&
-      /^[0-9a-z]+$/.test(article.slug.slice(baseFromTitle.length + 1));
-    const shareSlug = shouldShareBase ? baseFromTitle : (article?.slug || article?.id || "");
-
-    await navigator.clipboard.writeText(`${window.location.origin}/${shareSlug}`);
-    toast({ title: "Tautan artikel disalin" });
-  };
-
   useEffect(() => {
     localStorage.setItem("article-font-size", String(fontSize));
   }, [fontSize]);
@@ -266,7 +251,7 @@ export default function ArticleDetail() {
     );
   }
 
-  const formattedDate = new Date(article.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+  const formattedDate = new Date(article.published_at || article.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
   const defaultImage = settings?.default_article_image || DEFAULT_POST_IMAGE;
   const coverImage = article.cover_image || defaultImage;
   const categories = normalizeStringList(article.categories, [article.category || "Umum"])
@@ -305,8 +290,8 @@ export default function ArticleDetail() {
     "headline": article.title,
     "description": article.excerpt || plainText.substring(0, 160),
     "image": [shareImage],
-    "datePublished": article.created_at,
-    "dateModified": article.created_at,
+    "datePublished": article.published_at || article.created_at,
+    "dateModified": article.published_at || article.created_at,
     "author": [
       {
         "@type": "Person",
@@ -512,45 +497,7 @@ export default function ArticleDetail() {
             </div>
           </div>
 
-          <div className="mx-auto mt-6 lg:grid lg:max-w-[1360px] lg:grid-cols-[88px_minmax(0,1fr)_340px] lg:items-start lg:gap-8 xl:grid-cols-[96px_minmax(0,1fr)_360px] xl:gap-10">
-            <div className="hidden lg:block lg:sticky lg:top-28 lg:self-start">
-              <div className="flex flex-col items-center gap-3">
-                <div className="rounded-[28px] border border-border/60 bg-card/80 p-2 shadow-sm backdrop-blur">
-                  <div className="flex flex-col gap-2">
-                    <button
-                      onClick={handleShare}
-                      className="group flex h-11 w-11 items-center justify-center rounded-2xl text-muted-foreground transition hover:bg-accent hover:text-primary"
-                      title="Bagikan artikel"
-                    >
-                      <Share2 className="h-4.5 w-4.5" />
-                    </button>
-                    <button
-                      onClick={handleCopyLink}
-                      className="group flex h-11 w-11 items-center justify-center rounded-2xl text-muted-foreground transition hover:bg-accent hover:text-primary"
-                      title="Salin tautan"
-                    >
-                      <Link2 className="h-4.5 w-4.5" />
-                    </button>
-                    <button
-                      onClick={handleBookmark}
-                      className={`flex h-11 w-11 items-center justify-center rounded-2xl transition ${isBookmarked ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent hover:text-primary"}`}
-                      title={isBookmarked ? "Hapus simpanan" : "Simpan artikel"}
-                    >
-                      <Bookmark className={`h-4.5 w-4.5 ${isBookmarked ? "fill-current" : ""}`} />
-                    </button>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-                  className="flex h-10 w-10 items-center justify-center rounded-full border border-border/60 bg-background/90 text-muted-foreground shadow-sm transition hover:border-primary/30 hover:text-primary"
-                  title="Kembali ke atas"
-                >
-                  <ChevronUp className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-
+          <div className="mx-auto mt-6 lg:grid lg:max-w-[1360px] lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start lg:gap-8 xl:grid-cols-[minmax(0,1fr)_360px] xl:gap-10">
             <div className="min-w-0 max-w-none">
               <article
                 ref={articleBodyRef}
@@ -630,7 +577,7 @@ function toPostCard(p: any, defaultImage: string): Post {
     category: p.category || "Umum",
     tags: p.tags || [],
     author: p.author || "Ustadz",
-    date: new Date(p.created_at).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric'}),
+    date: new Date(p.published_at || p.created_at).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric'}),
     views: p.views || 0,
     commentCount: p.comment_count || 0,
   };

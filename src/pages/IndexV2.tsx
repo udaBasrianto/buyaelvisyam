@@ -47,9 +47,10 @@ export function IndexV2() {
             excerpt: a.excerpt || "",
             image: a.cover_image || "",
             category: a.category,
+            categories: Array.isArray(a.categories) && a.categories.length > 0 ? a.categories : (a.category ? [a.category] : []),
             tags: a.tags || [],
             author: a.author || "Ustadz",
-            date: new Date(a.created_at).toLocaleDateString("id-ID", {
+            date: new Date(a.published_at || a.created_at).toLocaleDateString("id-ID", {
               day: "numeric",
               month: "long",
               year: "numeric",
@@ -306,7 +307,7 @@ export function IndexV2() {
                                       category: post.category,
                                       tags: post.tags || [],
                                       author: post.author || "Ustadz",
-                                      date: new Date(post.created_at).toLocaleDateString("id-ID"),
+                                      date: new Date(post.published_at || post.created_at).toLocaleDateString("id-ID"),
                                       views: post.views,
                                       readingMinutes: 5,
                                       commentCount: 0
@@ -329,7 +330,7 @@ export function IndexV2() {
                                        <div className="min-w-0 flex flex-col justify-center">
                                           <span className="text-[8px] font-black uppercase text-primary mb-1 block">{post.category}</span>
                                           <h3 className="text-xs font-bold leading-tight line-clamp-2 group-hover:text-primary transition-colors">{post.title}</h3>
-                                          <p className="text-[9px] text-muted-foreground mt-1 font-medium">{new Date(post.created_at).toLocaleDateString("id-ID")}</p>
+                                          <p className="text-[9px] text-muted-foreground mt-1 font-medium">{new Date(post.published_at || post.created_at).toLocaleDateString("id-ID")}</p>
                                        </div>
                                     </div>
                                   )}

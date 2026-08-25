@@ -12,6 +12,7 @@ export interface Post {
   excerpt: string;
   image: string;
   category: string;
+  categories?: string[];
   tags: string[];
   author: string;
   date: string;

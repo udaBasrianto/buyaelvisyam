@@ -57,7 +57,7 @@ func GetArticles(c *fiber.Ctx) error {
 	status := c.Query("status", "all")
 	limit := c.QueryInt("limit", 100)
 
-	query := db.Order("created_at desc").Limit(limit)
+	query := db.Order("published_at desc").Limit(limit)
 	if status != "all" {
 		query = query.Where("status = ?", status)
 	}
@@ -203,7 +203,7 @@ func ExportArticles(c *fiber.Ctx) error {
 
 	var articles []models.Article
 	offset := (page - 1) * limit
-	if err := q.Order("created_at desc").Offset(offset).Limit(limit).Find(&articles).Error; err != nil {
+	if err := q.Order("published_at desc").Offset(offset).Limit(limit).Find(&articles).Error; err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": "Gagal mengambil artikel"})
 	}
 
@@ -407,7 +407,7 @@ func GetRelatedArticles(c *fiber.Ctx) error {
 		query = query.Where("category <> ''")
 	}
 
-	if err := query.Order("created_at desc").Limit(limit).Find(&articles).Error; err != nil {
+	if err := query.Order("published_at desc").Limit(limit).Find(&articles).Error; err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": "Gagal memuat artikel terkait"})
 	}
 
@@ -486,8 +486,25 @@ func CreateArticle(c *fiber.Ctx) error {
 	role, _ := claims["role"].(string)
 	role = strings.TrimSpace(role)
 
-	var article models.Article
-	if err := c.BodyParser(&article); err != nil {
+	// Use intermediate struct so date strings don't break BodyParser
+	var input struct {
+		Title              *string         `json:"title"`
+		Slug               *string         `json:"slug"`
+		Content            *string         `json:"content"`
+		Excerpt            *string         `json:"excerpt"`
+		CoverImage         *string         `json:"cover_image"`
+		Category           *string         `json:"category"`
+		Categories         *pq.StringArray `json:"categories"`
+		Tags               *pq.StringArray `json:"tags"`
+		Status             *string         `json:"status"`
+		TemplateType       *string         `json:"template_type"`
+		IsFeatured         *bool           `json:"is_featured"`
+		YoutubeURL         *string         `json:"youtube_url"`
+		ScheduledPublishAt *string         `json:"scheduled_publish_at"`
+		PublishedAtDate    *string         `json:"published_at"`
+	}
+
+	if err := c.BodyParser(&input); err != nil {
 		return c.Status(400).JSON(fiber.Map{"error": "Invalid body"})
 	}
 
@@ -495,15 +512,72 @@ func CreateArticle(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(400).JSON(fiber.Map{"error": "Invalid author ID"})
 	}
-	article.AuthorID = authorID
+
+	article := models.Article{AuthorID: authorID}
+	if input.Title != nil {
+		article.Title = strings.TrimSpace(*input.Title)
+	}
+	if input.Slug != nil {
+		article.Slug = slugify(strings.TrimSpace(*input.Slug))
+	}
+	if input.Content != nil {
+		article.Content = *input.Content
+	}
+	if input.Excerpt != nil {
+		article.Excerpt = *input.Excerpt
+	}
+	if input.CoverImage != nil {
+		article.CoverImage = *input.CoverImage
+	}
+	if input.Categories != nil {
+		article.Categories = *input.Categories
+	}
+	if input.Tags != nil {
+		article.Tags = *input.Tags
+	}
+	if input.Status != nil {
+		article.Status = strings.TrimSpace(*input.Status)
+	}
+	if input.TemplateType != nil {
+		article.TemplateType = normalizeTemplateType(*input.TemplateType)
+	}
+	if input.IsFeatured != nil {
+		article.IsFeatured = *input.IsFeatured
+	}
+	if input.YoutubeURL != nil {
+		article.YoutubeURL = *input.YoutubeURL
+	}
+
+	// Parse scheduled_publish_at
+	if input.ScheduledPublishAt != nil && strings.TrimSpace(*input.ScheduledPublishAt) != "" {
+		raw := strings.TrimSpace(*input.ScheduledPublishAt)
+		if parsed, err := time.Parse(time.RFC3339, raw); err == nil {
+			article.ScheduledPublishAt = &parsed
+		}
+	}
+
+	// Parse published_at
+	if input.PublishedAtDate != nil && strings.TrimSpace(*input.PublishedAtDate) != "" {
+		raw := strings.TrimSpace(*input.PublishedAtDate)
+		if parsed, err := time.Parse("2006-01-02", raw); err == nil {
+			article.PublishedAt = &parsed
+		} else if parsed, err := time.Parse(time.RFC3339, raw); err == nil {
+			article.PublishedAt = &parsed
+		}
+	}
+
+	// Default published_at to now if not set
+	if article.PublishedAt == nil || article.PublishedAt.IsZero() {
+		now := time.Now()
+		article.PublishedAt = &now
+	}
 
 	article.Title = strings.TrimSpace(article.Title)
 	article.TemplateType = normalizeTemplateType(article.TemplateType)
 	article.Status = strings.TrimSpace(article.Status)
+
 	if article.Slug == "" {
 		article.Slug = slugify(article.Title)
-	} else {
-		article.Slug = slugify(article.Slug)
 	}
 
 	// Handle multi-category compatibility
@@ -572,8 +646,8 @@ func UpdateArticle(c *fiber.Ctx) error {
 		Latitude     *float64        `json:"latitude"`
 		Longitude    *float64        `json:"longitude"`
 		YoutubeURL   *string         `json:"youtube_url"`
-		PublishedAt  *string         `json:"published_at"` // legacy: datetime for schedule/publish
 		ScheduledPublishAt *string   `json:"scheduled_publish_at"`
+		PublishedAtDate     *string   `json:"published_at"` // actual publication date for display
 		Tags         *pq.StringArray `json:"tags"`
 	}
 
@@ -597,8 +671,6 @@ func UpdateArticle(c *fiber.Ctx) error {
 	scheduledRaw := ""
 	if input.ScheduledPublishAt != nil {
 		scheduledRaw = strings.TrimSpace(*input.ScheduledPublishAt)
-	} else if input.PublishedAt != nil {
-		scheduledRaw = strings.TrimSpace(*input.PublishedAt)
 	}
 	if scheduledRaw != "" {
 		parsed, err := time.Parse(time.RFC3339, scheduledRaw)
@@ -640,6 +712,23 @@ func UpdateArticle(c *fiber.Ctx) error {
 	if input.YoutubeURL != nil { article.YoutubeURL = *input.YoutubeURL }
 	if input.Tags != nil { article.Tags = *input.Tags }
 	article.ScheduledPublishAt = nextScheduledAt
+
+	// Handle published_at date override
+	if input.PublishedAtDate != nil {
+		raw := strings.TrimSpace(*input.PublishedAtDate)
+		if parsed, err := time.Parse("2006-01-02", raw); err == nil {
+			// Keep existing time, just change the date
+			y, m, d := parsed.Date()
+			existing := time.Now()
+			if article.PublishedAt != nil && !article.PublishedAt.IsZero() {
+				existing = *article.PublishedAt
+			}
+			newPub := time.Date(y, m, d, existing.Hour(), existing.Minute(), existing.Second(), 0, existing.Location())
+			article.PublishedAt = &newPub
+		} else if parsed, err := time.Parse(time.RFC3339, raw); err == nil {
+			article.PublishedAt = &parsed
+		}
+	}
 
 	// Handle multi-category synchronization
 	if input.Categories != nil {
@@ -736,6 +825,7 @@ func RestoreArticleRevision(c *fiber.Ctx) error {
 	article.Status = rev.Status
 	article.TemplateType = normalizeTemplateType(rev.TemplateType)
 	article.ScheduledPublishAt = rev.ScheduledPublishAt
+	article.PublishedAt = rev.PublishedAt
 
 	if err := db.Save(&article).Error; err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": "Gagal merestore revisi"})
@@ -757,6 +847,7 @@ func saveArticleRevision(db *gorm.DB, a models.Article, savedBy uuid.UUID) error
 		Status:             a.Status,
 		TemplateType:       a.TemplateType,
 		ScheduledPublishAt: a.ScheduledPublishAt,
+		PublishedAt:        a.PublishedAt,
 		SavedBy:            savedBy,
 		CreatedAt:          time.Now(),
 	}

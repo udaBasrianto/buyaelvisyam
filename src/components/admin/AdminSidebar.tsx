@@ -31,16 +31,16 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import api from "@/lib/api";
 
 interface AdminSidebarProps {
   activeTab: string;
-  setActiveTab: (tab: string) => void;
 }
 
-export function AdminSidebar({ activeTab, setActiveTab }: AdminSidebarProps) {
+export function AdminSidebar({ activeTab }: AdminSidebarProps) {
   const { signOut } = useAuth();
   const { settings } = useSiteSettings();
   const [notifications, setNotifications] = useState({ comments: 0, donations: 0, orders: 0 });
@@ -159,21 +159,23 @@ export function AdminSidebar({ activeTab, setActiveTab }: AdminSidebarProps) {
                   return (
                     <SidebarMenuItem key={item.id}>
                       <SidebarMenuButton
+                        asChild
                         isActive={activeTab === item.id}
-                        onClick={() => setActiveTab(item.id)}
                         tooltip={item.label}
                       >
-                        <div className="flex items-center justify-between w-full">
-                          <div className="flex items-center gap-2">
-                            <item.icon className="h-4 w-4" />
-                            <span>{item.label}</span>
+                        <Link to={`/admin/${item.id}`}>
+                          <div className="flex items-center justify-between w-full">
+                            <div className="flex items-center gap-2">
+                              <item.icon className="h-4 w-4" />
+                              <span>{item.label}</span>
+                            </div>
+                            {badgeCount > 0 && (
+                              <span className="flex h-5 min-w-[20px] px-1.5 items-center justify-center rounded-full bg-destructive text-[10px] font-extrabold text-destructive-foreground animate-in zoom-in-50 duration-300">
+                                {badgeCount}
+                              </span>
+                            )}
                           </div>
-                          {badgeCount > 0 && (
-                            <span className="flex h-5 min-w-[20px] px-1.5 items-center justify-center rounded-full bg-destructive text-[10px] font-extrabold text-destructive-foreground animate-in zoom-in-50 duration-300">
-                              {badgeCount}
-                            </span>
-                          )}
-                        </div>
+                        </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   );

@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useMemo, useCallback, ReactNode } from "react";
 import api from "@/lib/api";
 import { getOfflineBackendMessage } from "@/lib/runtime-config";
 
@@ -103,8 +103,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setRole(null);
   };
 
+  const value = useMemo(() => ({
+    user, role, loading, signUp, signIn, signInWithGoogle, signInWithWhatsApp, signOut,
+  }), [user, role, loading]);
+
   return (
-    <AuthContext.Provider value={{ user, role, loading, signUp, signIn, signInWithGoogle, signInWithWhatsApp, signOut }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

@@ -11,6 +11,7 @@ import api from "@/lib/api";
 import Index from "./pages/Index.tsx";
 import ArticleDetail from "./pages/ArticleDetail.tsx";
 import AdminDashboard from "./pages/AdminDashboard.tsx";
+import ArticleEditor from "./pages/ArticleEditor.tsx";
 import ContributorDashboard from "./pages/ContributorDashboard.tsx";
 import ReaderDashboard from "./pages/ReaderDashboard.tsx";
 import Auth from "./pages/Auth.tsx";
@@ -76,9 +77,19 @@ const App = () => (
             
             {/* Login Route */}
             <Route path="/auth" element={<Auth />} />
-            <Route path="/admin" element={
+            <Route path="/admin/:tab?" element={
               <ProtectedRoute requiredRole="admin">
                 <AdminDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/articles/edit/:id" element={
+              <ProtectedRoute requiredRole="admin">
+                <ArticleEditor />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/articles/new" element={
+              <ProtectedRoute requiredRole="admin">
+                <ArticleEditor />
               </ProtectedRoute>
             } />
             

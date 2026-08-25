@@ -50,6 +50,8 @@ export default function AdminLogin() {
       .then(() => {
         const google = (window as any).google;
         if (!google?.accounts?.id) return;
+        // Cancel any previous initialization to avoid "called multiple times" warning
+        try { google.accounts.id.cancel(); } catch {}
         google.accounts.id.initialize({
           client_id: clientId,
           callback: async (response: any) => {
