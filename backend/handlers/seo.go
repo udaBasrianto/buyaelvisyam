@@ -215,6 +215,13 @@ func ServeDynamicSEO(c *fiber.Ctx) error {
 	if articleFound {
 		coverImage := shareImage
 		if coverImage == "" {
+			// Fallback chain: site default article image → logo → static file
+			coverImage = settings.DefaultArticleImage
+		}
+		if coverImage == "" {
+			coverImage = settings.LogoURL
+		}
+		if coverImage == "" {
 			coverImage = "/og-image.jpg"
 		}
 		if !strings.HasPrefix(coverImage, "http") {
@@ -284,6 +291,9 @@ func ServeDynamicSEO(c *fiber.Ctx) error {
 		// ── Fallback: homepage / not-found ──
 		logoImage := settings.LogoURL
 		if logoImage == "" {
+			logoImage = settings.DefaultArticleImage
+		}
+		if logoImage == "" {
 			logoImage = "/og-image.jpg"
 		}
 		if !strings.HasPrefix(logoImage, "http") {
@@ -344,7 +354,15 @@ func ServeDynamicSEO(c *fiber.Ctx) error {
 				"name":  siteName,
 				"logo": map[string]interface{}{
 					"@type": "ImageObject",
-					"url":   baseURL + "/og-image.jpg",
+					"url":   func() string {
+						if settings.LogoURL != "" && strings.HasPrefix(settings.LogoURL, "http") {
+							return settings.LogoURL
+						}
+						if settings.LogoURL != "" {
+							return baseURL + "/" + strings.TrimPrefix(settings.LogoURL, "/")
+						}
+						return baseURL + "/og-image.jpg"
+					}(),
 				},
 			},
 		}
