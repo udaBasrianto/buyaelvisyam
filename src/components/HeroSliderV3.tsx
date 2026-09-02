@@ -6,7 +6,7 @@ import type { Post } from "@/data/mockData";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { motion, AnimatePresence } from "framer-motion";
 
-const DEFAULT_POST_IMAGE = "https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa?q=80&w=2070&auto=format&fit=crop";
+const DEFAULT_POST_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 600'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%230F766E'/%3E%3Cstop offset='100%25' style='stop-color:%230D9488'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='1200' height='600' fill='url(%23g)'/%3E%3Ctext x='600' y='310' font-size='52' fill='white' opacity='0.25' text-anchor='middle' dominant-baseline='middle' font-family='Arial'%3E📖 Kajian Islam%3C/text%3E%3C/svg%3E";
 
 interface HeroSliderV3Props {
   slides?: Post[];
@@ -46,8 +46,9 @@ export function HeroSliderV3({ slides }: HeroSliderV3Props) {
     data[(current + 3) % data.length],
   ];
 
-  const opacityVal = settings?.slider_overlay_opacity ?? 85;
-  const overlayOpacity = opacityVal / 100;
+  const opacityVal = settings?.slider_overlay_opacity ?? 55;
+  // Cap overlay at 70 so the background image always stays visible
+  const overlayOpacity = Math.min(opacityVal, 70) / 100;
   const imgBrightness = Math.max(0.05, 1 - overlayOpacity);
 
   return (

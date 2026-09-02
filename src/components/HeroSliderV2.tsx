@@ -81,12 +81,12 @@ export function HeroSliderV2({ slides }: HeroSliderV2Props) {
     <div className="space-y-4" ref={containerRef}>
       {/* Main Slider */}
       <div
-        className="flex flex-col lg:grid lg:grid-cols-4 gap-4 h-full min-h-[350px] lg:min-h-[520px]"
+        className="flex flex-col lg:grid lg:grid-cols-4 gap-4 lg:min-h-[520px]"
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
       >
         {/* Main Slide */}
-        <div className="lg:col-span-3 relative rounded-[2rem] md:rounded-[2.5rem] overflow-hidden group shadow-2xl transition-all duration-500 bg-muted">
+        <div className="lg:col-span-3 relative rounded-[2rem] md:rounded-[2.5rem] overflow-hidden group shadow-2xl transition-all duration-500 bg-muted h-[220px] sm:h-[280px] md:h-full">
           {/* SVG Border Progress Trace */}
           <div className="absolute inset-0 z-20 pointer-events-none">
             <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
@@ -151,10 +151,10 @@ export function HeroSliderV2({ slides }: HeroSliderV2Props) {
                   }}
                 />
 
-                {/* Gradient overlay */}
+                {/* Gradient overlay — opacity capped at 75 max so image stays visible */}
                 <div
                   className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"
-                  style={{ opacity: (settings?.slider_overlay_opacity ?? 95) / 100 }}
+                  style={{ opacity: Math.min((settings?.slider_overlay_opacity ?? 60), 75) / 100 }}
                 />
 
                 {/* Content */}

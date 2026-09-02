@@ -46,7 +46,7 @@ export function Navbar() {
   const [logoLoadError, setLogoLoadError] = useState(false);
   const { user, role, signOut } = useAuth();
   const navigate = useNavigate();
-  const { settings } = useSiteSettings();
+  const { settings, loading: settingsLoading } = useSiteSettings();
   const { totalCount } = useCart();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -110,12 +110,15 @@ export function Navbar() {
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           {/* Dynamic Logo + Site Name */}
           <a href="/" className="flex items-center gap-2.5 group">
-            {settings.logo_url && !logoLoadError ? (
+            {settingsLoading ? (
+              /* Skeleton while settings load — prevents letter→logo flash */
+              <div className="h-9 w-9 rounded-lg bg-primary/10 animate-pulse" />
+            ) : settings.logo_url && !logoLoadError ? (
               <img
                 src={settings.logo_url}
                 alt={settings.site_name}
                 onError={() => setLogoLoadError(true)}
-                className="h-9 w-auto object-contain rounded-lg transition-transform duration-300 group-hover:scale-105 animate-float"
+                className="h-9 w-auto max-w-[120px] object-contain rounded-lg transition-transform duration-300 group-hover:scale-105 animate-float"
               />
             ) : (
               <div className="h-9 w-9 rounded-lg islamic-gradient flex items-center justify-center shadow-sm transition-transform duration-300 group-hover:scale-105 animate-float">
