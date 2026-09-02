@@ -386,16 +386,16 @@ export default function ArticleDetail() {
 
               <div className="mt-5 grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_320px] lg:items-start">
                 <div className="min-w-0">
-                  <h1 className="text-3xl font-bold leading-tight text-foreground md:text-4xl lg:text-5xl">
+                  <h1 className="text-2xl font-bold leading-snug text-foreground md:text-[1.875rem] lg:text-[2rem]">
                     {article.title}
                   </h1>
                   {article.excerpt && (
-                    <p className="mt-4 max-w-3xl text-base leading-7 text-muted-foreground md:text-lg">
+                    <p className="mt-3 max-w-3xl text-[15px] leading-relaxed text-muted-foreground md:text-base">
                       {article.excerpt}
                     </p>
                   )}
 
-                  <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3 text-sm text-muted-foreground">
+                  <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px] text-muted-foreground">
                     <span className="flex items-center gap-1.5">
                       <User className="h-4 w-4 text-primary" />
                       {article.author || "Ustadz"}
@@ -510,7 +510,7 @@ export default function ArticleDetail() {
               <article
                 ref={articleBodyRef}
                 style={{ fontSize: `${fontSize}px` }}
-                className="prose prose-lg prose-neutral max-w-none mx-auto rounded-[28px] border border-border/60 bg-card/70 px-5 py-8 shadow-sm backdrop-blur dark:prose-invert sm:px-7 lg:mx-0 lg:px-10 [&_a]:font-semibold [&_a]:text-primary [&_blockquote]:rounded-r-2xl [&_blockquote]:border-l-4 [&_blockquote]:border-primary/30 [&_blockquote]:bg-primary/5 [&_blockquote]:px-5 [&_blockquote]:py-3 [&_figcaption]:text-center [&_figcaption]:text-sm [&_figcaption]:text-muted-foreground [&_h2]:mt-12 [&_h2]:scroll-mt-28 [&_h2]:text-2xl [&_h2]:font-black [&_h2]:tracking-tight [&_h3]:mt-10 [&_h3]:scroll-mt-28 [&_h3]:text-xl [&_h3]:font-bold [&_hr]:border-border/60 [&_img]:mx-auto [&_img]:rounded-3xl [&_img]:shadow-lg [&_li]:marker:text-primary [&_p]:leading-8 [&_pre]:overflow-x-auto [&_pre]:rounded-2xl [&_pre]:border [&_pre]:border-border/60 [&_pre]:bg-muted [&_table]:block [&_table]:w-full [&_table]:overflow-x-auto"
+                className="prose prose-base prose-neutral max-w-none mx-auto rounded-[28px] border border-border/60 bg-card/70 px-5 py-8 shadow-sm backdrop-blur dark:prose-invert sm:px-7 lg:mx-0 lg:px-10 [&_a]:font-semibold [&_a]:text-primary [&_blockquote]:rounded-r-2xl [&_blockquote]:border-l-4 [&_blockquote]:border-primary/30 [&_blockquote]:bg-primary/5 [&_blockquote]:px-5 [&_blockquote]:py-3 [&_figcaption]:text-center [&_figcaption]:text-sm [&_figcaption]:text-muted-foreground [&_h2]:mt-10 [&_h2]:scroll-mt-28 [&_h2]:text-xl [&_h2]:font-bold [&_h2]:tracking-tight [&_h3]:mt-8 [&_h3]:scroll-mt-28 [&_h3]:text-[1.1rem] [&_h3]:font-bold [&_hr]:border-border/60 [&_img]:mx-auto [&_img]:rounded-3xl [&_img]:shadow-lg [&_li]:marker:text-primary [&_p]:text-[16px] [&_p]:leading-[1.8] [&_pre]:overflow-x-auto [&_pre]:rounded-2xl [&_pre]:border [&_pre]:border-border/60 [&_pre]:bg-muted [&_table]:block [&_table]:w-full [&_table]:overflow-x-auto"
                 dangerouslySetInnerHTML={{ __html: articleContentWithHeadingIds }}
               />
 

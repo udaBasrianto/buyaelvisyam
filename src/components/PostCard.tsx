@@ -60,8 +60,8 @@ export function PostCard({ post, featured = false }: PostCardProps) {
               <span key={cat} className="tag-badge gold-gradient text-primary-foreground text-xs">{cat}</span>
             ))}
           </div>
-          <h3 className="text-lg font-bold text-primary-foreground leading-snug line-clamp-2">{post.title}</h3>
-          <div className="flex items-center gap-2 text-primary-foreground/70 text-sm mt-1.5">
+          <h3 className="text-[16px] font-bold text-primary-foreground leading-snug line-clamp-2">{post.title}</h3>
+          <div className="flex items-center gap-2 text-primary-foreground/70 text-[11px] mt-1.5">
             <span>{post.author}</span>
             {post.readingMinutes ? (
               <>
@@ -101,10 +101,10 @@ export function PostCard({ post, featured = false }: PostCardProps) {
         />
       </div>
       <div className="p-4">
-        <h3 className="font-semibold text-foreground leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+        <h3 className="font-semibold text-[15px] text-foreground leading-snug line-clamp-2 group-hover:text-primary transition-colors">
           {post.title}
         </h3>
-        <div className="flex items-center gap-2 mt-2.5 text-muted-foreground text-xs flex-wrap">
+        <div className="flex items-center gap-2 mt-2 text-muted-foreground text-[11px] flex-wrap">
           <span>{post.author}</span>
           <span>•</span>
           <span className="flex items-center gap-1"><Eye className="h-3 w-3" /> {post.views}</span>

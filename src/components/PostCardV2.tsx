@@ -96,15 +96,15 @@ export function PostCardV2({ post }: PostCardV2Props) {
       </div>
 
       <div className="p-5">
-        <h3 className="text-lg font-bold text-foreground leading-snug line-clamp-2 min-h-[56px] group-hover:text-primary transition-colors mb-3">
+        <h3 className="text-[15px] font-bold text-foreground leading-snug line-clamp-2 min-h-[44px] group-hover:text-primary transition-colors mb-3">
           {post.title}
         </h3>
         
         <div className="flex items-center gap-2 mb-4">
-           <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
+           <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center">
               <User className="h-3 w-3 text-primary" />
            </div>
-           <span className="text-xs font-medium text-muted-foreground">By {post.author}</span>
+           <span className="text-[11px] font-medium text-muted-foreground">By {post.author}</span>
         </div>
 
         {/* Dashed Separator like in the image */}
