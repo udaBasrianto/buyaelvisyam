@@ -125,6 +125,7 @@ export default function ArticleEditor() {
     title: "", excerpt: "", content: "", category: "Umum", categories: ["Umum"] as string[],
     cover_image: "", status: "draft", is_featured: false,
     template_type: "kajian", youtube_url: "", scheduled_publish_at: "", published_at: "",
+    slug: "",
   });
 
   const [uploading, setUploading] = useState(false);
@@ -162,6 +163,7 @@ export default function ArticleEditor() {
             youtube_url: a.youtube_url || "",
             scheduled_publish_at: a.scheduled_publish_at ? new Date(a.scheduled_publish_at).toISOString().slice(0, 16) : "",
             published_at: a.published_at ? new Date(a.published_at).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
+            slug: a.slug || "",
           });
           setPreviewUrl(a.cover_image || null);
           fetchRevisions(a.id).catch(() => {});
@@ -226,7 +228,7 @@ export default function ArticleEditor() {
     }
     const payload = {
       title: form.title.trim(),
-      slug: article?.slug || generateSlug(form.title),
+      slug: form.slug.trim() || generateSlug(form.title),
       excerpt: form.excerpt.trim() || "",
       content: form.content.trim(),
       category: form.categories.length > 0 ? form.categories[0] : "Umum",
@@ -273,6 +275,7 @@ export default function ArticleEditor() {
         youtube_url: restoredArticle.youtube_url || "",
         scheduled_publish_at: restoredArticle.scheduled_publish_at ? new Date(restoredArticle.scheduled_publish_at).toISOString().slice(0, 16) : "",
         published_at: restoredArticle.published_at ? new Date(restoredArticle.published_at).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
+        slug: restoredArticle.slug || "",
       });
       setPreviewUrl(restoredArticle.cover_image || null);
       toast({ title: "Berhasil", description: "Revisi berhasil direstore" });
@@ -341,7 +344,34 @@ export default function ArticleEditor() {
               <div className="min-w-0 space-y-4 rounded-2xl border bg-background/40 p-4 md:p-5">
                 <div>
                   <Label>Judul</Label>
-                  <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Judul artikel..." />
+                  <Input value={form.title} onChange={(e) => {
+                    const newTitle = e.target.value;
+                    // Auto-generate slug from title only if slug is still empty or matches the previous auto-generated slug
+                    const autoSlug = generateSlug(form.title);
+                    const shouldAutoUpdate = !form.slug || form.slug === autoSlug;
+                    setForm({ ...form, title: newTitle, slug: shouldAutoUpdate ? generateSlug(newTitle) : form.slug });
+                  }} placeholder="Judul artikel..." />
+                </div>
+                <div>
+                  <Label>URL / Slug</Label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">/artikel/</span>
+                    <Input
+                      value={form.slug}
+                      onChange={(e) => setForm({ ...form, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-") })}
+                      placeholder="url-artikel-anda"
+                      className="font-mono text-sm"
+                    />
+                    <button
+                      type="button"
+                      title="Generate ulang dari judul"
+                      onClick={() => setForm({ ...form, slug: generateSlug(form.title) })}
+                      className="shrink-0 text-xs text-primary underline hover:no-underline"
+                    >
+                      Reset
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-1">URL yang akan digunakan untuk artikel ini. Hanya huruf kecil, angka, dan tanda hubung.</p>
                 </div>
                 <div>
                   <Label>Ringkasan</Label>

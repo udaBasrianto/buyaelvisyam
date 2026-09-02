@@ -699,7 +699,31 @@ func UpdateArticle(c *fiber.Ctx) error {
 	}
 
 	if input.Title != nil { article.Title = *input.Title }
-	if input.Slug != nil { article.Slug = *input.Slug }
+	if input.Slug != nil {
+		newSlug := slugify(strings.TrimSpace(*input.Slug))
+		if newSlug == "" {
+			newSlug = slugify(article.Title)
+		}
+		// Only run uniqueness check if slug actually changed
+		if newSlug != article.Slug {
+			var count int64
+			if err := db.Model(&models.Article{}).Where("slug = ? AND id <> ?", newSlug, article.ID).Count(&count).Error; err == nil {
+				if count > 0 {
+					// Slug already taken by another article — append suffix
+					for i := 2; i <= 200; i++ {
+						try := fmt.Sprintf("%s-%d", newSlug, i)
+						var c2 int64
+						db.Model(&models.Article{}).Where("slug = ? AND id <> ?", try, article.ID).Count(&c2)
+						if c2 == 0 {
+							newSlug = try
+							break
+						}
+					}
+				}
+			}
+		}
+		article.Slug = newSlug
+	}
 	if input.Content != nil { article.Content = *input.Content }
 	if input.Excerpt != nil { article.Excerpt = *input.Excerpt }
 	if input.CoverImage != nil { article.CoverImage = *input.CoverImage }
