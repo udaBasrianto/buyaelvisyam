@@ -3,6 +3,7 @@ import { Save, ImagePlus, X, Palette, ArrowUp, ArrowDown, GripVertical, Eye, Eye
 import { THEME_PALETTES } from "@/constants/themes";
 import { Button } from "@/components/ui/button";
 import { FeaturesManager } from "./FeaturesManager";
+import { HomepageCategorySectionsManager } from "./HomepageCategorySectionsManager";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -84,7 +85,7 @@ export function SiteSettingsManager() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadingFavicon, setUploadingFavicon] = useState(false);
-  const [activeTab, setActiveTab] = useState<'general' | 'features'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'features' | 'sections'>('general');
   const fileRef = useRef<HTMLInputElement>(null);
   const faviconFileRef = useRef<HTMLInputElement>(null);
 
@@ -255,13 +256,23 @@ export function SiteSettingsManager() {
         </button>
         <button 
           onClick={() => setActiveTab('features')}
-          className={`flex-1 py-1.5 px-4 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all ${activeTab === 'features' ? 'bg-background shadow-sm text-primary' : 'text-primary hover:text-foreground'}`}
+          className={`flex-1 py-1.5 px-4 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all ${activeTab === 'features' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'}`}
         >
           Fitur Beranda
         </button>
+        <button
+          onClick={() => setActiveTab('sections')}
+          className={`flex-1 py-1.5 px-4 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all ${activeTab === 'sections' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+        >
+          Section Kategori
+        </button>
       </div>
 
-      {activeTab === 'features' ? (
+      {activeTab === 'sections' ? (
+        <div className="bg-card rounded-xl card-shadow p-6">
+          <HomepageCategorySectionsManager />
+        </div>
+      ) : activeTab === 'features' ? (
         <div className="bg-card rounded-xl card-shadow p-6">
               <div className="flex items-center justify-between p-4 border rounded-2xl bg-card/50">
                 <div className="space-y-0.5">

@@ -6,6 +6,8 @@ import { HeroSliderV3 } from "@/components/HeroSliderV3";
 import { FeatureBar } from "@/components/FeatureBar";
 import { PostCardV2 } from "@/components/PostCardV2";
 import { CategorySectionV2 } from "@/components/CategorySectionV2";
+import { CategoryFeedSection } from "@/components/CategoryFeedSection";
+import type { HomepageCategorySection, SectionArticle } from "@/components/CategoryFeedSection";
 import { Footer } from "@/components/Footer";
 import { SEO } from "@/components/SEO";
 import { BottomNav } from "@/components/BottomNav";
@@ -27,6 +29,10 @@ export function IndexV2() {
   const [loading, setLoading] = useState(true);
   const [editorsChoiceLayout, setEditorsChoiceLayout] = useState<'list' | 'grid2'>('list');
   const [recentLayout, setRecentLayout] = useState<'card' | 'grid2' | 'list'>('card');
+  // Category feed sections data
+  const [categoryFeed, setCategoryFeed] = useState<
+    { section: HomepageCategorySection; articles: SectionArticle[] }[]
+  >([]);
   const { settings, loading: settingsLoading } = useSiteSettings();
 
   useEffect(() => {
@@ -70,6 +76,16 @@ export function IndexV2() {
 
         const featRes = await api.get("/features");
         setFeatures(asArray<any>(featRes.data));
+
+        // Fetch category feed sections
+        try {
+          const feedRes = await api.get("/homepage-sections/feed");
+          if (feedRes.data?.sections) {
+            setCategoryFeed(feedRes.data.sections);
+          }
+        } catch {
+          // feed sections are optional — don't break the page if none exist
+        }
       } catch (err) {
         console.error("Fetch articles failed", err);
       } finally {
@@ -348,11 +364,44 @@ export function IndexV2() {
                 );
 
               default:
+                // Dynamic category feed sections — identified by their UUID id prefix "cat_"
+                // or matched against loaded categoryFeed data by section id
+                if (sectionId.startsWith("cat_")) {
+                  const entry = categoryFeed.find(f => `cat_${f.section.id}` === sectionId);
+                  if (entry) {
+                    return (
+                      <div key={sectionId} className="border-t border-border/30">
+                        <CategoryFeedSection
+                          section={entry.section}
+                          articles={entry.articles}
+                        />
+                      </div>
+                    );
+                  }
+                }
                 return null;
             }
           };
 
-          return sectionOrder.map(renderSection);
+          return (
+            <>
+              {sectionOrder.map(renderSection)}
+              {/* Magazine category feed sections — rendered after main sections */}
+              {categoryFeed.length > 0 && (
+                <div className="divide-y divide-border/30">
+                  {categoryFeed
+                    .filter(entry => entry.section.is_active)
+                    .map(entry => (
+                      <CategoryFeedSection
+                        key={entry.section.id}
+                        section={entry.section}
+                        articles={entry.articles}
+                      />
+                    ))}
+                </div>
+              )}
+            </>
+          );
         })()}
 
         <Footer />

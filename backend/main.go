@@ -317,6 +317,14 @@ func main() {
 	api.Put("/features/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.UpdateFeature)
 	api.Delete("/features/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.DeleteFeature)
 
+	// Homepage Category Feed Sections (magazine-style)
+	api.Get("/homepage-sections", handlers.GetHomepageCategorySections)
+	api.Get("/homepage-sections/feed", handlers.GetHomepageCategoryFeed)
+	api.Post("/homepage-sections", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.CreateHomepageCategorySection)
+	api.Put("/homepage-sections/reorder", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.ReorderHomepageCategorySections)
+	api.Put("/homepage-sections/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.UpdateHomepageCategorySection)
+	api.Delete("/homepage-sections/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.DeleteHomepageCategorySection)
+
 	// Comments
 	api.Get("/comments", handlers.GetComments)
 	commentLimiter := limiter.New(limiter.Config{Max: 8, Expiration: 1 * time.Minute})

@@ -135,6 +135,13 @@ func (m *NavItem) BeforeCreate(tx *gorm.DB) error {
 	return nil
 }
 
+func (m *HomepageCategorySection) BeforeCreate(tx *gorm.DB) error {
+	if m.ID == uuid.Nil {
+		m.ID = uuid.New()
+	}
+	return nil
+}
+
 func (m *Bookmark) BeforeCreate(tx *gorm.DB) error {
 	if m.ID == uuid.Nil {
 		m.ID = uuid.New()
@@ -320,6 +327,21 @@ type SiteSettings struct {
 	ShowDonors                   bool      `gorm:"default:true" json:"show_donors"`
 	UpdatedBy                    uuid.UUID `gorm:"type:uuid" json:"updated_by"`
 	UpdatedAt                    time.Time `json:"updated_at"`
+}
+
+// HomepageCategorySection defines one category-based article feed block on the homepage.
+// Each row represents one magazine-style section (e.g. "Fiqih — 4 articles").
+type HomepageCategorySection struct {
+	ID           uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
+	CategoryName string    `gorm:"not null" json:"category_name"`  // matches Category.Name
+	CategorySlug string    `gorm:"not null" json:"category_slug"`  // matches Category.Slug
+	CustomTitle  string    `json:"custom_title"`                   // override display title, optional
+	ArticleCount int       `gorm:"default:4" json:"article_count"` // how many articles to show
+	SortOrder    int       `gorm:"default:0" json:"sort_order"`    // display order on homepage
+	IsActive     bool      `gorm:"default:true" json:"is_active"`  // show/hide section
+	Layout       string    `gorm:"default:'grid'" json:"layout"`   // grid | list | featured
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
 }
 
 type AccessLog struct {
