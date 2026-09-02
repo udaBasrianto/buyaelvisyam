@@ -424,6 +424,9 @@ func main() {
 
 	// Dynamic SEO routes for sharing articles
 	app.Get("/artikel/:slug", handlers.ServeDynamicSEO)
+	app.Get("/produk/:slug", handlers.ServeDynamicSEO)
+	app.Get("/kategori/:slug", handlers.ServeDynamicSEO)
+	app.Get("/p/:slug", handlers.ServeDynamicSEO)
 	app.Get("/:slug", handlers.ServeDynamicSEO)
 
 	// SPA Wildcard fallback

@@ -4,6 +4,7 @@ import { Navbar } from "@/components/Navbar";
 import { BottomNav } from "@/components/BottomNav";
 import { Footer } from "@/components/Footer";
 import { PostCard } from "@/components/PostCard";
+import { SEO } from "@/components/SEO";
 import api from "@/lib/api";
 import type { Post } from "@/data/mockData";
 import { ArrowLeft } from "lucide-react";
@@ -64,6 +65,12 @@ const CategoryPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO
+        title={`Kategori ${displayTitle}`}
+        description={`Daftar artikel kajian terbaik dalam kategori ${displayTitle}.`}
+        type="website"
+        canonical={`${window.location.origin}/kategori/${slug}`}
+      />
       <Navbar />
       <main className="bottom-nav-safe">
         <div className="container mx-auto px-4 py-6">

@@ -276,7 +276,7 @@ export default function ArticleDetail() {
 
   const youtubeThumbnail = youtubeVideoId ? `https://img.youtube.com/vi/${youtubeVideoId}/hqdefault.jpg` : "";
   const shareImage = youtubeThumbnail || article.cover_image || defaultImage;
-  const canonicalPath = `/${article.slug || article.id}`;
+  const canonicalPath = `/artikel/${article.slug || article.id}`;
   const canonicalURL = `${window.location.origin}${canonicalPath}`;
   const categorySlug = categories[0] ? categories[0].toLowerCase().replace(/\s+/g, "-") : "umum";
 
