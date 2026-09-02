@@ -291,21 +291,22 @@ export default function ArticleDetail() {
     "description": article.excerpt || plainText.substring(0, 160),
     "image": [shareImage],
     "datePublished": article.published_at || article.created_at,
-    "dateModified": article.published_at || article.created_at,
-    "author": [
-      {
-        "@type": "Person",
-        "name": article.author || "Ustadz",
-      },
-    ],
+    "dateModified": article.updated_at || article.published_at || article.created_at,
+    "author": {
+      "@type": "Person",
+      "name": article.author || "Ustadz",
+    },
     "publisher": {
       "@type": "Organization",
-      "name": window.location.hostname,
+      "name": settings?.site_name || window.location.hostname,
       "logo": {
         "@type": "ImageObject",
         "url": `${window.location.origin}/og-image.jpg`,
       },
     },
+    ...(tags.length > 0 && { "keywords": tags.join(", ") }),
+    ...(categories[0] && { "articleSection": categories[0] }),
+    ...(readingMinutes > 0 && { "timeRequired": `PT${readingMinutes}M` }),
   };
 
   const jsonLdBreadcrumb = {
@@ -336,11 +337,18 @@ export default function ArticleDetail() {
   return (
     <div className="min-h-screen bg-background max-w-full">
       <SEO 
-        title={article.title} 
-        description={article.excerpt || plainText.substring(0, 160)} 
-        image={youtubeThumbnail || article.cover_image || undefined} 
-        article 
+        title={article.title}
+        description={article.excerpt || plainText.substring(0, 160)}
+        image={youtubeThumbnail || article.cover_image || undefined}
+        article
         canonical={canonicalURL}
+        publishedAt={article.published_at || article.created_at}
+        modifiedAt={article.updated_at || article.published_at || article.created_at}
+        author={article.author || undefined}
+        section={categories[0] || undefined}
+        tags={tags.length > 0 ? tags : undefined}
+        readingMinutes={readingMinutes}
+        keywords={[...categories, ...tags].filter(Boolean)}
         jsonLd={[jsonLdBreadcrumb, jsonLdArticle]}
       />
       <ReadingProgress />

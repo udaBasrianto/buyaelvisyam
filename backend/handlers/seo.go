@@ -3,6 +3,7 @@ package handlers
 import (
 	"backend/database"
 	"backend/models"
+	"encoding/json"
 	"fmt"
 	"html"
 	"io/ioutil"
@@ -85,11 +86,21 @@ func ServeDynamicSEO(c *fiber.Ctx) error {
 	if siteDesc == "" {
 		siteDesc = "Portal Resmi Kajian Online"
 	}
+	// Twitter handle from site name (fallback — no dedicated field in SiteSettings yet)
+	twitterHandle := "@" + strings.ToLower(strings.ReplaceAll(strings.ReplaceAll(siteName, " ", ""), ".", ""))
 
 	dynamicTitle := siteTitle
-	dynamicDesc := siteDesc
+	dynamicDesc  := siteDesc
 	articleFound := false
 	var shareImage string
+
+	// Extra article-specific metadata for rich OG tags
+	var articlePublishedAt string
+	var articleModifiedAt  string
+	var articleAuthor      string
+	var articleSection     string   // primary category
+	var articleTags        []string // tags array
+	var articleReadingMins int
 
 	// Fetch data from database depending on contentKind
 	if slug != "" {
@@ -109,7 +120,6 @@ func ServeDynamicSEO(c *fiber.Ctx) error {
 				articleFound = true
 				dynamicTitle = fmt.Sprintf("Kategori %s | %s", category.Name, siteName)
 				dynamicDesc = fmt.Sprintf("Daftar artikel kajian terbaik dalam kategori %s.", category.Name)
-				// Use logo as category image (no category-specific image in model)
 				shareImage = settings.LogoURL
 			}
 		} else if contentKind == "page" {
@@ -120,6 +130,8 @@ func ServeDynamicSEO(c *fiber.Ctx) error {
 				excerpt := stripHTML(page.Content)
 				dynamicDesc = truncateRunes(excerpt, 160)
 				shareImage = page.HeroImage
+				articlePublishedAt = page.CreatedAt.UTC().Format(time.RFC3339)
+				articleModifiedAt  = page.UpdatedAt.UTC().Format(time.RFC3339)
 			}
 		} else { // default to article
 			var article models.Article
@@ -140,6 +152,36 @@ func ServeDynamicSEO(c *fiber.Ctx) error {
 				}
 				dynamicDesc = truncateRunes(excerpt, 160)
 				shareImage = article.CoverImage
+
+				// Rich article metadata
+				if article.PublishedAt != nil {
+					articlePublishedAt = article.PublishedAt.UTC().Format(time.RFC3339)
+				} else {
+					articlePublishedAt = article.CreatedAt.UTC().Format(time.RFC3339)
+				}
+				articleModifiedAt = article.UpdatedAt.UTC().Format(time.RFC3339)
+				articleAuthor = article.AuthorName
+				if articleAuthor == "" {
+					articleAuthor = siteName
+				}
+				// Primary category for article:section
+				if article.Category != "" {
+					articleSection = article.Category
+				} else if len(article.Categories) > 0 {
+					articleSection = article.Categories[0]
+				}
+				// Tags for article:tag
+				articleTags = []string(article.Tags)
+				// Estimate reading time
+				wordCount := len(strings.Fields(stripHTML(article.Content)))
+				if wordCount > 0 {
+					articleReadingMins = wordCount / 200
+					if articleReadingMins < 1 {
+						articleReadingMins = 1
+					}
+				} else {
+					articleReadingMins = 1
+				}
 			}
 		}
 	}
@@ -156,17 +198,19 @@ func ServeDynamicSEO(c *fiber.Ctx) error {
 		htmlContent = strings.ReplaceAll(htmlContent, "G-5DQ01JS2EP", settings.GoogleAnalyticsID)
 	}
 
-	// Inject Open Graph tags
+	// ── Open Graph injection ──────────────────────────────────────────────────
 	baseURL := c.Protocol() + "://" + c.Hostname()
-	fullURL := baseURL + c.Path()
+	fullURL  := baseURL + c.Path()
 	var ogInjection strings.Builder
 
 	// Escape values for safe HTML attribute embedding
-	safeTitle := html.EscapeString(dynamicTitle)
-	safeDesc := html.EscapeString(dynamicDesc)
+	safeTitle     := html.EscapeString(dynamicTitle)
+	safeDesc      := html.EscapeString(dynamicDesc)
 	safeSiteTitle := html.EscapeString(siteTitle)
-	safeSiteDesc := html.EscapeString(siteDesc)
-	safeSiteName := html.EscapeString(siteName)
+	safeSiteDesc  := html.EscapeString(siteDesc)
+	safeSiteName  := html.EscapeString(siteName)
+	safeAuthor    := html.EscapeString(articleAuthor)
+	safeSection   := html.EscapeString(articleSection)
 
 	if articleFound {
 		coverImage := shareImage
@@ -181,19 +225,63 @@ func ServeDynamicSEO(c *fiber.Ctx) error {
 			}
 		}
 
+		// ── Core OG ──
 		ogInjection.WriteString(fmt.Sprintf("\n  <meta property=\"og:type\" content=\"%s\" />", ogType))
 		ogInjection.WriteString(fmt.Sprintf("\n  <meta property=\"og:title\" content=\"%s\" />", safeTitle))
 		ogInjection.WriteString(fmt.Sprintf("\n  <meta property=\"og:description\" content=\"%s\" />", safeDesc))
-		ogInjection.WriteString(fmt.Sprintf("\n  <meta property=\"og:image\" content=\"%s\" />", coverImage))
 		ogInjection.WriteString(fmt.Sprintf("\n  <meta property=\"og:url\" content=\"%s\" />", fullURL))
 		ogInjection.WriteString(fmt.Sprintf("\n  <meta property=\"og:site_name\" content=\"%s\" />", safeSiteName))
 		ogInjection.WriteString("\n  <meta property=\"og:locale\" content=\"id_ID\" />")
+
+		// ── OG Image with dimensions (1200×630 is the Facebook/WhatsApp optimal size) ──
+		ogInjection.WriteString(fmt.Sprintf("\n  <meta property=\"og:image\" content=\"%s\" />", coverImage))
+		ogInjection.WriteString("\n  <meta property=\"og:image:width\" content=\"1200\" />")
+		ogInjection.WriteString("\n  <meta property=\"og:image:height\" content=\"630\" />")
+		ogInjection.WriteString("\n  <meta property=\"og:image:type\" content=\"image/jpeg\" />")
+		ogInjection.WriteString(fmt.Sprintf("\n  <meta property=\"og:image:alt\" content=\"%s\" />", safeTitle))
+
+		// ── Article-specific OG (only for article type) ──
+		if ogType == "article" {
+			if articlePublishedAt != "" {
+				ogInjection.WriteString(fmt.Sprintf("\n  <meta property=\"article:published_time\" content=\"%s\" />", articlePublishedAt))
+			}
+			if articleModifiedAt != "" {
+				ogInjection.WriteString(fmt.Sprintf("\n  <meta property=\"article:modified_time\" content=\"%s\" />", articleModifiedAt))
+			}
+			if safeAuthor != "" {
+				ogInjection.WriteString(fmt.Sprintf("\n  <meta property=\"article:author\" content=\"%s\" />", safeAuthor))
+			}
+			if safeSection != "" {
+				ogInjection.WriteString(fmt.Sprintf("\n  <meta property=\"article:section\" content=\"%s\" />", safeSection))
+			}
+			for _, tag := range articleTags {
+				if tag != "" {
+					ogInjection.WriteString(fmt.Sprintf("\n  <meta property=\"article:tag\" content=\"%s\" />", html.EscapeString(tag)))
+				}
+			}
+		}
+
+		// ── Twitter Card ──
 		ogInjection.WriteString("\n  <meta name=\"twitter:card\" content=\"summary_large_image\" />")
+		ogInjection.WriteString(fmt.Sprintf("\n  <meta name=\"twitter:site\" content=\"%s\" />", twitterHandle))
+		ogInjection.WriteString(fmt.Sprintf("\n  <meta name=\"twitter:creator\" content=\"%s\" />", twitterHandle))
 		ogInjection.WriteString(fmt.Sprintf("\n  <meta name=\"twitter:title\" content=\"%s\" />", safeTitle))
 		ogInjection.WriteString(fmt.Sprintf("\n  <meta name=\"twitter:description\" content=\"%s\" />", safeDesc))
 		ogInjection.WriteString(fmt.Sprintf("\n  <meta name=\"twitter:image\" content=\"%s\" />", coverImage))
+		ogInjection.WriteString(fmt.Sprintf("\n  <meta name=\"twitter:image:alt\" content=\"%s\" />", safeTitle))
+		// Twitter App Card labels (shown in tweet cards on Twitter/X)
+		if articleReadingMins > 0 {
+			ogInjection.WriteString(fmt.Sprintf("\n  <meta name=\"twitter:label1\" content=\"Estimasi Baca\" />"))
+			ogInjection.WriteString(fmt.Sprintf("\n  <meta name=\"twitter:data1\" content=\"%d menit\" />", articleReadingMins))
+		}
+		if safeSection != "" {
+			ogInjection.WriteString("\n  <meta name=\"twitter:label2\" content=\"Kategori\" />")
+			ogInjection.WriteString(fmt.Sprintf("\n  <meta name=\"twitter:data2\" content=\"%s\" />", safeSection))
+		}
 		ogInjection.WriteString("\n")
+
 	} else {
+		// ── Fallback: homepage / not-found ──
 		logoImage := settings.LogoURL
 		if logoImage == "" {
 			logoImage = "/og-image.jpg"
@@ -209,18 +297,91 @@ func ServeDynamicSEO(c *fiber.Ctx) error {
 		ogInjection.WriteString("\n  <meta property=\"og:type\" content=\"website\" />")
 		ogInjection.WriteString(fmt.Sprintf("\n  <meta property=\"og:title\" content=\"%s\" />", safeSiteTitle))
 		ogInjection.WriteString(fmt.Sprintf("\n  <meta property=\"og:description\" content=\"%s\" />", safeSiteDesc))
-		ogInjection.WriteString(fmt.Sprintf("\n  <meta property=\"og:image\" content=\"%s\" />", logoImage))
 		ogInjection.WriteString(fmt.Sprintf("\n  <meta property=\"og:url\" content=\"%s\" />", fullURL))
 		ogInjection.WriteString(fmt.Sprintf("\n  <meta property=\"og:site_name\" content=\"%s\" />", safeSiteName))
 		ogInjection.WriteString("\n  <meta property=\"og:locale\" content=\"id_ID\" />")
+		ogInjection.WriteString(fmt.Sprintf("\n  <meta property=\"og:image\" content=\"%s\" />", logoImage))
+		ogInjection.WriteString("\n  <meta property=\"og:image:width\" content=\"1200\" />")
+		ogInjection.WriteString("\n  <meta property=\"og:image:height\" content=\"630\" />")
+		ogInjection.WriteString("\n  <meta property=\"og:image:type\" content=\"image/jpeg\" />")
+		ogInjection.WriteString(fmt.Sprintf("\n  <meta property=\"og:image:alt\" content=\"%s\" />", safeSiteName))
 		ogInjection.WriteString("\n  <meta name=\"twitter:card\" content=\"summary_large_image\" />")
+		ogInjection.WriteString(fmt.Sprintf("\n  <meta name=\"twitter:site\" content=\"%s\" />", twitterHandle))
 		ogInjection.WriteString(fmt.Sprintf("\n  <meta name=\"twitter:title\" content=\"%s\" />", safeSiteTitle))
 		ogInjection.WriteString(fmt.Sprintf("\n  <meta name=\"twitter:description\" content=\"%s\" />", safeSiteDesc))
 		ogInjection.WriteString(fmt.Sprintf("\n  <meta name=\"twitter:image\" content=\"%s\" />", logoImage))
+		ogInjection.WriteString(fmt.Sprintf("\n  <meta name=\"twitter:image:alt\" content=\"%s\" />", safeSiteName))
 		ogInjection.WriteString("\n")
 	}
 
 	htmlContent = strings.Replace(htmlContent, "</head>", ogInjection.String()+"</head>", 1)
+
+	// ── Server-side JSON-LD injection (BlogPosting schema for articles) ──────
+	// This ensures crawlers that don't run JavaScript still get structured data.
+	if articleFound && ogType == "article" && articlePublishedAt != "" {
+		tagsInterface := make([]interface{}, len(articleTags))
+		for i, t := range articleTags {
+			tagsInterface[i] = t
+		}
+
+		jsonLd := map[string]interface{}{
+			"@context": "https://schema.org",
+			"@type":    "BlogPosting",
+			"mainEntityOfPage": map[string]interface{}{
+				"@type": "WebPage",
+				"@id":   fullURL,
+			},
+			"headline":      dynamicTitle,
+			"description":   dynamicDesc,
+			"datePublished": articlePublishedAt,
+			"dateModified":  articleModifiedAt,
+			"author": map[string]interface{}{
+				"@type": "Person",
+				"name":  articleAuthor,
+			},
+			"publisher": map[string]interface{}{
+				"@type": "Organization",
+				"name":  siteName,
+				"logo": map[string]interface{}{
+					"@type": "ImageObject",
+					"url":   baseURL + "/og-image.jpg",
+				},
+			},
+		}
+
+		// Add image if available
+		if shareImage != "" {
+			coverAbs := shareImage
+			if !strings.HasPrefix(coverAbs, "http") {
+				if strings.HasPrefix(coverAbs, "/") {
+					coverAbs = baseURL + coverAbs
+				} else {
+					coverAbs = baseURL + "/" + coverAbs
+				}
+			}
+			jsonLd["image"] = []string{coverAbs}
+		}
+
+		// Add keywords if tags present
+		if len(articleTags) > 0 {
+			jsonLd["keywords"] = strings.Join(articleTags, ", ")
+		}
+
+		// Add articleSection if present
+		if articleSection != "" {
+			jsonLd["articleSection"] = articleSection
+		}
+
+		// Add reading time
+		if articleReadingMins > 0 {
+			jsonLd["timeRequired"] = fmt.Sprintf("PT%dM", articleReadingMins)
+		}
+
+		if jsonBytes, err := json.Marshal(jsonLd); err == nil {
+			jsonLdScript := fmt.Sprintf("\n  <script type=\"application/ld+json\">\n  %s\n  </script>\n", string(jsonBytes))
+			htmlContent = strings.Replace(htmlContent, "</head>", jsonLdScript+"</head>", 1)
+		}
+	}
 
 	c.Set("Content-Type", "text/html")
 	return c.SendString(htmlContent)
