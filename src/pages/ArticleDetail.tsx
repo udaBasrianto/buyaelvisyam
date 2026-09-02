@@ -510,7 +510,29 @@ export default function ArticleDetail() {
               <article
                 ref={articleBodyRef}
                 style={{ fontSize: `${fontSize}px` }}
-                className="prose prose-base prose-neutral max-w-none mx-auto rounded-[28px] border border-border/60 bg-card/70 px-5 py-8 shadow-sm backdrop-blur dark:prose-invert sm:px-7 lg:mx-0 lg:px-10 [&_a]:font-semibold [&_a]:text-primary [&_blockquote]:rounded-r-2xl [&_blockquote]:border-l-4 [&_blockquote]:border-primary/30 [&_blockquote]:bg-primary/5 [&_blockquote]:px-5 [&_blockquote]:py-3 [&_figcaption]:text-center [&_figcaption]:text-sm [&_figcaption]:text-muted-foreground [&_h2]:mt-10 [&_h2]:scroll-mt-28 [&_h2]:text-xl [&_h2]:font-bold [&_h2]:tracking-tight [&_h3]:mt-8 [&_h3]:scroll-mt-28 [&_h3]:text-[1.1rem] [&_h3]:font-bold [&_hr]:border-border/60 [&_img]:mx-auto [&_img]:rounded-3xl [&_img]:shadow-lg [&_li]:marker:text-primary [&_p]:text-[16px] [&_p]:leading-[1.8] [&_pre]:overflow-x-auto [&_pre]:rounded-2xl [&_pre]:border [&_pre]:border-border/60 [&_pre]:bg-muted [&_table]:block [&_table]:w-full [&_table]:overflow-x-auto"
+                className="prose prose-base prose-neutral max-w-none mx-auto rounded-[28px] border border-border/60 bg-card/70 px-5 py-8 shadow-sm backdrop-blur dark:prose-invert sm:px-7 lg:mx-0 lg:px-10
+                  [&_p]:text-[16px] [&_p]:leading-[1.8] [&_p]:text-foreground/90 [&_p]:mb-5
+                  [&_a]:text-primary [&_a]:font-medium [&_a]:no-underline [&_a:hover]:underline [&_a:hover]:underline-offset-2
+                  [&_h2]:mt-10 [&_h2]:mb-4 [&_h2]:scroll-mt-28 [&_h2]:text-[1.35rem] [&_h2]:font-bold [&_h2]:tracking-tight [&_h2]:text-foreground [&_h2]:border-b [&_h2]:border-border/40 [&_h2]:pb-2
+                  [&_h3]:mt-8 [&_h3]:mb-3 [&_h3]:scroll-mt-28 [&_h3]:text-[1.1rem] [&_h3]:font-bold [&_h3]:text-foreground
+                  [&_h4]:mt-6 [&_h4]:mb-2 [&_h4]:text-[1rem] [&_h4]:font-semibold [&_h4]:text-foreground
+                  [&_blockquote]:relative [&_blockquote]:rounded-r-xl [&_blockquote]:border-l-4 [&_blockquote]:border-primary [&_blockquote]:bg-primary/5 [&_blockquote]:px-6 [&_blockquote]:py-4 [&_blockquote]:my-6 [&_blockquote]:text-[17px] [&_blockquote]:italic [&_blockquote]:text-foreground/80 [&_blockquote]:not-italic
+                  [&_blockquote_p]:text-[16px] [&_blockquote_p]:leading-[1.75] [&_blockquote_p]:mb-0
+                  [&_ul]:pl-5 [&_ul]:my-4 [&_ul_li]:my-1.5 [&_ul_li]:text-[16px] [&_ul_li]:leading-[1.7]
+                  [&_ol]:pl-5 [&_ol]:my-4 [&_ol_li]:my-1.5 [&_ol_li]:text-[16px] [&_ol_li]:leading-[1.7]
+                  [&_li]:marker:text-primary
+                  [&_table]:w-full [&_table]:overflow-x-auto [&_table]:block [&_table]:text-[14px] [&_table]:my-6 [&_table]:rounded-xl [&_table]:border [&_table]:border-border/60
+                  [&_thead]:bg-muted [&_thead_th]:px-4 [&_thead_th]:py-2.5 [&_thead_th]:text-left [&_thead_th]:text-[13px] [&_thead_th]:font-bold [&_thead_th]:text-foreground [&_thead_th]:uppercase [&_thead_th]:tracking-wide
+                  [&_tbody_tr]:border-t [&_tbody_tr]:border-border/40 [&_tbody_tr:nth-child(even)]:bg-muted/30
+                  [&_td]:px-4 [&_td]:py-2.5 [&_td]:text-[14px] [&_td]:align-top
+                  [&_code]:font-mono [&_code]:text-[13.5px] [&_code]:bg-muted [&_code]:text-primary [&_code]:rounded [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:border [&_code]:border-border/40
+                  [&_pre]:overflow-x-auto [&_pre]:rounded-xl [&_pre]:border [&_pre]:border-border/60 [&_pre]:bg-[#1e1e2e] [&_pre]:px-5 [&_pre]:py-4 [&_pre]:my-6 [&_pre]:shadow-inner
+                  [&_pre_code]:bg-transparent [&_pre_code]:border-0 [&_pre_code]:text-[13px] [&_pre_code]:text-[#cdd6f4] [&_pre_code]:p-0
+                  [&_img]:mx-auto [&_img]:rounded-2xl [&_img]:shadow-md [&_img]:my-6 [&_img]:max-w-full
+                  [&_figcaption]:text-center [&_figcaption]:text-[12px] [&_figcaption]:italic [&_figcaption]:text-muted-foreground [&_figcaption]:mt-2
+                  [&_hr]:border-border/50 [&_hr]:my-8
+                  [&_strong]:font-bold [&_strong]:text-foreground
+                  [&_em]:italic"
                 dangerouslySetInnerHTML={{ __html: articleContentWithHeadingIds }}
               />
 
