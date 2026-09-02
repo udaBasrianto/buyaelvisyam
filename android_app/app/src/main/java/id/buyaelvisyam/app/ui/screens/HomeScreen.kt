@@ -1,6 +1,7 @@
 package id.buyaelvisyam.app.ui.screens
 
-import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -20,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -29,7 +31,6 @@ import id.buyaelvisyam.app.data.api.ApiClient
 import id.buyaelvisyam.app.data.model.Article
 import id.buyaelvisyam.app.data.model.UserProfile
 import id.buyaelvisyam.app.ui.theme.Teal700
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -37,25 +38,29 @@ import kotlinx.coroutines.withContext
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    context: Context,
     userProfile: UserProfile?,
     onArticleClick: (Article) -> Unit,
     onLogout: () -> Unit
 ) {
+    // Use LocalContext.current — safe across recompositions, no stale Activity reference
+    val context = LocalContext.current
+
     var latestArticles by remember { mutableStateOf<List<Article>>(emptyList()) }
     var featuredArticles by remember { mutableStateOf<List<Article>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
-    fun loadData() {
+    // loadData is extracted as a lambda so it can be called from both
+    // LaunchedEffect (initial load) and button click handlers without duplication.
+    val loadData: () -> Unit = {
+        // State mutations here run on the Main thread (called from composable scope)
         isLoading = true
         errorMessage = null
         scope.launch(Dispatchers.IO) {
             try {
                 val latestResponse = ApiClient.apiService.getArticles(limit = 20, status = "published")
                 val featuredResponse = ApiClient.apiService.getArticles(limit = 6, status = "published", featured = "true")
-
                 withContext(Dispatchers.Main) {
                     if (latestResponse.isSuccessful && featuredResponse.isSuccessful) {
                         latestArticles = latestResponse.body() ?: emptyList()
@@ -164,7 +169,12 @@ fun HomeScreen(
                                 modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 12.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFB300), modifier = Modifier.size(18.dp))
+                                Icon(
+                                    Icons.Default.Star,
+                                    contentDescription = null,
+                                    tint = Color(0xFFFFB300),
+                                    modifier = Modifier.size(18.dp)
+                                )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
                                     text = "Artikel Pilihan",
@@ -173,7 +183,6 @@ fun HomeScreen(
                                     color = Color(0xFF1F2937)
                                 )
                             }
-
                             LazyRow(
                                 contentPadding = PaddingValues(horizontal = 12.dp),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -236,26 +245,31 @@ fun FeaturedCard(article: Article, onClick: () -> Unit) {
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
             )
-            // Black overlay gradient
+            // Translucent overlay for text legibility
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color.Black.copy(alpha = 0.45f))
             )
-            // Article Info
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(14.dp),
                 verticalArrangement = Arrangement.Bottom
             ) {
-                Text(
-                    text = article.category.uppercase(),
-                    color = Color(0xFF2DD4BF),
-                    fontSize = 9.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(4.dp))
+                // article.category is nullable — use safe fallback
+                val categoryLabel = article.category?.uppercase()
+                    ?: article.categories?.firstOrNull()?.uppercase()
+                    ?: ""
+                if (categoryLabel.isNotEmpty()) {
+                    Text(
+                        text = categoryLabel,
+                        color = Color(0xFF2DD4BF),
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                }
                 Text(
                     text = article.title,
                     color = Color.White,
@@ -307,13 +321,19 @@ fun ArticleRow(article: Article, onClick: () -> Unit) {
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
                 Column {
-                    Text(
-                        text = article.category.uppercase(),
-                        color = Teal700,
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
+                    // article.category is nullable — fall back to categories list or empty string
+                    val categoryLabel = article.category?.uppercase()
+                        ?: article.categories?.firstOrNull()?.uppercase()
+                        ?: ""
+                    if (categoryLabel.isNotEmpty()) {
+                        Text(
+                            text = categoryLabel,
+                            color = Teal700,
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                    }
                     Text(
                         text = article.title,
                         fontWeight = FontWeight.Bold,
@@ -328,8 +348,9 @@ fun ArticleRow(article: Article, onClick: () -> Unit) {
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    // article.author is nullable — safe fallback to "Anonim"
                     Text(
-                        text = "Oleh ${article.author}",
+                        text = "Oleh ${article.author ?: "Anonim"}",
                         color = Color.Gray,
                         fontSize = 10.sp
                     )
@@ -344,12 +365,4 @@ fun ArticleRow(article: Article, onClick: () -> Unit) {
     }
 }
 
-private fun formatDate(dateStr: String): String {
-    return if (dateStr.length >= 10) dateStr.substring(0, 10) else dateStr
-}
-
-private fun calculateReadingMinutes(content: String): Int {
-    val words = content.replace(Regex("<[^>]+>"), " ").trim().split(Regex("\\s+")).filter { it.isNotEmpty() }.size
-    if (words == 0) return 1
-    return Math.max(1, Math.ceil(words.toDouble() / 200.0).toInt())
-}
+// formatDate and calculateReadingMinutes live in Utils.kt — no duplicates here

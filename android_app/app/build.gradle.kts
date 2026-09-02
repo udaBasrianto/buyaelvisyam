@@ -1,6 +1,14 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+}
+
+// Load local.properties so dev IP stays out of source control
+val localProps = Properties().also { props ->
+    val f = rootProject.file("local.properties")
+    if (f.exists()) props.load(f.inputStream())
 }
 
 android {
@@ -18,6 +26,10 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+
+        // Dev backend URL — override in local.properties: dev.base.url=http://192.168.x.x:4000/api/
+        val devUrl = localProps.getProperty("dev.base.url", "http://10.0.2.2:4000/api/")
+        buildConfigField("String", "DEV_BASE_URL", "\"$devUrl\"")
     }
 
     buildTypes {
@@ -38,6 +50,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.8"
@@ -52,6 +65,7 @@ android {
 dependencies {
     // Core Android & Lifecycle
     implementation("androidx.core:core-ktx:1.12.0")
+    implementation("androidx.appcompat:appcompat:1.6.1")   // required for Theme.AppCompat in manifest
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
     implementation("androidx.activity:activity-compose:1.8.2")
 
@@ -61,6 +75,8 @@ dependencies {
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
+    // Extended icons required for MailOutline, Star, etc.
+    implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
     implementation("androidx.navigation:navigation-compose:2.7.7")
 

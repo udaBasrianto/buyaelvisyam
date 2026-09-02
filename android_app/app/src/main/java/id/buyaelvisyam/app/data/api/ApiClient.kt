@@ -32,8 +32,13 @@ interface ApiService {
 }
 
 object ApiClient {
-    private const val DEV_BASE_URL = "http://192.168.100.100:4000/api/"
+    // Production URL — always HTTPS
     private const val PROD_BASE_URL = "https://buyaelvisyam.id/api/"
+
+    // Dev URL comes from BuildConfig.DEV_BASE_URL, which is set from local.properties
+    // in build.gradle.kts so the IP is never hardcoded in source control.
+    // To change: add  dev.base.url=http://192.168.x.x:4000/api/  to local.properties
+    private val DEV_BASE_URL: String get() = BuildConfig.DEV_BASE_URL
 
     private var retrofit: Retrofit? = null
     private var tokenProvider: (() -> String?)? = null
@@ -43,7 +48,12 @@ object ApiClient {
         tokenProvider = { sharedPreferences.getString("token", null) }
 
         val loggingInterceptor = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
+            // Log full body only in DEBUG builds — never expose tokens/passwords in production logs
+            level = if (BuildConfig.DEBUG) {
+                HttpLoggingInterceptor.Level.BODY
+            } else {
+                HttpLoggingInterceptor.Level.NONE
+            }
         }
 
         val authInterceptor = Interceptor { chain ->
@@ -69,8 +79,8 @@ object ApiClient {
     }
 
     val apiService: ApiService by lazy {
-        retrofit?.create(ApiService::class.java) 
-            ?: throw IllegalStateException("ApiClient must be initialized with context first")
+        retrofit?.create(ApiService::class.java)
+            ?: throw IllegalStateException("ApiClient.initialize(context) must be called before accessing apiService")
     }
 
     fun saveToken(context: Context, token: String) {

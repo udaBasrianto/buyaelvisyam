@@ -1,13 +1,14 @@
 package id.buyaelvisyam.app
 
-import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import id.buyaelvisyam.app.data.api.ApiClient
 import id.buyaelvisyam.app.data.model.Article
 import id.buyaelvisyam.app.data.model.UserProfile
@@ -15,15 +16,14 @@ import id.buyaelvisyam.app.ui.screens.ArticleDetailScreen
 import id.buyaelvisyam.app.ui.screens.AuthScreen
 import id.buyaelvisyam.app.ui.screens.HomeScreen
 import id.buyaelvisyam.app.ui.theme.BuyaTheme
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
-        // Initialize API Client with application context
+
+        // Initialize API Client with application context (not Activity context)
         ApiClient.initialize(applicationContext)
 
         setContent {
@@ -32,7 +32,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = androidx.compose.material3.MaterialTheme.colorScheme.background
                 ) {
-                    AppNavigation(context = this@MainActivity)
+                    AppNavigation()
                 }
             }
         }
@@ -46,25 +46,30 @@ sealed class Screen {
 }
 
 @Composable
-fun AppNavigation(context: Context) {
-    val sharedPreferences = remember { context.getSharedPreferences("buya_prefs", Context.MODE_PRIVATE) }
-    var currentScreen by remember { 
-        mutableStateOf<Screen>(Screen.Home) 
-    }
+fun AppNavigation() {
+    // Use LocalContext.current instead of passing Activity context — safe across recompositions
+    val context = LocalContext.current
+    val sharedPreferences = remember { context.getSharedPreferences("buya_prefs", context.MODE_PRIVATE) }
+
+    var currentScreen by remember { mutableStateOf<Screen>(Screen.Home) }
     var selectedArticle by remember { mutableStateOf<Article?>(null) }
     var currentUserProfile by remember { mutableStateOf<UserProfile?>(null) }
 
-    // Fetch user profile if token is present
+    // Fetch user profile when landing on Home with a stored token.
+    // Uses LaunchedEffect's own coroutine scope (lifecycle-aware, no manual CoroutineScope needed).
     LaunchedEffect(currentScreen) {
-        val token = sharedPreferences.getString("token", null)
-        if (currentScreen == Screen.Home && currentUserProfile == null && token != null) {
-            CoroutineScope(Dispatchers.IO).launch {
+        if (currentScreen == Screen.Home && currentUserProfile == null) {
+            val token = sharedPreferences.getString("token", null)
+            if (!token.isNullOrEmpty()) {
                 try {
-                    val response = ApiClient.apiService.getMe()
+                    // IO work on IO dispatcher, then switch back to Main for state mutation
+                    val response = withContext(Dispatchers.IO) {
+                        ApiClient.apiService.getMe()
+                    }
+                    // State mutation is now safely on the Main thread (LaunchedEffect resumes on Main)
                     if (response.isSuccessful && response.body() != null) {
                         currentUserProfile = response.body()
                     } else {
-                        // Clear invalid token
                         ApiClient.clearToken(context)
                         currentUserProfile = null
                     }
@@ -75,10 +80,15 @@ fun AppNavigation(context: Context) {
         }
     }
 
+    // Handle device back-press: ArticleDetail → Home, Home/Auth → let system handle (exit)
+    BackHandler(enabled = currentScreen is Screen.ArticleDetail) {
+        selectedArticle = null
+        currentScreen = Screen.Home
+    }
+
     when (currentScreen) {
         is Screen.Auth -> {
             AuthScreen(
-                context = context,
                 onLoginSuccess = { userProfile ->
                     currentUserProfile = userProfile
                     currentScreen = Screen.Home
@@ -87,7 +97,6 @@ fun AppNavigation(context: Context) {
         }
         is Screen.Home -> {
             HomeScreen(
-                context = context,
                 userProfile = currentUserProfile,
                 onArticleClick = { article ->
                     selectedArticle = article
@@ -101,7 +110,10 @@ fun AppNavigation(context: Context) {
             )
         }
         is Screen.ArticleDetail -> {
-            selectedArticle?.let { article ->
+            // Guard: if article is null (shouldn't happen but be safe), go back to Home
+            // Use LaunchedEffect so the state change happens outside of composition
+            val article = selectedArticle
+            if (article != null) {
                 ArticleDetailScreen(
                     article = article,
                     onBackClick = {
@@ -109,8 +121,10 @@ fun AppNavigation(context: Context) {
                         currentScreen = Screen.Home
                     }
                 )
-            } ?: run {
-                currentScreen = Screen.Home
+            } else {
+                LaunchedEffect(Unit) {
+                    currentScreen = Screen.Home
+                }
             }
         }
     }

@@ -1,6 +1,5 @@
 package id.buyaelvisyam.app.ui.screens
 
-import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -20,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -39,9 +39,9 @@ import kotlinx.coroutines.withContext
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AuthScreen(
-    context: Context,
     onLoginSuccess: (UserProfile) -> Unit
 ) {
+    val context = LocalContext.current
     var isLogin by remember { mutableStateOf(true) }
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -49,6 +49,19 @@ fun AuthScreen(
     var adminToken by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
     var passwordVisible by remember { mutableStateOf(false) }
+
+    // Inline field error states — shown beneath each field as the user types
+    var nameError by remember { mutableStateOf<String?>(null) }
+    var emailError by remember { mutableStateOf<String?>(null) }
+    var passwordError by remember { mutableStateOf<String?>(null) }
+
+    // Reset errors when switching between login / register
+    val onModeSwitch = {
+        nameError = null
+        emailError = null
+        passwordError = null
+        isLogin = !isLogin
+    }
 
     val scrollState = rememberScrollState()
     val scope = rememberCoroutineScope()
@@ -107,9 +120,14 @@ fun AuthScreen(
             if (!isLogin) {
                 OutlinedTextField(
                     value = name,
-                    onValueChange = { name = it },
+                    onValueChange = {
+                        name = it
+                        nameError = if (it.trim().length < 2 && it.isNotEmpty()) "Nama minimal 2 karakter" else null
+                    },
                     label = { Text("Nama Lengkap") },
                     leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
+                    isError = nameError != null,
+                    supportingText = { if (nameError != null) Text(nameError!!, color = MaterialTheme.colorScheme.error) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(10.dp)
                 )
@@ -119,10 +137,15 @@ fun AuthScreen(
             // Email Field
             OutlinedTextField(
                 value = email,
-                onValueChange = { email = it },
+                onValueChange = {
+                    email = it
+                    emailError = if (it.isNotEmpty() && (!it.contains("@") || !it.contains("."))) "Format email tidak valid" else null
+                },
                 label = { Text("Alamat Email") },
                 leadingIcon = { Icon(Icons.Default.MailOutline, contentDescription = null) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                isError = emailError != null,
+                supportingText = { if (emailError != null) Text(emailError!!, color = MaterialTheme.colorScheme.error) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(10.dp)
             )
@@ -132,7 +155,10 @@ fun AuthScreen(
             // Password Field
             OutlinedTextField(
                 value = password,
-                onValueChange = { password = it },
+                onValueChange = {
+                    password = it
+                    passwordError = if (it.isNotEmpty() && it.length < 8) "Password minimal 8 karakter" else null
+                },
                 label = { Text("Kata Sandi") },
                 leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
@@ -146,6 +172,8 @@ fun AuthScreen(
                     }
                 },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                isError = passwordError != null,
+                supportingText = { if (passwordError != null) Text(passwordError!!, color = MaterialTheme.colorScheme.error) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(10.dp)
             )
@@ -172,8 +200,20 @@ fun AuthScreen(
                         Toast.makeText(context, "Email dan password tidak boleh kosong", Toast.LENGTH_SHORT).show()
                         return@Button
                     }
+                    if (!email.contains("@") || !email.contains(".")) {
+                        Toast.makeText(context, "Format email tidak valid", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
+                    if (password.length < 8) {
+                        Toast.makeText(context, "Password minimal 8 karakter", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
                     if (!isLogin && name.isEmpty()) {
                         Toast.makeText(context, "Nama tidak boleh kosong", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
+                    if (!isLogin && name.trim().length < 2) {
+                        Toast.makeText(context, "Nama minimal 2 karakter", Toast.LENGTH_SHORT).show()
                         return@Button
                     }
 
@@ -253,7 +293,7 @@ fun AuthScreen(
                     color = Color.Gray,
                     fontSize = 13.sp
                 )
-                TextButton(onClick = { isLogin = !isLogin }) {
+                TextButton(onClick = { onModeSwitch() }) {
                     Text(
                         text = if (isLogin) "Daftar" else "Masuk",
                         color = Teal700,

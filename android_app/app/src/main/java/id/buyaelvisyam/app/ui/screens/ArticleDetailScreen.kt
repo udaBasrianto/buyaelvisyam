@@ -10,7 +10,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack  // replaces deprecated ArrowBack
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -25,6 +25,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -42,20 +43,31 @@ fun ArticleDetailScreen(
     val scrollState = rememberScrollState()
     val context = LocalContext.current
 
+    // Resolve category display: prefer category field, fall back to first item in categories list
+    val categoryDisplay = article.category
+        ?: article.categories?.firstOrNull()
+        ?: ""
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { 
+                title = {
                     Text(
-                        text = article.category,
+                        text = categoryDisplay,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Teal700
-                    ) 
+                        color = Teal700,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Kembali")
+                        // AutoMirrored variant — correct for RTL locales, not deprecated
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Kembali"
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
@@ -96,9 +108,11 @@ fun ArticleDetailScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Author & Meta Info
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // article.author is nullable — safe fallback for avatar initial
+                    val authorName = article.author ?: "Ustadz"
+                    val avatarInitial = authorName.firstOrNull()?.uppercaseChar()?.toString() ?: "U"
+
                     Box(
                         modifier = Modifier
                             .size(36.dp)
@@ -107,18 +121,16 @@ fun ArticleDetailScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = (article.author ?: "U").substring(0, 1).uppercase(),
+                            text = avatarInitial,
                             color = Teal700,
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp
                         )
                     }
                     Spacer(modifier = Modifier.width(10.dp))
-                    Column(
-                        modifier = Modifier.weight(1f)
-                    ) {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = article.author ?: "Ustadz",
+                            text = authorName,
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp,
                             color = Color(0xFF374151)
@@ -136,9 +148,13 @@ fun ArticleDetailScreen(
                     )
                 }
 
-                Divider(modifier = Modifier.padding(vertical = 20.dp), color = Color(0xFFE5E7EB))
+                // HorizontalDivider replaces deprecated Divider
+                HorizontalDivider(
+                    modifier = Modifier.padding(vertical = 20.dp),
+                    color = Color(0xFFE5E7EB)
+                )
 
-                // YouTube Card Integration
+                // YouTube Card
                 if (!article.youtubeUrl.isNullOrEmpty()) {
                     Row(
                         modifier = Modifier
@@ -175,7 +191,7 @@ fun ArticleDetailScreen(
                     Spacer(modifier = Modifier.height(20.dp))
                 }
 
-                // Main Article Body
+                // Main Article Body — rendered via improved HTML parser
                 Text(
                     text = parseHtmlToAnnotatedString(article.content),
                     fontSize = 14.sp,
@@ -189,48 +205,115 @@ fun ArticleDetailScreen(
     }
 }
 
-private fun formatDate(dateStr: String): String {
-    return if (dateStr.length >= 10) dateStr.substring(0, 10) else dateStr
-}
-
-// Simple and robust parser for basic HTML tags in Compose
+/**
+ * Converts a subset of HTML to Compose AnnotatedString.
+ *
+ * Handled tags:
+ *   Block  : <p>, <br>, <ul>, <ol>, <li>, <h1>–<h6>, <blockquote>
+ *   Inline : <strong>/<b>, <em>/<i>, <u>, <s>/<strike>/<del>, <a href>
+ *   Entities: &amp; &nbsp; &lt; &gt; &quot; &#39; &#160;
+ *
+ * Unknown/remaining tags are stripped (not passed through as raw HTML).
+ */
 private fun parseHtmlToAnnotatedString(htmlContent: String): AnnotatedString {
-    val clean = htmlContent
-        .replace("</p>", "\n\n")
-        .replace("<p>", "")
-        .replace(Regex("<br\\s*/?>"), "\n")
-        .replace("<li>", "• ")
-        .replace("</li>", "\n")
-        .replace("</ul>", "")
-        .replace("<ul>", "")
-        .replace("</ol>", "")
-        .replace("<ol>", "")
+    // --- Step 1: block-level tag → newline normalisation ---
+    val preprocessed = htmlContent
+        // Headings → bold marker + newlines (we handle bold in step 2)
+        .replace(Regex("<h[1-6][^>]*>", RegexOption.IGNORE_CASE), "\n\n<b>")
+        .replace(Regex("</h[1-6]>", RegexOption.IGNORE_CASE), "</b>\n\n")
+        // Paragraphs
+        .replace(Regex("<p[^>]*>", RegexOption.IGNORE_CASE), "")
+        .replace(Regex("</p>", RegexOption.IGNORE_CASE), "\n\n")
+        // Line breaks
+        .replace(Regex("<br\\s*/?>", RegexOption.IGNORE_CASE), "\n")
+        // Lists
+        .replace(Regex("<[/]?ul[^>]*>", RegexOption.IGNORE_CASE), "\n")
+        .replace(Regex("<[/]?ol[^>]*>", RegexOption.IGNORE_CASE), "\n")
+        .replace(Regex("<li[^>]*>", RegexOption.IGNORE_CASE), "\n• ")
+        .replace(Regex("</li>", RegexOption.IGNORE_CASE), "")
+        // Blockquotes
+        .replace(Regex("<blockquote[^>]*>", RegexOption.IGNORE_CASE), "\n\n  ")
+        .replace(Regex("</blockquote>", RegexOption.IGNORE_CASE), "\n\n")
+        // Divs / sections
+        .replace(Regex("<div[^>]*>", RegexOption.IGNORE_CASE), "")
+        .replace(Regex("</div>", RegexOption.IGNORE_CASE), "\n")
+        // Common HTML entities
         .replace("&amp;", "&")
         .replace("&nbsp;", " ")
+        .replace("&#160;", " ")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&quot;", "\"")
+        .replace("&#39;", "'")
         .trim()
 
+    // --- Step 2: inline span parsing with AnnotatedString builder ---
     return buildAnnotatedString {
-        val regExp = Regex("(<strong>|<b>)(.*?)(</strong>|</b>)|(<em>|<i>)(.*?)(</em>|</i>)|([^<]+)")
-        val matches = regExp.findAll(clean)
-        for (match in matches) {
-            val boldText = match.groups[2]?.value
-            val italicText = match.groups[5]?.value
-            val plainText = match.groups[7]?.value
+        // Regex alternatives (order matters — most specific first):
+        //   1. <strong> / <b>  …  </strong> / </b>
+        //   2. <em> / <i>      …  </em> / </i>
+        //   3. <u>             …  </u>
+        //   4. <s> / <strike> / <del>  …  </s> / </strike> / </del>
+        //   5. <a href="…">    …  </a>   — rendered as underlined teal text
+        //   6. Any remaining unknown tag  — stripped entirely
+        //   7. Plain text between tags
+        val tagRegex = Regex(
+            """(<(?:strong|b)>)(.*?)(</(?:strong|b)>)""" +
+            """|(<(?:em|i)>)(.*?)(</(?:em|i)>)""" +
+            """|(<u>)(.*?)(</u>)""" +
+            """|(<(?:s|strike|del)>)(.*?)(</(?:s|strike|del)>)""" +
+            """|<a\s+(?:[^>]*?\s+)?href="([^"]*)"[^>]*>(.*?)</a>""" +
+            """|<[^>]+>""" +             // strip any remaining unknown tag
+            """|([^<]+)""",              // plain text
+            setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)
+        )
 
-            if (boldText != null) {
-                pushStyle(SpanStyle(fontWeight = FontWeight.Bold))
-                append(boldText)
-                pop()
-            } else if (italicText != null) {
-                pushStyle(SpanStyle(fontStyle = FontStyle.Italic))
-                append(italicText)
-                pop()
-            } else if (plainText != null) {
-                append(plainText)
+        for (match in tagRegex.findAll(preprocessed)) {
+            when {
+                // Bold
+                match.groups[2] != null -> {
+                    pushStyle(SpanStyle(fontWeight = FontWeight.Bold))
+                    append(match.groups[2]!!.value)
+                    pop()
+                }
+                // Italic
+                match.groups[5] != null -> {
+                    pushStyle(SpanStyle(fontStyle = FontStyle.Italic))
+                    append(match.groups[5]!!.value)
+                    pop()
+                }
+                // Underline
+                match.groups[8] != null -> {
+                    pushStyle(SpanStyle(textDecoration = TextDecoration.Underline))
+                    append(match.groups[8]!!.value)
+                    pop()
+                }
+                // Strikethrough
+                match.groups[11] != null -> {
+                    pushStyle(SpanStyle(textDecoration = TextDecoration.LineThrough))
+                    append(match.groups[11]!!.value)
+                    pop()
+                }
+                // Anchor / link — show link text in teal underlined; href is not clickable
+                // (making inline text clickable in AnnotatedString needs ClickableText which
+                //  has its own complexity — plain styling is safer for now)
+                match.groups[13] != null -> {
+                    pushStyle(SpanStyle(color = Teal700, textDecoration = TextDecoration.Underline))
+                    append(match.groups[13]!!.value)  // link text (group 13)
+                    pop()
+                }
+                // Unknown tag matched by <[^>]+> — groups are all null, value is the tag: skip it
+                match.value.startsWith("<") -> { /* stripped — intentionally empty */ }
+                // Plain text (group 14)
+                match.groups[14] != null -> append(match.groups[14]!!.value)
             }
         }
+
+        // Fallback: if nothing was appended (e.g. content was all tags), show stripped plain text
         if (length == 0) {
-            append(clean)
+            append(preprocessed.replace(Regex("<[^>]+>"), "").trim())
         }
     }
 }
+
+// formatDate lives in Utils.kt — no duplicate here

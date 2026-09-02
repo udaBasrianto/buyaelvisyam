@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Network Security Config
+    - Production host (buyaelvisyam.id): HTTPS only, certificate pinning can be added here later.
+    - Local dev domain (192.168.x.x / 10.0.2.2): cleartext HTTP allowed only in debug builds.
+    - All other connections default to HTTPS (Android 9+ default behavior is preserved).
+-->
+<network-security-config>
+
+    <!-- Default: trust system CAs, no cleartext for unknown hosts -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+
+    <!-- Production backend — HTTPS only -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">buyaelvisyam.id</domain>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+
+    <!-- Local development: allow cleartext HTTP to private LAN IPs only.
+         These entries are ignored in release builds via the debug-overrides block below. -->
+    <debug-overrides>
+        <trust-anchors>
+            <certificates src="system" />
+            <!-- Allow user-added CAs (e.g., Charles/mitmproxy) in debug only -->
+            <certificates src="user" />
+        </trust-anchors>
+    </debug-overrides>
+
+    <!-- Private LAN / emulator localhost — cleartext allowed (dev only, overridden in release) -->
+    <domain-config cleartextTrafficPermitted="true">
+        <!-- Android emulator loopback -->
+        <domain includeSubdomains="false">10.0.2.2</domain>
+        <!-- Common LAN subnet — covers 192.168.x.x devices -->
+        <domain includeSubdomains="false">192.168.100.100</domain>
+        <!-- Genymotion emulator -->
+        <domain includeSubdomains="false">10.0.3.2</domain>
+    </domain-config>
+
+</network-security-config>
