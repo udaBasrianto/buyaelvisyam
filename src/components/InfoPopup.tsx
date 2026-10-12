@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { X, ExternalLink } from "lucide-react";
@@ -16,11 +17,21 @@ interface PopupData {
 }
 
 export function InfoPopup() {
+  const location = useLocation();
+  // Popup HANYA aktif dan muncul di halaman utama (homepage) saja
+  const isHomepage = location.pathname === "/";
+
   const [popup, setPopup] = useState<PopupData | null>(null);
   const [open, setOpen] = useState(false);
   const [dontShowAgain, setDontShowAgain] = useState(false);
 
   useEffect(() => {
+    // Jika bukan halaman utama, pastikan popup tertutup dan jangan ambil data
+    if (!isHomepage) {
+      setOpen(false);
+      return;
+    }
+
     let isMounted = true;
     (async () => {
       try {
@@ -53,7 +64,7 @@ export function InfoPopup() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [isHomepage]);
 
   const handleClose = () => {
     if (!popup) {
@@ -85,7 +96,8 @@ export function InfoPopup() {
     }
   };
 
-  if (!popup) return null;
+  // Jangan render apapun jika user tidak sedang berada di homepage atau tidak ada data popup
+  if (!isHomepage || !popup) return null;
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
