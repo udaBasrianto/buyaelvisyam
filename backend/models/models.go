@@ -290,6 +290,7 @@ type SiteSettings struct {
 	SliderOverlayOpacity         int       `gorm:"default:85" json:"slider_overlay_opacity"`
 	HomepageSectionOrder         string    `gorm:"default:'hero_slider,prayer_times,categories,editors_choice,feature_bar,recent_stories'" json:"homepage_section_order"`
 	ThemeColor                   string    `gorm:"default:'emerald'" json:"theme_color"`
+	FontFamily                   string    `gorm:"default:'poppins'" json:"font_family"`
 	AboutHeroImage               string    `json:"about_hero_image"`
 	AboutVisionImage1            string    `json:"about_vision_image_1"`
 	AboutVisionImage2            string    `json:"about_vision_image_2"`

@@ -7,25 +7,24 @@ export function ThemeInitializer() {
   const { settings, loading } = useSiteSettings();
 
   useEffect(() => {
-    const previewId = typeof window !== "undefined" ? localStorage.getItem("buya_theme_preview") : null;
-    const targetThemeId = previewId || settings.theme_color || "emerald";
+    // 1. Terapkan Warna Tema dari Admin Settings (Database)
+    const targetThemeId = settings.theme_color || "emerald";
     const palette = findThemePalette(targetThemeId);
-    
     applyThemePalette(palette);
 
-    const savedFont = typeof window !== "undefined" ? localStorage.getItem("buya_font_choice") : null;
-    if (savedFont) {
-      const fontOpt = findFontOption(savedFont);
-      applyGlobalFont(fontOpt);
-    }
+    // 2. Terapkan Font Tipografi dari Admin Settings (Database)
+    const targetFontId = settings.font_family || "poppins";
+    const fontOpt = findFontOption(targetFontId);
+    applyGlobalFont(fontOpt);
 
+    // 3. Mode Gelap Pengunjung
     const savedDark = typeof window !== "undefined" ? localStorage.getItem("buya_theme_dark") : null;
     if (savedDark === "true") {
       document.documentElement.classList.add("dark");
     } else if (savedDark === "false") {
       document.documentElement.classList.remove("dark");
     }
-  }, [settings.theme_color, loading]);
+  }, [settings.theme_color, settings.font_family, loading]);
 
   useEffect(() => {
     if (loading || !settings?.favicon_url) return;

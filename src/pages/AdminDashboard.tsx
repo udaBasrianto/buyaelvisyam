@@ -16,6 +16,9 @@ import { WalletManager } from "@/components/admin/WalletManager";
 import LeaderboardManager from "@/components/admin/LeaderboardManager";
 import { NavigationManager } from "@/components/admin/NavigationManager";
 import { AccessLogsManager } from "@/components/admin/AccessLogsManager";
+import { DownloadsManager } from "@/components/admin/DownloadsManager";
+import { FAQManager } from "@/components/admin/FAQManager";
+import { PopupManager } from "@/components/admin/PopupManager";
 import { CommentsManager } from "@/components/admin/CommentsManager";
 import { ProductsManager } from "@/components/admin/ProductsManager";
 import { OrdersManager } from "@/components/admin/OrdersManager";
@@ -48,7 +51,7 @@ const roleColor: Record<string, string> = {
 const VALID_TABS = [
   "analytics", "articles", "categories", "widgets", "pages", "features",
   "settings", "products", "orders", "lms", "comments", "wallet", "leaderboard",
-  "navigation", "access_logs", "users", "donations", "profile"
+  "navigation", "access_logs", "users", "donations", "unduhan", "faq", "profile", "popups"
 ];
 
 export default function AdminDashboard() {
@@ -173,6 +176,12 @@ export default function AdminDashboard() {
         return <UsersManager />;
       case "donations":
         return <DonationsManager />;
+      case "unduhan":
+        return <DownloadsManager />;
+      case "faq":
+        return <FAQManager />;
+      case "popups":
+        return <PopupManager />;
       case "profile":
         return <Profile embedded />;
       default:
@@ -197,6 +206,9 @@ export default function AdminDashboard() {
       case "users": return "Manajemen Pengguna";
       case "comments": return "Manajemen Komentar";
       case "donations": return "Donasi";
+      case "unduhan": return "Manajemen Unduhan";
+      case "faq": return "Manajemen FAQ";
+      case "popups": return "Manajemen Popup & Pengumuman";
       case "profile": return "Profil";
       default: return "Admin Panel";
     }

@@ -16,7 +16,10 @@ import {
   User,
   HandHeart,
   ShoppingBag,
-  Receipt
+  Receipt,
+  Download,
+  HelpCircle,
+  Megaphone
 } from "lucide-react";
 import {
   Sidebar,
@@ -79,6 +82,9 @@ export function AdminSidebar({ activeTab }: AdminSidebarProps) {
         { id: "articles", label: "Artikel", icon: FileText },
         { id: "pages", label: "Halaman", icon: FileCode },
         { id: "categories", label: "Kategori", icon: FolderOpen },
+        { id: "popups", label: "Popup Banner", icon: Megaphone },
+        { id: "unduhan", label: "Unduhan", icon: Download },
+        { id: "faq", label: "FAQ", icon: HelpCircle },
         { id: "comments", label: "Komentar", icon: MessageCircle },
       ]
     },

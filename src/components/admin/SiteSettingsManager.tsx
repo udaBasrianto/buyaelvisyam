@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { Save, ImagePlus, X, Palette, ArrowUp, ArrowDown, GripVertical, Eye, EyeOff, LayoutDashboard } from "lucide-react";
+import { Save, ImagePlus, X, Palette, Type, ArrowUp, ArrowDown, GripVertical, Eye, EyeOff, LayoutDashboard } from "lucide-react";
 import { THEME_PALETTES, applyThemePalette } from "@/constants/themes";
+import { GOOGLE_FONTS, findFontOption, applyGlobalFont } from "@/constants/fonts";
 import { Button } from "@/components/ui/button";
 import { FeaturesManager } from "./FeaturesManager";
 import { HomepageCategorySectionsManager } from "./HomepageCategorySectionsManager";
@@ -44,6 +45,7 @@ interface Settings {
   newsletter_button_text?: string;
   newsletter_link?: string;
   theme_color?: string;
+  font_family?: string;
   about_hero_image?: string;
   about_vision_image_1?: string;
   about_vision_image_2?: string;
@@ -204,6 +206,7 @@ export function SiteSettingsManager() {
         newsletter_button_text: settings.newsletter_button_text?.trim() || "",
         newsletter_link: settings.newsletter_link?.trim() || "",
         theme_color: settings.theme_color || "emerald",
+        font_family: settings.font_family || "poppins",
         about_hero_image: settings.about_hero_image || "",
         about_vision_image_1: settings.about_vision_image_1 || "",
         about_vision_image_2: settings.about_vision_image_2 || "",
@@ -593,6 +596,57 @@ export function SiteSettingsManager() {
                 )}
               </button>
             ))}
+          </div>
+        </div>
+
+        <div>
+          <Label className="text-sm font-bold mb-3 flex items-center justify-between">
+            <span className="flex items-center gap-2">
+              <Type className="h-4 w-4 text-primary" /> Tipografi & Google Fonts Situs (10 Pilihan)
+            </span>
+            <span className="text-xs text-primary font-mono font-normal">
+              Aktif: {findFontOption(settings.font_family || "poppins").name}
+            </span>
+          </Label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-2.5">
+            {GOOGLE_FONTS.map((font) => {
+              const isSelected = (settings.font_family || "poppins") === font.id;
+              return (
+                <button
+                  key={font.id}
+                  type="button"
+                  onClick={() => {
+                    setSettings({ ...settings, font_family: font.id });
+                    applyGlobalFont(font);
+                  }}
+                  className={`relative p-3 rounded-2xl border-2 text-left transition-all group flex flex-col justify-between ${
+                    isSelected
+                      ? "border-primary bg-primary/10 shadow-sm"
+                      : "border-border hover:border-primary/30 bg-card"
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between gap-1 mb-1">
+                      <span className="text-xs font-bold text-foreground truncate" style={{ fontFamily: font.fontFamily }}>
+                        {font.name}
+                      </span>
+                      <span className="text-[9px] uppercase px-1 py-0.5 rounded bg-muted text-muted-foreground font-mono">
+                        {font.category}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground line-clamp-1">{font.description}</p>
+                  </div>
+                  <p className="text-[11px] text-foreground/80 mt-2 pt-1 border-t border-border/40 truncate" style={{ fontFamily: font.fontFamily }}>
+                    Aa Bb Cc 123
+                  </p>
+                  {isSelected && (
+                    <div className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-primary flex items-center justify-center border-2 border-background">
+                      <div className="h-1.5 w-1.5 rounded-full bg-white" />
+                    </div>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
 

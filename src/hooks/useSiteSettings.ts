@@ -7,6 +7,7 @@ export interface SiteSettings {
   site_name: string;
   tagline: string;
   logo_url: string | null;
+  favicon_url?: string | null;
   default_article_image: string | null;
   footer_text: string;
   play_store_url?: string;
@@ -20,6 +21,8 @@ export interface SiteSettings {
   homepage_section_order?: string;
   google_client_id?: string;
   site_description?: string;
+  theme_color?: string;
+  font_family?: string;
   products_menu_label?: string;
   products_title?: string;
   products_subtitle?: string;
@@ -41,10 +44,13 @@ const DEFAULTS: SiteSettings = {
   site_name: "",
   tagline: "",
   logo_url: null,
+  favicon_url: null,
   default_article_image: null,
   footer_text: "",
   homepage_version: "v1",
   scroll_to_top_version: "animated",
+  theme_color: "emerald",
+  font_family: "poppins",
 };
 
 export function useSiteSettings() {
