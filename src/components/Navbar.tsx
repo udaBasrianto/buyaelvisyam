@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Menu, X, LogIn, LogOut, ShieldCheck, Edit, LayoutDashboard, User, ChevronDown, Shield, PenTool, ShoppingCart, Search } from "lucide-react";
+import { Menu, X, LogIn, LogOut, ShieldCheck, Edit, LayoutDashboard, User, ChevronDown, ChevronRight, ArrowRight, Shield, PenTool, ShoppingCart, Search, LayoutGrid } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -7,7 +7,6 @@ import { useCart } from "@/contexts/CartContext";
 import { useNavPages } from "@/hooks/useNavPages";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { NewsTicker } from "@/components/NewsTicker";
-import { AnimatedLogoText } from "@/components/AnimatedLogoText";
 import api from "@/lib/api";
 import { asArray } from "@/lib/api-response";
 import * as LucideIcons from "lucide-react";
@@ -29,17 +28,32 @@ const getFallbackIconName = (label: string): string => {
   if (l.includes("tentang") || l.includes("about")) return "Info";
   if (l.includes("kontak") || l.includes("contact")) return "Phone";
   if (l.includes("kategori")) return "LayoutGrid";
+  if (l.includes("unduhan") || l.includes("download")) return "Download";
+  if (l.includes("faq") || l.includes("bantuan") || l.includes("help")) return "HelpCircle";
   return "";
+};
+
+// External menu links open in a new tab; URLs saved without a protocol get https:// prefixed
+const getExternalLinkProps = (href: string, isExternal?: boolean) => {
+  if (!isExternal) return { href };
+  const hasScheme = /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(href) || href.startsWith("//");
+  return {
+    href: hasScheme ? href : `https://${href}`,
+    target: "_blank" as const,
+    rel: "noopener noreferrer",
+  };
 };
 
 // Menu items dari database - fallback default menu jika belum ada konfigurasi yang tersimpan
 const baseNavItems = [
   { id: "produk", label: "__PRODUCTS__", href: "/produk", isExternal: false, parent_id: null },
+  { id: "unduhan", label: "Unduhan", href: "/unduhan", isExternal: false, parent_id: null },
+  { id: "faq", label: "FAQ", href: "/faq", isExternal: false, parent_id: null },
 ];
 
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [isMobileCategoryOpen, setIsMobileCategoryOpen] = useState(false);
+  const [openMobileParent, setOpenMobileParent] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [categories, setCategories] = useState<any[]>([]);
   const [dbNavItems, setDbNavItems] = useState<any[]>([]);
@@ -118,26 +132,22 @@ export function Navbar() {
                 src={settings.logo_url}
                 alt={settings.site_name}
                 onError={() => setLogoLoadError(true)}
-                className="h-9 w-auto max-w-[120px] object-contain rounded-lg transition-transform duration-300 group-hover:scale-105 animate-float"
+                className="h-9 w-auto max-w-[120px] object-contain rounded-lg"
               />
             ) : (
-              <div className="h-9 w-9 rounded-lg islamic-gradient flex items-center justify-center shadow-sm transition-transform duration-300 group-hover:scale-105 animate-float">
+              <div className="h-9 w-9 rounded-lg islamic-gradient flex items-center justify-center shadow-sm">
                 <span className="text-lg text-primary-foreground font-bold">
                   {settings.site_name?.charAt(0)?.toUpperCase() || "B"}
                 </span>
               </div>
             )}
-            <AnimatedLogoText
-              texts={[settings.site_name, settings.tagline].filter(Boolean).length > 0 ? [settings.site_name, settings.tagline].filter(Boolean) as string[] : ["BlogUstad", "Memuat..."]}
-              className="text-lg leading-tight"
-              speed={100}
-              deleteSpeed={50}
-              delay={2000}
-            />
+            <span className="text-lg font-black tracking-tight text-primary uppercase leading-tight">
+              {settings.site_name || "Buyaelvisyam.id"}
+            </span>
           </a>
 
           {/* Desktop nav links */}
-          <div className="hidden md:flex items-center gap-8">
+          <div className="hidden md:flex items-center gap-1">
             {navItems.map((item) => {
               const hasChildren = item.children && item.children.length > 0;
               const iconName = item.icon || getFallbackIconName(item.label);
@@ -145,37 +155,76 @@ export function Navbar() {
               if (item.label.toLowerCase() === "kategori" || hasChildren) {
                 return (
                   <div key={item.id} className="relative group">
-                    <button className="flex items-center gap-1.5 text-sm font-medium text-foreground/80 hover:text-primary transition-colors py-2 group/btn">
+                    <button className="flex items-center gap-1.5 text-sm font-medium text-foreground/80 hover:text-primary transition-colors rounded-full px-3 py-2 hover:bg-primary/5 group/btn">
                       {iconName && <DynamicIcon name={iconName} className="h-4 w-4 shrink-0 opacity-75 group-hover/btn:text-primary transition-colors" />}
                       <span>{item.label}</span>
-                      <ChevronDown className="h-4 w-4 transition-transform group-hover:rotate-180" />
+                      <ChevronDown className="h-3.5 w-3.5 text-muted-foreground transition-transform duration-300 group-hover:rotate-180 group-hover:text-primary" />
                     </button>
-                    <div className="absolute top-full left-0 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform translate-y-2 group-hover:translate-y-0 z-50">
-                      <div className={`bg-card rounded-2xl shadow-xl border border-border/50 p-4 ring-1 ring-black/5 ${
-                        item.label.toLowerCase() === "kategori" && categories.length > 8 ? "w-[450px] grid grid-cols-2 gap-2" : "w-56 flex flex-col gap-1"
-                      }`}>
-                         {item.label.toLowerCase() === "kategori" ? (
-                           categories.length > 0 ? categories.filter(cat => (cat.article_count || 0) > 0).map((cat) => (
-                             <a key={cat.id} href={`/kategori/${cat.slug}`} className="px-3 py-2 text-sm rounded-xl hover:bg-primary/10 hover:text-primary transition-all flex items-center gap-2 group/item">
-                               <div className="h-1.5 w-1.5 rounded-full bg-primary/30 group-hover/item:bg-primary transition-colors" />
-                               <span className="font-medium truncate">{cat.name}</span>
-                             </a>
-                           )) : <div className="px-3 py-2 text-sm text-muted-foreground italic text-center">Memuat...</div>
-                         ) : (
-                           item.children.map((child: any) => {
-                             const childIconName = child.icon || getFallbackIconName(child.label);
-                             return (
-                               <a key={child.id} href={child.href} className="px-3 py-2 text-sm rounded-xl hover:bg-primary/10 hover:text-primary transition-all flex items-center gap-2 group/item">
-                                 {childIconName ? (
-                                   <DynamicIcon name={childIconName} className="h-3.5 w-3.5 shrink-0 opacity-60 group-hover/item:opacity-100 transition-opacity" />
-                                 ) : (
-                                   <div className="h-1 w-3 rounded-full bg-primary/20 group-hover/item:bg-primary transition-all" />
-                                 )}
-                                 <span className="font-medium truncate">{child.label}</span>
-                               </a>
-                             );
-                           })
-                         )}
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 pt-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 translate-y-2 group-hover:translate-y-0 z-50">
+                      {/* caret */}
+                      <div className="absolute left-1/2 top-[7px] -translate-x-1/2 h-2.5 w-2.5 rotate-45 bg-card border-l border-t border-border/60" />
+                      <div className="relative w-max min-w-[340px] max-w-[92vw] rounded-2xl border border-border/60 bg-card/95 backdrop-blur-md shadow-2xl shadow-black/10 ring-1 ring-black/5 overflow-hidden">
+                        {/* Dropdown header */}
+                        <div className="flex items-center gap-3 px-4 py-3 border-b border-border/40 bg-gradient-to-br from-primary/10 via-transparent to-transparent">
+                          <div className="h-9 w-9 rounded-xl islamic-gradient flex items-center justify-center shadow-sm shrink-0">
+                            {iconName ? <DynamicIcon name={iconName} className="h-4 w-4 text-primary-foreground" /> : <LayoutGrid className="h-4 w-4 text-primary-foreground" />}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-bold text-foreground leading-tight">{item.label}</p>
+                            <p className="text-[10px] text-muted-foreground leading-tight">
+                              {item.label.toLowerCase() === "kategori" ? "Telusuri kajian berdasarkan topik" : "Jelajahi menu pilihan"}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Dropdown body */}
+                        {item.label.toLowerCase() === "kategori" ? (
+                          categories.length > 0 ? (
+                            <div className={`p-2 pr-1.5 grid ${categories.length > 8 ? "grid-cols-2 w-[600px]" : "grid-cols-1"} max-h-[55vh] overflow-y-auto overscroll-contain`}>
+                              {categories.filter(cat => (cat.article_count || 0) > 0).map((cat) => (
+                                <a key={cat.id} href={`/kategori/${cat.slug}`} className="group/item flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-primary/10 transition-all">
+                                  <div className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover/item:bg-primary group-hover/item:text-primary-foreground transition-colors">
+                                    <LayoutGrid className="h-3.5 w-3.5" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-[13px] font-semibold text-foreground/90 leading-snug group-hover/item:text-primary transition-colors">{cat.name}</p>
+                                    <p className="text-[9px] text-muted-foreground">{cat.article_count || 0} artikel</p>
+                                  </div>
+                                  <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-0 -translate-x-1 group-hover/item:opacity-100 group-hover/item:translate-x-0 transition-all" />
+                                </a>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="px-4 py-6 text-sm text-muted-foreground italic text-center">Memuat kategori...</div>
+                          )
+                        ) : (
+                          <div className="p-2 flex flex-col gap-0.5">
+                            {item.children.map((child: any) => {
+                              const childIconName = child.icon || getFallbackIconName(child.label);
+                              return (
+                                <a key={child.id} {...getExternalLinkProps(child.href, child.isExternal)} className="group/item flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-primary/10 transition-all">
+                                  <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center shrink-0 group-hover/item:bg-primary/10 transition-colors">
+                                    {childIconName ? (
+                                      <DynamicIcon name={childIconName} className="h-4 w-4 text-muted-foreground group-hover/item:text-primary transition-colors" />
+                                    ) : (
+                                      <div className="h-1.5 w-1.5 rounded-full bg-primary/40 group-hover/item:bg-primary transition-colors" />
+                                    )}
+                                  </div>
+                                  <span className="text-[13px] font-semibold text-foreground/90 leading-snug group-hover/item:text-primary transition-colors">{child.label}</span>
+                                  <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-0 -translate-x-1 group-hover/item:opacity-100 group-hover/item:translate-x-0 transition-all" />
+                                </a>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {/* Dropdown footer */}
+                        {item.label.toLowerCase() === "kategori" && (
+                          <a href="/categories" className="flex items-center justify-center gap-1.5 border-t border-border/40 px-4 py-2.5 text-[11px] font-bold text-primary hover:bg-primary/5 transition-colors">
+                            Lihat Semua Kategori
+                            <ArrowRight className="h-3 w-3" />
+                          </a>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -185,8 +234,8 @@ export function Navbar() {
               return (
                 <a 
                   key={item.href} 
-                  href={item.href} 
-                  className="flex items-center gap-1.5 text-sm font-medium text-foreground/80 hover:text-primary transition-colors relative after:absolute after:bottom-[-2px] after:left-0 after:w-0 after:h-0.5 after:bg-primary after:transition-all hover:after:w-full group/link"
+                  {...getExternalLinkProps(item.href, item.isExternal)}
+                  className="flex items-center gap-1.5 px-3 text-sm font-medium text-foreground/80 hover:text-primary transition-colors relative after:absolute after:bottom-[-2px] after:left-0 after:w-0 after:h-0.5 after:bg-primary after:transition-all hover:after:w-full group/link"
                 >
                   {iconName && <DynamicIcon name={iconName} className="h-4 w-4 shrink-0 opacity-75 group-hover/link:text-primary transition-colors" />}
                   <span>{item.label}</span>
@@ -368,38 +417,80 @@ export function Navbar() {
 
         {/* Mobile menu */}
         {mobileOpen && (
-          <div className="md:hidden border-t bg-card px-4 py-4 space-y-3 animate-in slide-in-from-top-2 duration-200">
+          <div className="md:hidden border-t bg-card px-4 py-4 space-y-2.5 animate-in slide-in-from-top-2 duration-200">
             {navItems.map((item) => {
               const iconName = item.icon || getFallbackIconName(item.label);
-              if (item.label.toLowerCase() === "kategori" || (item.children && item.children.length > 0)) {
+              const isCategory = item.label.toLowerCase() === "kategori";
+              const hasChildren = item.children && item.children.length > 0;
+              const isOpen = openMobileParent === String(item.id);
+
+              if (isCategory || hasChildren) {
                 return (
-                  <div key="mobile-kategori">
-                    <button 
-                      onClick={() => setIsMobileCategoryOpen(!isMobileCategoryOpen)} 
-                      className="flex items-center justify-between w-full text-sm font-medium text-foreground/80 hover:text-primary py-2"
+                  <div key={item.id} className="overflow-hidden rounded-2xl border border-border/60 bg-muted/30">
+                    <button
+                      onClick={() => setOpenMobileParent(isOpen ? null : String(item.id))}
+                      className="flex w-full items-center justify-between px-4 py-3.5 text-left transition-colors active:bg-primary/5"
                     >
-                      <div className="flex items-center gap-2">
-                        {iconName && <DynamicIcon name={iconName} className="h-4 w-4 shrink-0 opacity-75" />}
-                        <span>{item.label}</span>
+                      <div className="flex items-center gap-3">
+                        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors ${isOpen ? "islamic-gradient text-primary-foreground" : "bg-primary/10 text-primary"}`}>
+                          {iconName ? <DynamicIcon name={iconName} className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold leading-tight text-foreground/90">{item.label}</p>
+                          <p className="text-[10px] leading-tight text-muted-foreground">
+                            {isCategory
+                              ? `${categories.filter(c => (c.article_count || 0) > 0).length} topik`
+                              : `${item.children.length} menu`}
+                          </p>
+                        </div>
                       </div>
-                      <ChevronDown className={`h-4 w-4 transition-transform ${isMobileCategoryOpen ? "rotate-180" : ""}`} />
+                      <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-300 ${isOpen ? "rotate-180 text-primary" : ""}`} />
                     </button>
-                    {isMobileCategoryOpen && (
-                      <div className="pl-4 space-y-2 border-l-2 border-primary/20 ml-2 my-1">
-                        {categories.filter(cat => (cat.article_count || 0) > 0).map((cat) => (
-                          <a key={cat.id} href={`/kategori/${cat.slug}`} className="block text-sm text-muted-foreground hover:text-primary py-1.5">
-                            {cat.name}
-                          </a>
-                        ))}
+                    {isOpen && (
+                      <div className="animate-in fade-in slide-in-from-top-1 duration-200 space-y-1.5 px-3 pb-3">
+                        {isCategory ? (
+                          categories.filter(cat => (cat.article_count || 0) > 0).map((cat) => (
+                            <a key={cat.id} href={`/kategori/${cat.slug}`} className="flex items-center gap-3 rounded-xl border border-border/40 bg-card px-3 py-2.5 transition-colors active:bg-primary/10">
+                              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                                <LayoutGrid className="h-3.5 w-3.5" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-[13px] font-semibold leading-snug text-foreground/90">{cat.name}</p>
+                              </div>
+                              <span className="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-bold text-muted-foreground">{cat.article_count || 0}</span>
+                            </a>
+                          ))
+                        ) : (
+                          item.children.map((child: any) => {
+                            const childIconName = child.icon || getFallbackIconName(child.label);
+                            return (
+                              <a key={child.id} {...getExternalLinkProps(child.href, child.isExternal)} className="flex items-center gap-3 rounded-xl border border-border/40 bg-card px-3 py-2.5 transition-colors active:bg-primary/10">
+                                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-muted">
+                                  {childIconName ? (
+                                    <DynamicIcon name={childIconName} className="h-3.5 w-3.5 text-muted-foreground" />
+                                  ) : (
+                                    <div className="h-1.5 w-1.5 rounded-full bg-primary/40" />
+                                  )}
+                                </div>
+                                <span className="min-w-0 flex-1 text-[13px] font-semibold leading-snug text-foreground/90">{child.label}</span>
+                                <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
+                              </a>
+                            );
+                          })
+                        )}
                       </div>
                     )}
                   </div>
                 );
               }
+
               return (
-                <a key={item.href} href={item.href} className="flex items-center gap-2 text-sm font-medium text-foreground/80 hover:text-primary py-2">
-                  {iconName && <DynamicIcon name={iconName} className="h-4 w-4 shrink-0 opacity-75" />}
-                  <span>{item.label}</span>
+                <a key={item.id} {...getExternalLinkProps(item.href, item.isExternal)} className="flex items-center gap-3 rounded-2xl border border-border/60 bg-muted/30 px-4 py-3.5 transition-colors active:bg-primary/5">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    {iconName ? <DynamicIcon name={iconName} className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
+                  </div>
+                  <span className="text-sm font-bold text-foreground/90">{item.label}</span>
+                  <ChevronRight className="ml-auto h-4 w-4 shrink-0 text-muted-foreground/60" />
                 </a>
               );
             })}
