@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Save, ImagePlus, X, Palette, ArrowUp, ArrowDown, GripVertical, Eye, EyeOff, LayoutDashboard } from "lucide-react";
-import { THEME_PALETTES } from "@/constants/themes";
+import { THEME_PALETTES, applyThemePalette } from "@/constants/themes";
 import { Button } from "@/components/ui/button";
 import { FeaturesManager } from "./FeaturesManager";
 import { HomepageCategorySectionsManager } from "./HomepageCategorySectionsManager";
@@ -568,7 +568,7 @@ export function SiteSettingsManager() {
               <button
                 key={p.id}
                 type="button"
-                onClick={() => setSettings({ ...settings, theme_color: p.id })}
+                onClick={() => { setSettings({ ...settings, theme_color: p.id }); applyThemePalette(p); }}
                 className={`relative p-3 rounded-2xl border-2 text-left transition-all group ${
                   settings.theme_color === p.id || (!settings.theme_color && p.id === "emerald")
                     ? "border-primary bg-primary/5" 
@@ -580,7 +580,7 @@ export function SiteSettingsManager() {
                       className="h-4 w-4 rounded-full border border-black/10 shadow-sm" 
                       style={{ background: `hsl(${p.primary})` }} 
                    />
-                   <span className="text-[10px] font-bold uppercase tracking-tight">{p.name}</span>
+                   <span className="text-[10px] font-bold uppercase tracking-tight">{p.name} <span className="font-normal normal-case text-muted-foreground">({p.description})</span></span>
                 </div>
                 <div className="flex gap-1">
                    <div className="h-1 flex-1 rounded-full bg-primary/20" style={{ backgroundColor: `hsl(${p.primary})` }} />
