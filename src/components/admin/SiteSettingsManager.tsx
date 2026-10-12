@@ -82,7 +82,7 @@ interface Settings {
 
 export function SiteSettingsManager() {
   const { user, role } = useAuth();
-  const isSuperAdmin = role === "superadmin";
+  const isSuperAdmin = role === "superadmin" || role === "admin";
   const { toast } = useToast();
   const [settings, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(true);

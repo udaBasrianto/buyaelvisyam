@@ -271,15 +271,29 @@ func UpdateSiteSettings(c *fiber.Ctx) error {
 	if isThemeChange || isFontChange {
 		userToken, ok := c.Locals("user").(*jwt.Token)
 		if !ok || userToken == nil {
-			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "Hanya Super Admin yang berhak mengubah tema warna dan font situs."})
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "Hanya Administrator / Super Admin yang berhak mengubah tema warna dan font situs."})
 		}
 		claims, ok := userToken.Claims.(jwt.MapClaims)
 		if !ok {
-			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "Hanya Super Admin yang berhak mengubah tema warna dan font situs."})
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "Hanya Administrator / Super Admin yang berhak mengubah tema warna dan font situs."})
 		}
 		userRole, _ := claims["role"].(string)
-		if strings.TrimSpace(userRole) != "superadmin" {
-			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "Hanya Super Admin yang memiliki izin untuk mengubah preset warna tema dan font situs."})
+		userRole = strings.TrimSpace(strings.ToLower(userRole))
+
+		// Cek juga ke database tabel user_roles jika ada upgrade role
+		userIDStr, _ := claims["user_id"].(string)
+		if userIDStr != "" {
+			var dbRole models.UserRole
+			if err := db.Where("user_id = ?", userIDStr).First(&dbRole).Error; err == nil {
+				dbRoleVal := strings.TrimSpace(strings.ToLower(dbRole.Role))
+				if dbRoleVal == "superadmin" || dbRoleVal == "admin" {
+					userRole = dbRoleVal
+				}
+			}
+		}
+
+		if userRole != "superadmin" && userRole != "admin" {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "Hanya Administrator / Super Admin yang memiliki izin untuk mengubah preset warna tema dan font situs."})
 		}
 	}
 
