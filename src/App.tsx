@@ -33,10 +33,13 @@ import ProductsPage from "./pages/ProductsPage.tsx";
 import ProductDetail from "./pages/ProductDetail.tsx";
 import Checkout, { CheckoutSuccess } from "./pages/Checkout";
 import Arsip from "./pages/Arsip.tsx";
+import DownloadsPage from "./pages/DownloadsPage.tsx";
+import FAQ from "./pages/FAQ.tsx";
 import { ScrollToTop } from "./components/ScrollToTop";
 import { ThemeInitializer } from "./components/ThemeInitializer";
 import { GoogleAnalytics } from "./components/GoogleAnalytics";
 import { VisitorTracker } from "./components/VisitorTracker";
+import { InfoPopup } from "./components/InfoPopup";
 import { CapacitorAppBridge } from "./components/CapacitorAppBridge";
 
 
@@ -71,6 +74,7 @@ const App = () => (
           <CapacitorAppBridge />
           <GoogleAnalytics />
           <VisitorTracker />
+          <InfoPopup />
 
           <Routes>
             <Route path="/" element={<Index />} />
@@ -128,10 +132,13 @@ const App = () => (
             <Route path="/kategori/:slug" element={<CategoryPage />} />
             <Route path="/p/:slug" element={<PageViewWrapper />} />
             <Route path="/tentang" element={<About />} />
+            <Route path="/faq" element={<FAQ />} />
+            <Route path="/bantuan" element={<FAQ />} />
             <Route path="/lms" element={<Courses />} />
             <Route path="/lms/course/:slug" element={<CourseDetail />} />
             <Route path="/lms/lesson/:slug" element={<LessonView />} />
             <Route path="/arsip" element={<Arsip />} />
+            <Route path="/unduhan" element={<DownloadsPage />} />
             
             {/* Backward compatibility */}
             <Route path="/artikel/:id" element={<ArticleDetail />} />

@@ -21,6 +21,7 @@ interface Settings {
   favicon_url: string | null;
   default_article_image?: string | null;
   footer_text: string;
+  play_store_url?: string;
   google_client_id?: string;
   whatsapp_notifications_enabled?: boolean;
   whatsapp_notify_new_article?: boolean;
@@ -180,6 +181,7 @@ export function SiteSettingsManager() {
         favicon_url: settings.favicon_url,
         default_article_image: settings.default_article_image,
         footer_text: settings.footer_text.trim(),
+        play_store_url: settings.play_store_url?.trim() || "",
         google_client_id: settings.google_client_id?.trim() || "",
         whatsapp_notifications_enabled: settings.whatsapp_notifications_enabled ?? false,
         whatsapp_notify_new_article: settings.whatsapp_notify_new_article ?? true,
@@ -395,6 +397,22 @@ export function SiteSettingsManager() {
       <div>
         <Label>Teks Footer</Label>
         <Textarea value={settings.footer_text} onChange={(e) => setSettings({ ...settings, footer_text: e.target.value })} rows={2} />
+      </div>
+
+      <div className="pt-4 border-t space-y-3">
+        <div className="space-y-1">
+          <Label className="font-bold flex items-center gap-2">
+            <span>Link Aplikasi Android (Google Play Store)</span>
+          </Label>
+          <p className="text-xs text-muted-foreground">
+            Tautan download aplikasi di Google Play Store yang akan ditampilkan sebagai tombol unduh di footer bawah logo. Kosongkan jika ingin menyembunyikan tombol.
+          </p>
+        </div>
+        <Input 
+          value={settings.play_store_url || ""} 
+          onChange={(e) => setSettings({ ...settings, play_store_url: e.target.value })} 
+          placeholder="https://play.google.com/store/apps/details?id=id.buyaelvisyam.app" 
+        />
       </div>
       <div className="pt-4 border-t space-y-4">
         <Label className="font-bold">Kustomisasi Judul Beranda</Label>

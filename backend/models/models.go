@@ -267,6 +267,7 @@ type SiteSettings struct {
 	FaviconURL                   string    `json:"favicon_url"`
 	DefaultArticleImage          string    `json:"default_article_image"`
 	FooterText                   string    `json:"footer_text"`
+	PlayStoreURL                 string    `gorm:"column:play_store_url" json:"play_store_url"`
 	GoogleClientID               string    `json:"google_client_id"`
 	WhatsAppNotificationsEnabled bool      `gorm:"default:false" json:"whatsapp_notifications_enabled"`
 	WhatsAppNotifyNewArticle     bool      `gorm:"default:true" json:"whatsapp_notify_new_article"`
@@ -495,28 +496,28 @@ type Widget struct {
 }
 
 type Product struct {
-	ID             uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
-	Title          string    `gorm:"not null" json:"title"`
-	Slug           string    `gorm:"unique;not null" json:"slug"`
-	Description    string    `json:"description"`
-	ProductType    string    `gorm:"default:'physical'" json:"product_type"`
-	Price          float64   `gorm:"default:0" json:"price"`
-	Currency       string    `gorm:"default:'IDR'" json:"currency"`
-	SKU            string    `json:"sku"`
-	Stock          int       `gorm:"default:0" json:"stock"`
-	DigitalFileURL string    `json:"digital_file_url"`
+	ID             uuid.UUID      `gorm:"type:uuid;primaryKey" json:"id"`
+	Title          string         `gorm:"not null" json:"title"`
+	Slug           string         `gorm:"unique;not null" json:"slug"`
+	Description    string         `json:"description"`
+	ProductType    string         `gorm:"default:'physical'" json:"product_type"`
+	Price          float64        `gorm:"default:0" json:"price"`
+	Currency       string         `gorm:"default:'IDR'" json:"currency"`
+	SKU            string         `json:"sku"`
+	Stock          int            `gorm:"default:0" json:"stock"`
+	DigitalFileURL string         `json:"digital_file_url"`
 	ImageURL       string         `json:"image_url"`
 	Images         pq.StringArray `gorm:"type:text[]" json:"images"`
 	IsActive       bool           `gorm:"default:true" json:"is_active"`
 	SortOrder      int            `gorm:"default:0" json:"sort_order"`
-	Views          int        `gorm:"default:0" json:"views"`
-	Sold           int        `gorm:"-" json:"sold"`
-	DiscountPrice  float64    `gorm:"default:0" json:"discount_price"`
-	IsFlashSale    bool       `gorm:"default:false" json:"is_flash_sale"`
-	FlashSaleStart *time.Time `json:"flash_sale_start"`
-	FlashSaleEnd   *time.Time `json:"flash_sale_end"`
-	CreatedAt      time.Time  `json:"created_at"`
-	UpdatedAt      time.Time  `json:"updated_at"`
+	Views          int            `gorm:"default:0" json:"views"`
+	Sold           int            `gorm:"-" json:"sold"`
+	DiscountPrice  float64        `gorm:"default:0" json:"discount_price"`
+	IsFlashSale    bool           `gorm:"default:false" json:"is_flash_sale"`
+	FlashSaleStart *time.Time     `json:"flash_sale_start"`
+	FlashSaleEnd   *time.Time     `json:"flash_sale_end"`
+	CreatedAt      time.Time      `json:"created_at"`
+	UpdatedAt      time.Time      `json:"updated_at"`
 }
 
 // GetActivePrice returns the active price taking discount & flash sale into account
@@ -685,4 +686,90 @@ type ReadingProgress struct {
 	ArticleID uuid.UUID `gorm:"type:uuid;not null;index:idx_reading_user_article,unique" json:"article_id"`
 	Progress  float64   `gorm:"default:0" json:"progress"`
 	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// FAQItem adalah satu pasang pertanyaan & jawaban pada halaman FAQ publik.
+type FAQItem struct {
+	ID        uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
+	Category  string    `gorm:"not null;default:'umum'" json:"category"` // akun, konten, donasi, aplikasi, atau kustom
+	Question  string    `gorm:"not null" json:"question"`
+	Answer    string    `gorm:"type:text;not null" json:"answer"`
+	SortOrder int       `gorm:"default:0" json:"sort_order"`
+	IsActive  bool      `gorm:"default:true" json:"is_active"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+func (m *FAQItem) BeforeCreate(tx *gorm.DB) error {
+	if m.ID == uuid.Nil {
+		m.ID = uuid.New()
+	}
+	return nil
+}
+
+// DownloadFile adalah file (pdf/docx/zip/dll) yang dikelola admin dan dapat
+// diunduh oleh pengguna yang sudah login. File fisik disimpan di folder
+// downloads_files (di luar /uploads sehingga tidak bisa diakses langsung).
+type DownloadFile struct {
+	ID            uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
+	Title         string    `gorm:"not null" json:"title"`
+	Description   string    `gorm:"type:text" json:"description"`
+	FileName      string    `json:"file_name"`                 // nama file asli saat diunggah (untuk nama unduhan)
+	FilePath      string    `gorm:"not null" json:"file_path"` // path relatif file fisik, mis. downloads_files/xxx.pdf
+	FileSize      int64     `json:"file_size"`                 // ukuran dalam byte
+	FileType      string    `json:"file_type"`                 // ekstensi tanpa titik, mis. pdf/docx/zip
+	MimeType      string    `json:"mime_type"`
+	DownloadCount int       `gorm:"default:0" json:"download_count"`
+	IsActive      bool      `gorm:"default:true" json:"is_active"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+}
+
+// DownloadLog mencatat setiap unduhan: siapa (user) dan kapan (timestamp).
+type DownloadLog struct {
+	ID              uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
+	DownloadFileID  uuid.UUID `gorm:"type:uuid;not null;index:idx_download_log_file" json:"download_file_id"`
+	UserID          uuid.UUID `gorm:"type:uuid;not null;index" json:"user_id"`
+	IP              string    `json:"ip"`
+	CreatedAt       time.Time `json:"created_at"`
+	UserDisplayName string    `gorm:"-" json:"user_display_name"` // untuk response admin
+	UserEmail       string    `gorm:"-" json:"user_email"`
+}
+
+func (m *DownloadFile) BeforeCreate(tx *gorm.DB) error {
+	if m.ID == uuid.Nil {
+		m.ID = uuid.New()
+	}
+	return nil
+}
+
+func (m *DownloadLog) BeforeCreate(tx *gorm.DB) error {
+	if m.ID == uuid.Nil {
+		m.ID = uuid.New()
+	}
+	return nil
+}
+
+// PopupBanner adalah modal informasi/pengumuman dinamis yang tampil saat user membuka web/aplikasi.
+type PopupBanner struct {
+	ID               uuid.UUID  `gorm:"type:uuid;primaryKey" json:"id"`
+	Title            string     `gorm:"not null" json:"title"`
+	Description      string     `gorm:"type:text" json:"description"`
+	ImageURL         string     `json:"image_url"`
+	ActionURL        string     `json:"action_url"`
+	ButtonText       string     `gorm:"default:'Tutup'" json:"button_text"`
+	IsActive         bool       `gorm:"default:true;index" json:"is_active"`
+	StartAt          *time.Time `json:"start_at"`
+	EndAt            *time.Time `json:"end_at"`
+	TargetPlatform   string     `gorm:"default:'all'" json:"target_platform"` // 'all', 'web', 'app'
+	DisplayFrequency string     `gorm:"default:'once_forever'" json:"display_frequency"` // 'once_forever', 'once_per_day', 'always'
+	CreatedAt        time.Time  `json:"created_at"`
+	UpdatedAt        time.Time  `json:"updated_at"`
+}
+
+func (m *PopupBanner) BeforeCreate(tx *gorm.DB) error {
+	if m.ID == uuid.Nil {
+		m.ID = uuid.New()
+	}
+	return nil
 }

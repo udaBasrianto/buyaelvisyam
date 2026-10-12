@@ -141,6 +141,30 @@ export function Footer() {
             <p className="text-sm text-zinc-400 leading-relaxed max-w-sm">
               {settings.tagline || settings.footer_text || "Berilmu Sebelum Beramal — Website Resmi Buya Elvisyam."}
             </p>
+
+            {/* Tombol Download Aplikasi Google Play Store */}
+            {(settings.play_store_url || "https://play.google.com/store/apps/details?id=id.buyaelvisyam.app&pcampaignid=web_share") && (
+              <div className="pt-1">
+                <a
+                  href={settings.play_store_url || "https://play.google.com/store/apps/details?id=id.buyaelvisyam.app&pcampaignid=web_share"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-3 px-3.5 py-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800/90 border border-zinc-700/70 hover:border-zinc-500 text-white shadow-lg transition-all duration-200 group active:scale-95 w-fit"
+                  aria-label="Download Aplikasi Buyaelvisyam.id di Google Play Store"
+                >
+                  <svg className="w-5 h-5 shrink-0 transition-transform group-hover:scale-110 duration-200" viewBox="0 0 24 24" fill="none">
+                    <path d="M3.25 1.58C3.09 1.77 3 2.05 3 2.44v19.12c0 .39.09.67.25.86l.07.07 10.71-10.71v-.25L3.32 1.51l-.07.07z" fill="#00C3FF" />
+                    <path d="M17.62 15.82l-3.59-3.59v-.25l3.59-3.59.08.05 4.26 2.42c1.22.69 1.22 1.82 0 2.51l-4.26 2.42-.08.03z" fill="#FFC800" />
+                    <path d="M14.11 12.23L3.32 23c.45.48 1.2.54 2.05.06l12.25-6.96-3.51-3.87z" fill="#FF334B" />
+                    <path d="M14.11 12.23l3.51-3.87L5.37 1.4C4.52.92 3.77.98 3.32 1.46l10.79 10.77z" fill="#00D775" />
+                  </svg>
+                  <div className="flex flex-col text-left leading-tight select-none">
+                    <span className="text-[9px] font-semibold text-zinc-400 uppercase tracking-widest leading-none">TEMUKAN DI</span>
+                    <span className="text-sm font-bold text-white tracking-tight mt-0.5 group-hover:text-primary transition-colors leading-none">Google Play</span>
+                  </div>
+                </a>
+              </div>
+            )}
           </div>
 
           {/* Kolom 2: Link Kebijakan & Navigasi */}

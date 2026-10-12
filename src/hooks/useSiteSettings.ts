@@ -9,6 +9,7 @@ export interface SiteSettings {
   logo_url: string | null;
   default_article_image: string | null;
   footer_text: string;
+  play_store_url?: string;
   homepage_version: string;
   scroll_to_top_version: string;
   admin_slug?: string;

@@ -207,6 +207,7 @@ func GetSiteSettings(c *fiber.Ctx) error {
 			SliderStyle:                  "v3",
 			ShowFeatureBar:               true,
 			ShowChatbot:                  true,
+			PlayStoreURL:                 "https://play.google.com/store/apps/details?id=id.buyaelvisyam.app&pcampaignid=web_share",
 			DonationTitle:                "Donasi",
 			ShowDonors:                   true,
 			UpdatedAt:                    time.Now(),
