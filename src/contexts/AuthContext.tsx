@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, useMemo, useCallback, R
 import api from "@/lib/api";
 import { getOfflineBackendMessage } from "@/lib/runtime-config";
 
-type AppRole = "admin" | "kontributor" | "pembaca";
+type AppRole = "superadmin" | "admin" | "kontributor" | "pembaca";
 
 interface UserProfile {
   id: string;

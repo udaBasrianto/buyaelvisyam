@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Save, ImagePlus, X, Palette, Type, ArrowUp, ArrowDown, GripVertical, Eye, EyeOff, LayoutDashboard } from "lucide-react";
+import { Save, ImagePlus, X, Palette, Type, Lock, Crown, ArrowUp, ArrowDown, GripVertical, Eye, EyeOff, LayoutDashboard } from "lucide-react";
 import { THEME_PALETTES, applyThemePalette } from "@/constants/themes";
 import { GOOGLE_FONTS, findFontOption, applyGlobalFont } from "@/constants/fonts";
 import { Button } from "@/components/ui/button";
@@ -81,7 +81,8 @@ interface Settings {
 }
 
 export function SiteSettingsManager() {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
+  const isSuperAdmin = role === "superadmin";
   const { toast } = useToast();
   const [settings, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -563,10 +564,31 @@ export function SiteSettingsManager() {
 
       <div className="pt-4 border-t space-y-6">
         <div>
-          <Label className="text-sm font-bold mb-3 flex items-center gap-2">
-            <Palette className="h-4 w-4 text-primary" /> Palet Warna Situs
-          </Label>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div className="flex items-center justify-between mb-3">
+            <Label className="text-sm font-bold flex items-center gap-2">
+              <Palette className="h-4 w-4 text-primary" /> Palet Warna Situs
+            </Label>
+            {isSuperAdmin ? (
+              <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                <Crown className="w-3.5 h-3.5 text-amber-500" /> Izin Super Admin
+              </span>
+            ) : (
+              <span className="text-[11px] font-bold text-muted-foreground bg-muted border border-border px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                <Lock className="w-3.5 h-3.5 text-amber-500" /> Terkunci (Hanya Super Admin)
+              </span>
+            )}
+          </div>
+
+          {!isSuperAdmin && (
+            <div className="mb-3 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center gap-2.5 text-xs text-amber-800 dark:text-amber-300">
+              <Lock className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>
+                Pengaturan warna tema website hanya dapat diubah oleh <strong>Super Admin</strong>. Role Anda ({role || "Admin"}) hanya memiliki akses baca (<em>view-only</em>).
+              </span>
+            </div>
+          )}
+
+          <div className={`grid grid-cols-2 md:grid-cols-3 gap-3 ${!isSuperAdmin ? "opacity-60 pointer-events-none" : ""}`}>
             {THEME_PALETTES.map((p) => (
               <button
                 key={p.id}
@@ -600,15 +622,36 @@ export function SiteSettingsManager() {
         </div>
 
         <div>
-          <Label className="text-sm font-bold mb-3 flex items-center justify-between">
-            <span className="flex items-center gap-2">
+          <div className="flex items-center justify-between mb-3">
+            <Label className="text-sm font-bold flex items-center gap-2">
               <Type className="h-4 w-4 text-primary" /> Tipografi & Google Fonts Situs (10 Pilihan)
-            </span>
-            <span className="text-xs text-primary font-mono font-normal">
-              Aktif: {findFontOption(settings.font_family || "poppins").name}
-            </span>
-          </Label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-2.5">
+            </Label>
+            <div className="flex items-center gap-2">
+              {isSuperAdmin ? (
+                <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <Crown className="w-3 h-3 text-amber-500" /> Super Admin
+                </span>
+              ) : (
+                <span className="text-[11px] font-bold text-muted-foreground bg-muted border border-border px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <Lock className="w-3 h-3 text-amber-500" /> Terkunci
+                </span>
+              )}
+              <span className="text-xs text-primary font-mono font-normal">
+                Aktif: {findFontOption(settings.font_family || "poppins").name}
+              </span>
+            </div>
+          </div>
+
+          {!isSuperAdmin && (
+            <div className="mb-3 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center gap-2.5 text-xs text-amber-800 dark:text-amber-300">
+              <Lock className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>
+                Pengaturan tipografi & Google Fonts hanya dapat diubah oleh <strong>Super Admin</strong>.
+              </span>
+            </div>
+          )}
+
+          <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-2.5 ${!isSuperAdmin ? "opacity-60 pointer-events-none" : ""}`}>
             {GOOGLE_FONTS.map((font) => {
               const isSelected = (settings.font_family || "poppins") === font.id;
               return (

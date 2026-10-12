@@ -177,7 +177,7 @@ func Login(c *fiber.Ctx) error {
 	db.Where("user_id = ?", profile.UserID).First(&userRole)
 
 	// Validate token only for admin role
-	if userRole.Role == "admin" {
+	if userRole.Role == "admin" || userRole.Role == "superadmin" {
 		if err := validateAdminToken(db, input.Token); err != nil {
 			if ferr, ok := err.(*fiber.Error); ok {
 				return c.Status(ferr.Code).JSON(fiber.Map{"error": ferr.Message})
@@ -300,7 +300,7 @@ func GoogleLogin(c *fiber.Ctx) error {
 		db.Create(&userRole)
 	}
 
-	if userRole.Role == "admin" {
+	if userRole.Role == "admin" || userRole.Role == "superadmin" {
 		if err := validateAdminToken(db, input.Token); err != nil {
 			if ferr, ok := err.(*fiber.Error); ok {
 				return c.Status(ferr.Code).JSON(fiber.Map{"error": ferr.Message})

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { 
-  Users, MoreVertical, Edit, Trash2, Search, UserPlus, Shield, Smartphone, MessageCircle
+  Users, MoreVertical, Edit, Trash2, Search, UserPlus, Shield, Smartphone, Crown, MessageCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +26,7 @@ interface UserProfile {
 }
 
 const roleColor: Record<string, string> = {
+  superadmin: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30",
   admin: "bg-primary/10 text-primary border-primary/20",
   kontributor: "bg-secondary/20 text-secondary-foreground border-secondary/30",
   pembaca: "bg-muted text-muted-foreground border-border",
@@ -276,6 +277,7 @@ export function UsersManager() {
                           {u.role}
                         </Badge>
                         {u.role === "admin" && <Shield className="h-3 w-3 text-primary" />}
+                        {u.role === "superadmin" && <Crown className="h-3 w-3 text-amber-500" />}
                       </div>
                     </td>
                     <td className="py-4 px-6 text-center">
@@ -300,6 +302,9 @@ export function UsersManager() {
                             <Edit className="h-4 w-4 text-blue-500" /> Edit Pengguna
                           </DropdownMenuItem>
                           <div className="h-px bg-border my-1" />
+                          <DropdownMenuItem className="gap-2 cursor-pointer rounded-lg mb-1" onClick={() => handleUpdateRole(u.user_id, "superadmin")}>
+                            <Crown className="h-4 w-4 text-amber-500" /> Jadikan Super Admin
+                          </DropdownMenuItem>
                           <DropdownMenuItem className="gap-2 cursor-pointer rounded-lg mb-1" onClick={() => handleUpdateRole(u.user_id, "admin")}>
                             <Shield className="h-4 w-4 text-primary" /> Jadikan Admin
                           </DropdownMenuItem>
@@ -378,6 +383,7 @@ export function UsersManager() {
                 <SelectContent>
                   <SelectItem value="pembaca">Pembaca</SelectItem>
                   <SelectItem value="kontributor">Kontributor</SelectItem>
+                  <SelectItem value="superadmin">Super Admin</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
               </Select>
@@ -448,6 +454,7 @@ export function UsersManager() {
                 <SelectContent>
                   <SelectItem value="pembaca">Pembaca</SelectItem>
                   <SelectItem value="kontributor">Kontributor</SelectItem>
+                  <SelectItem value="superadmin">Super Admin</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
               </Select>

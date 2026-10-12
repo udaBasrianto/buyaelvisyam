@@ -57,7 +57,7 @@ function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode;
   const { user, role, loading } = useAuth();
   if (loading) return <LoadingScreen />;
   if (!user) return <Navigate to="/auth" replace />;
-  if (requiredRole && role !== requiredRole && role !== "admin") return <Navigate to="/" replace />;
+  if (requiredRole && role !== requiredRole && role !== "admin" && role !== "superadmin") return <Navigate to="/" replace />;
   return <>{children}</>;
 }
 

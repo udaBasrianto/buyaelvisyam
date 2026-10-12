@@ -378,7 +378,7 @@ export function Navbar() {
             {/* Role-based shortcuts */}
             {user && (
               <div className="flex items-center gap-1">
-                {role === "admin" && (
+                {(role === "admin" || role === "superadmin") && (
                   <Button variant="ghost" size="icon" className="hidden md:flex text-foreground/70 hover:text-primary" onClick={() => navigate("/admin")} title="Admin Panel">
                     <ShieldCheck className="h-5 w-5" />
                   </Button>
@@ -496,7 +496,7 @@ export function Navbar() {
             })}
 
             {/* Mobile role shortcuts */}
-            {user && role === "admin" && (
+            {user && (role === "admin" || role === "superadmin") && (
               <button onClick={() => navigate("/admin")} className="flex items-center gap-2 text-sm font-medium text-primary py-2">
                 <Shield className="h-4 w-4" /> Admin Panel
               </button>

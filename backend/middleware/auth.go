@@ -49,6 +49,11 @@ func RequireAnyRole(roles ...string) fiber.Handler {
 				JSON(fiber.Map{"status": "error", "message": "Forbidden", "data": nil})
 		}
 
+		// Superadmin always has access
+		if role == "superadmin" {
+			return c.Next()
+		}
+
 		if _, ok := allowed[role]; !ok {
 			return c.Status(fiber.StatusForbidden).
 				JSON(fiber.Map{"status": "error", "message": "Forbidden", "data": nil})

@@ -264,6 +264,25 @@ func UpdateSiteSettings(c *fiber.Ctx) error {
 		return c.Status(400).JSON(fiber.Map{"error": "Invalid body"})
 	}
 
+	// Cek apakah ada perubahan tema warna atau font — HANYA SUPER ADMIN yang diizinkan
+	isThemeChange := (updatedData.ThemeColor != "" && updatedData.ThemeColor != settings.ThemeColor)
+	isFontChange := (updatedData.FontFamily != "" && updatedData.FontFamily != settings.FontFamily)
+
+	if isThemeChange || isFontChange {
+		userToken, ok := c.Locals("user").(*jwt.Token)
+		if !ok || userToken == nil {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "Hanya Super Admin yang berhak mengubah tema warna dan font situs."})
+		}
+		claims, ok := userToken.Claims.(jwt.MapClaims)
+		if !ok {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "Hanya Super Admin yang berhak mengubah tema warna dan font situs."})
+		}
+		userRole, _ := claims["role"].(string)
+		if strings.TrimSpace(userRole) != "superadmin" {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "Hanya Super Admin yang memiliki izin untuk mengubah preset warna tema dan font situs."})
+		}
+	}
+
 	// Gunakan Select("*") agar boolean false (show_chatbot, show_feature_bar, dll)
 	// tidak diabaikan oleh GORM sebagai "zero value"
 	db.Model(&settings).Select("*").Omit("id", "updated_by", "updated_at", "created_at").Updates(updatedData)
