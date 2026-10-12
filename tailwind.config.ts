@@ -13,7 +13,8 @@ export default {
       },
     },
     fontFamily: {
-      sans: ["Poppins", "sans-serif"],
+      sans: ["var(--font-sans, Poppins)", "sans-serif"],
+      heading: ["var(--font-heading, var(--font-sans, Poppins))", "sans-serif"],
     },
     extend: {
       colors: {

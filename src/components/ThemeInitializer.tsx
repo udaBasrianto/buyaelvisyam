@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { findThemePalette, applyThemePalette } from "@/constants/themes";
+import { findFontOption, applyGlobalFont } from "@/constants/fonts";
 
 export function ThemeInitializer() {
   const { settings, loading } = useSiteSettings();
@@ -11,6 +12,12 @@ export function ThemeInitializer() {
     const palette = findThemePalette(targetThemeId);
     
     applyThemePalette(palette);
+
+    const savedFont = typeof window !== "undefined" ? localStorage.getItem("buya_font_choice") : null;
+    if (savedFont) {
+      const fontOpt = findFontOption(savedFont);
+      applyGlobalFont(fontOpt);
+    }
 
     const savedDark = typeof window !== "undefined" ? localStorage.getItem("buya_theme_dark") : null;
     if (savedDark === "true") {
