@@ -223,20 +223,13 @@ func main() {
 	// Auth
 	auth := api.Group("/auth")
 	authLimiter := limiter.New(limiter.Config{Max: 25, Expiration: 15 * time.Minute})
-	registerLimiter := limiter.New(limiter.Config{Max: 5, Expiration: 15 * time.Minute})
-	auth.Post("/register", registerLimiter, handlers.Register)
-	otpLimiter := limiter.New(limiter.Config{Max: 15, Expiration: 15 * time.Minute})
-	auth.Post("/login", authLimiter, handlers.Login)
+	// Email/password registration & login disabled: Google login only.
 	auth.Post("/google", authLimiter, handlers.GoogleLogin)
 	auth.Get("/me", middleware.Protected(), handlers.Me)
 	auth.Put("/profile", middleware.Protected(), handlers.UpdateProfile)
 	auth.Post("/profile", middleware.Protected(), handlers.UpdateProfile)
 
-	// WhatsApp Auth (for pembaca registration & login)
-	auth.Post("/whatsapp/request-token", otpLimiter, handlers.RequestWhatsAppToken)
-	auth.Post("/whatsapp/verify-token", otpLimiter, handlers.VerifyWhatsAppToken)
-	auth.Post("/whatsapp/login/request", otpLimiter, handlers.RequestWhatsAppLogin)
-	auth.Post("/whatsapp/login/verify", otpLimiter, handlers.VerifyWhatsAppLogin)
+	// WhatsApp OTP registration/login disabled: Google login only.
 	auth.Get("/whatsapp/status", handlers.GetWhatsAppStatus)
 	auth.Post("/whatsapp/connect", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.ConnectWhatsApp)
 	auth.Post("/whatsapp/disconnect", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.DisconnectWhatsApp)

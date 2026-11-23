@@ -16,8 +16,6 @@ interface AuthContextType {
   user: UserProfile | null;
   role: AppRole | null;
   loading: boolean;
-  signUp: (email: string, password: string, displayName: string) => Promise<{ error: any }>;
-  signIn: (email: string, password: string, token: string) => Promise<{ error: any }>;
   signInWithGoogle: (idToken: string, adminToken: string) => Promise<{ error: any }>;
   signInWithWhatsApp: (token: string, user: UserProfile) => void;
   signOut: () => Promise<void>;
@@ -52,30 +50,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const signUp = async (email: string, password: string, displayName: string) => {
-    try {
-      await api.post("/auth/register", { email, password, display_name: displayName });
-      return { error: null };
-    } catch (error: any) {
-      return { error: error.response?.data?.error || "Registration failed" };
-    }
-  };
-
-  const signIn = async (email: string, password: string, token: string) => {
-    try {
-      const { data } = await api.post("/auth/login", { email, password, token });
-      localStorage.setItem("token", data.token);
-      setUser(data.user);
-      setRole(data.user.role);
-      return { error: null };
-    } catch (error: any) {
-      if (!error?.response) {
-        return { error: getOfflineBackendMessage() };
-      }
-      return { error: error.response?.data?.error || "Login failed" };
-    }
-  };
-
   const signInWithGoogle = async (idToken: string, adminToken: string) => {
     try {
       const { data } = await api.post("/auth/google", { id_token: idToken, token: adminToken });
@@ -104,7 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const value = useMemo(() => ({
-    user, role, loading, signUp, signIn, signInWithGoogle, signInWithWhatsApp, signOut,
+    user, role, loading, signInWithGoogle, signInWithWhatsApp, signOut,
   }), [user, role, loading]);
 
   return (

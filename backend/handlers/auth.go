@@ -267,11 +267,11 @@ func GoogleLogin(c *fiber.Ctx) error {
 			displayName = email
 		}
 		profile = models.Profile{
-			UserID:        userID,
-			Email:         email,
-			Password:      "",
-			DisplayName:   displayName,
-			AvatarURL:     strings.TrimSpace(ti.Picture),
+			UserID:      userID,
+			Email:       email,
+			Password:    "",
+			DisplayName: displayName,
+			AvatarURL:   strings.TrimSpace(ti.Picture),
 			EmailVerified: true,
 		}
 		if err := db.Create(&profile).Error; err != nil {
@@ -399,11 +399,11 @@ func Me(c *fiber.Ctx) error {
 	database.DB.Where("user_id = ?", profile.UserID).First(&userRole)
 
 	return c.JSON(fiber.Map{
-		"id":                profile.UserID,
-		"email":             profile.Email,
-		"display_name":      profile.DisplayName,
-		"role":              userRole.Role,
-		"avatar_url":        profile.AvatarURL,
+		"id":           profile.UserID,
+		"email":        profile.Email,
+		"display_name": profile.DisplayName,
+		"role":         userRole.Role,
+		"avatar_url":   profile.AvatarURL,
 		"whatsapp":          profile.WhatsAppNumber,
 		"whatsapp_number":   profile.WhatsAppNumber,
 		"whatsapp_verified": profile.WhatsAppVerified,
@@ -416,9 +416,9 @@ func UpdateProfile(c *fiber.Ctx) error {
 	userIDStr := claims["user_id"].(string)
 
 	type UpdateInput struct {
-		DisplayName     string `json:"display_name"`
-		Email           string `json:"email"`
-		AvatarURL       string `json:"avatar_url"`
+		DisplayName    string `json:"display_name"`
+		Email          string `json:"email"`
+		AvatarURL      string `json:"avatar_url"`
 		Password        string `json:"password"`
 		CurrentPassword string `json:"current_password"`
 		WhatsAppNumber  string `json:"whatsapp_number"`
@@ -439,6 +439,12 @@ func UpdateProfile(c *fiber.Ctx) error {
 	// account has one; Google/WhatsApp-only accounts may set it the first time).
 	newEmail := strings.TrimSpace(strings.ToLower(input.Email))
 	emailChanged := newEmail != "" && newEmail != strings.ToLower(profile.Email)
+	// Login is Google-only: the email is the account identity and cannot be
+	// changed, and passwords are no longer used.
+	if emailChanged {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Email mengikuti akun Google dan tidak dapat diubah"})
+	}
+	input.Password = ""
 	if (input.Password != "" || emailChanged) && profile.Password != "" {
 		if !CheckPasswordHash(strings.TrimSpace(input.CurrentPassword), profile.Password) {
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "Password saat ini salah atau belum diisi"})

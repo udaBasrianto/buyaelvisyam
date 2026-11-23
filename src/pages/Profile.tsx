@@ -87,11 +87,8 @@ export default function Profile({ embedded = false }: { embedded?: boolean }) {
     try {
       const payload = {
         display_name: formData.display_name,
-        email: formData.email,
         avatar_url: formData.avatar_url,
         whatsapp_number: formData.whatsapp_number,
-        ...(formData.password ? { password: formData.password } : {}),
-        ...(formData.current_password ? { current_password: formData.current_password } : {})
       };
 
       await api.post("/auth/profile", payload);
@@ -173,7 +170,8 @@ export default function Profile({ embedded = false }: { embedded?: boolean }) {
                     id="email"
                     type="email"
                     value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    readOnly
+                    title="Email mengikuti akun Google"
                     className="pl-11 rounded-xl h-12 bg-muted/20 border-border/50"
                   />
                 </div>
@@ -195,53 +193,6 @@ export default function Profile({ embedded = false }: { embedded?: boolean }) {
                     Status: {formData.whatsapp_verified ? "Terverifikasi" : "Belum verifikasi"}
                   </div>
                 </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-card border border-border/50 rounded-[2.5rem] p-8 space-y-6 shadow-sm">
-            <div className="flex items-center gap-2 mb-2">
-              <Lock className="h-4 w-4 text-primary" />
-              <h3 className="text-sm font-black uppercase tracking-widest">Keamanan</h3>
-            </div>
-            
-            <p className="text-[10px] text-muted-foreground italic bg-muted/50 p-3 rounded-xl">Biarkan kosong jika tidak ingin mengganti password. Password saat ini wajib diisi untuk mengganti password atau email.</p>
-
-            <div className="space-y-2">
-              <Label htmlFor="current_pass" className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">Password Saat Ini</Label>
-              <Input
-                id="current_pass"
-                type="password"
-                autoComplete="current-password"
-                value={formData.current_password}
-                onChange={(e) => setFormData({ ...formData, current_password: e.target.value })}
-                className="rounded-xl h-12 bg-muted/20 border-border/50"
-                placeholder="••••••••"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="pass" className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">Password Baru</Label>
-                <Input 
-                  id="pass"
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="rounded-xl h-12 bg-muted/20 border-border/50"
-                  placeholder="••••••••"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="confirm" className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">Ulangi Password</Label>
-                <Input 
-                  id="confirm"
-                  type="password"
-                  value={formData.confirm_password}
-                  onChange={(e) => setFormData({ ...formData, confirm_password: e.target.value })}
-                  className="rounded-xl h-12 bg-muted/20 border-border/50"
-                  placeholder="••••••••"
-                />
               </div>
             </div>
           </div>
@@ -331,7 +282,8 @@ export default function Profile({ embedded = false }: { embedded?: boolean }) {
                         id="email"
                         type="email"
                         value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        readOnly
+                    title="Email mengikuti akun Google"
                         className="pl-11 rounded-xl h-12 bg-muted/20 border-border/50"
                       />
                     </div>
@@ -358,53 +310,6 @@ export default function Profile({ embedded = false }: { embedded?: boolean }) {
               </div>
 
               {/* Security */}
-              <div className="bg-card border border-border/50 rounded-[2.5rem] p-8 space-y-6 shadow-sm">
-                <div className="flex items-center gap-2 mb-2">
-                  <Lock className="h-4 w-4 text-primary" />
-                  <h3 className="text-sm font-black uppercase tracking-widest">Keamanan</h3>
-                </div>
-                
-                <p className="text-[10px] text-muted-foreground italic bg-muted/50 p-3 rounded-xl">Biarkan kosong jika tidak ingin mengganti password. Password saat ini wajib diisi untuk mengganti password atau email.</p>
-
-                <div className="space-y-2">
-                  <Label htmlFor="current_pass" className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">Password Saat Ini</Label>
-                  <Input
-                    id="current_pass"
-                    type="password"
-                    autoComplete="current-password"
-                    value={formData.current_password}
-                    onChange={(e) => setFormData({ ...formData, current_password: e.target.value })}
-                    className="rounded-xl h-12 bg-muted/20 border-border/50"
-                    placeholder="••••••••"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="pass" className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">Password Baru</Label>
-                    <Input 
-                      id="pass"
-                      type="password"
-                      value={formData.password}
-                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      className="rounded-xl h-12 bg-muted/20 border-border/50"
-                      placeholder="••••••••"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="confirm" className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">Ulangi Password</Label>
-                    <Input 
-                      id="confirm"
-                      type="password"
-                      value={formData.confirm_password}
-                      onChange={(e) => setFormData({ ...formData, confirm_password: e.target.value })}
-                      className="rounded-xl h-12 bg-muted/20 border-border/50"
-                      placeholder="••••••••"
-                    />
-                  </div>
-                </div>
-              </div>
-
               <Button 
                 type="submit" 
                 disabled={saving || uploading} 

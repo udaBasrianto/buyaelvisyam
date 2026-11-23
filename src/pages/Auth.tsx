@@ -5,14 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
-import { Mail, Lock, KeyRound } from "lucide-react";
+import { KeyRound } from "lucide-react";
 
 export default function Auth() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [adminToken, setAdminToken] = useState("");
   const [loading, setLoading] = useState(false);
-  const { signIn, signInWithGoogle } = useAuth();
+  const { signInWithGoogle } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const googleBtnRef = useRef<HTMLDivElement | null>(null);
@@ -83,19 +81,6 @@ export default function Auth() {
       .catch(() => {});
   }, [adminToken, navigate, settings?.google_client_id, signInWithGoogle, toast]);
 
-  const handleEmailLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    const { error } = await signIn(email, password, adminToken);
-    if (error) {
-      toast({ title: "Gagal masuk", description: error, variant: "destructive" });
-    } else {
-      toast({ title: "Berhasil masuk!" });
-      navigate("/");
-    }
-    setLoading(false);
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12">
       <div className="w-full max-w-md">
@@ -118,36 +103,8 @@ export default function Auth() {
         </div>
 
         <div className="bg-white rounded-2xl p-8 space-y-6 border border-gray-100 shadow-xl shadow-gray-200/50">
-          <form onSubmit={handleEmailLogin} className="space-y-5">
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-gray-700">Email</label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                <Input
-                  type="email"
-                  placeholder="nama@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10 h-11 bg-gray-50 border-gray-100 focus:bg-white transition-all"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-gray-700">Password</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                <Input
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10 h-11 bg-gray-50 border-gray-100 focus:bg-white transition-all"
-                  required
-                />
-              </div>
-            </div>
+          <div className="space-y-5">
+            <p className="text-center text-sm text-gray-600">Masuk atau daftar menggunakan akun Google Anda.</p>
 
             <div className="space-y-2">
               <label className="text-sm font-semibold text-gray-700">
@@ -171,16 +128,15 @@ export default function Auth() {
               </p>
             </div>
 
-            {(import.meta.env.VITE_GOOGLE_CLIENT_ID || settings?.google_client_id) && (
-              <div className="pt-1">
+            {(import.meta.env.VITE_GOOGLE_CLIENT_ID || settings?.google_client_id) ? (
+              <div className="pt-1 flex justify-center">
                 <div ref={googleBtnRef} />
               </div>
+            ) : (
+              <p className="text-center text-sm text-red-600">Login Google belum dikonfigurasi.</p>
             )}
 
-            <Button type="submit" className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-bold transition-all shadow-lg shadow-blue-100" disabled={loading}>
-              {loading ? "Memproses..." : "Masuk Sekarang"}
-            </Button>
-          </form>
+          </div>
         </div>
 
         <p className="text-center text-gray-400 text-xs mt-12 px-8 leading-relaxed">
