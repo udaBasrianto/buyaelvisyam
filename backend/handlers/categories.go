@@ -231,7 +231,7 @@ func GetSiteSettings(c *fiber.Ctx) error {
 		})
 		if token != nil && token.Valid {
 			if claims, ok := token.Claims.(jwt.MapClaims); ok {
-				if role, _ := claims["role"].(string); role == "admin" {
+				if role, _ := claims["role"].(string); role == "admin" || role == "superadmin" {
 					isAdmin = true
 				}
 			}

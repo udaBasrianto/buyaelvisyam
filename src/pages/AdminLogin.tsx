@@ -207,7 +207,7 @@ export default function AdminLogin() {
 
         {/* Footer */}
         <p className="text-center text-slate-500 text-sm mt-6">
-          {settings.site_name || "BlogUstad"} Admin v1.0
+          {settings.site_name || "Buyaelvisyam.id"} Admin v1.0
         </p>
       </div>
     </div>

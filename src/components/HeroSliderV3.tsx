@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Bookmark } from "lucide-react";
-import { heroSlides as defaultSlides } from "@/data/mockData";
-import type { Post } from "@/data/mockData";
+import type { Post } from "@/types/article";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -14,7 +13,7 @@ interface HeroSliderV3Props {
 
 export function HeroSliderV3({ slides }: HeroSliderV3Props) {
   const { settings } = useSiteSettings();
-  const data = slides && slides.length > 0 ? slides : defaultSlides;
+  const data = slides ?? [];
   const [current, setCurrent] = useState(0);
   const [direction, setDirection] = useState(0);
 
@@ -29,9 +28,10 @@ export function HeroSliderV3({ slides }: HeroSliderV3Props) {
   }, [data.length]);
 
   useEffect(() => {
+    if (data.length <= 1) return;
     const timer = setInterval(next, 8000);
     return () => clearInterval(timer);
-  }, [next]);
+  }, [next, data.length]);
 
   if (!data || data.length === 0) return null;
 

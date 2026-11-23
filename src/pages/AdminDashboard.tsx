@@ -19,6 +19,7 @@ import { AccessLogsManager } from "@/components/admin/AccessLogsManager";
 import { DownloadsManager } from "@/components/admin/DownloadsManager";
 import { FAQManager } from "@/components/admin/FAQManager";
 import { PopupManager } from "@/components/admin/PopupManager";
+import GalleryManager from "@/components/admin/GalleryManager";
 import { CommentsManager } from "@/components/admin/CommentsManager";
 import { ProductsManager } from "@/components/admin/ProductsManager";
 import { OrdersManager } from "@/components/admin/OrdersManager";
@@ -51,34 +52,34 @@ const roleColor: Record<string, string> = {
 const VALID_TABS = [
   "analytics", "articles", "categories", "widgets", "pages", "features",
   "settings", "products", "orders", "lms", "comments", "wallet", "leaderboard",
-  "navigation", "access_logs", "users", "donations", "unduhan", "faq", "profile", "popups"
+  "navigation", "access_logs", "users", "donations", "unduhan", "faq", "profile", "popups", "gallery"
 ];
 
 export default function AdminDashboard() {
   const { tab } = useParams();
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState("analytics");
   const [wpImportDialog, setWpImportDialog] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [currentTime, setCurrentTime] = useState(new Date());
-
-  // Derive activeTab directly from URL param — no separate state needed
-  const rawTab = (tab || "").toLowerCase();
-  const activeTab = VALID_TABS.includes(rawTab) ? rawTab : "analytics";
-
-  // Redirect invalid tab URLs back to /admin
-  useEffect(() => {
-    if (tab && !VALID_TABS.includes(rawTab)) {
-      navigate("/admin", { replace: true });
-    }
-  }, [tab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    if (tab && VALID_TABS.includes(tab)) {
+      setActiveTab(tab);
+    } else if (!tab) {
+      setActiveTab("analytics");
+    } else {
+      navigate("/admin/analytics", { replace: true });
+    }
+  }, [tab, navigate]);
+
   const handleImportSuccess = () => {
-    setRefreshKey((prev) => prev + 1);
+    setRefreshKey(prev => prev + 1);
   };
 
   const [systemHealth, setSystemHealth] = useState({
@@ -182,6 +183,8 @@ export default function AdminDashboard() {
         return <FAQManager />;
       case "popups":
         return <PopupManager />;
+      case "gallery":
+        return <GalleryManager />;
       case "profile":
         return <Profile embedded />;
       default:
@@ -209,6 +212,7 @@ export default function AdminDashboard() {
       case "unduhan": return "Manajemen Unduhan";
       case "faq": return "Manajemen FAQ";
       case "popups": return "Manajemen Popup & Pengumuman";
+      case "gallery": return "Galeri Media & Auto Compress";
       case "profile": return "Profil";
       default: return "Admin Panel";
     }

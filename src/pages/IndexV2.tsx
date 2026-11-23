@@ -16,19 +16,33 @@ import { Sidebar } from "@/components/Sidebar";
 import api from "@/lib/api";
 import { asArray } from "@/lib/api-response";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
-import type { Post } from "@/data/mockData";
-import { heroSlides, latestPosts as mockLatestPosts } from "@/data/mockData";
-import { Sparkles, TrendingUp, Zap, Eye, LayoutList, Grid2X2, LayoutGrid } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
+import type { Post } from "@/types/article";
+import { Sparkles, TrendingUp, Zap, Eye, LayoutList, Grid2X2, LayoutGrid, BookOpen } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 
 export function IndexV2() {
+  const isMobile = useIsMobile();
   const [dbPosts, setDbPosts] = useState<Post[]>([]);
   const [featuredPosts, setFeaturedPosts] = useState<Post[]>([]);
   const [latestData, setLatestData] = useState<any[]>([]);
   const [features, setFeatures] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editorsChoiceLayout, setEditorsChoiceLayout] = useState<'list' | 'grid2'>('list');
-  const [recentLayout, setRecentLayout] = useState<'card' | 'grid2' | 'list'>('card');
+  // On mobile default to 'list'
+  const [recentLayout, setRecentLayout] = useState<'card' | 'grid2' | 'list'>(() => {
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      return 'list';
+    }
+    return 'card';
+  });
+
+  useEffect(() => {
+    if (isMobile) {
+      setRecentLayout('list');
+    }
+  }, [isMobile]);
+
   // Category feed sections data
   const [categoryFeed, setCategoryFeed] = useState<
     { section: HomepageCategorySection; articles: SectionArticle[] }[]
@@ -43,39 +57,52 @@ export function IndexV2() {
           api.get("/articles", { params: { limit: limit, status: "published" } }),
           api.get("/articles", { params: { limit: 6, status: "published", featured: "true" } })
         ]);
-
-        const mapToPost = (a: any): Post => {
-          const words = (a.content || "").replace(/<[^>]+>/g, " ").trim().split(/\s+/).filter(Boolean).length;
-          return {
-            id: a.id,
-            slug: a.slug,
-            title: a.title,
-            excerpt: a.excerpt || "",
-            image: a.cover_image || "",
-            category: a.category,
-            categories: Array.isArray(a.categories) && a.categories.length > 0 ? a.categories : (a.category ? [a.category] : []),
-            tags: a.tags || [],
-            author: a.author || "Ustadz",
-            date: new Date(a.published_at || a.created_at).toLocaleDateString("id-ID", {
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-            }),
-            views: a.views,
-            readingMinutes: Math.max(1, Math.ceil(words / 200)),
-            commentCount: a.comment_count || 0,
-          };
-        };
-
+        
         const latestArticles = asArray<any>(latestRes.data);
         const featuredArticles = asArray<any>(featuredRes.data);
 
-        setDbPosts(latestArticles.map(mapToPost));
         setLatestData(latestArticles);
-        setFeaturedPosts(featuredArticles.map(mapToPost));
 
-        const featRes = await api.get("/features");
-        setFeatures(asArray<any>(featRes.data));
+        const mappedLatest: Post[] = latestArticles.map((a: any) => ({
+          id: a.id,
+          slug: a.slug,
+          title: a.title,
+          excerpt: a.excerpt || "",
+          image: a.cover_image || "/uploads/placeholder.png",
+          category: a.category,
+          tags: a.tags || [],
+          author: a.author || "Admin",
+          date: new Date(a.published_at || a.created_at).toLocaleDateString("id-ID"),
+          views: a.views || 0,
+          readingMinutes: 5,
+          commentCount: a.comment_count || 0
+        }));
+
+        const mappedFeatured: Post[] = featuredArticles.map((a: any) => ({
+          id: a.id,
+          slug: a.slug,
+          title: a.title,
+          excerpt: a.excerpt || "",
+          image: a.cover_image || "/uploads/placeholder.png",
+          category: a.category,
+          tags: a.tags || [],
+          author: a.author || "Admin",
+          date: new Date(a.published_at || a.created_at).toLocaleDateString("id-ID"),
+          views: a.views || 0,
+          readingMinutes: 5,
+          commentCount: a.comment_count || 0
+        }));
+
+        setDbPosts(mappedLatest);
+        setFeaturedPosts(mappedFeatured);
+
+        // Fetch feature items
+        try {
+          const featRes = await api.get("/features");
+          setFeatures(asArray(featRes.data));
+        } catch {
+          // feature bar optional
+        }
 
         // Fetch category feed sections
         try {
@@ -107,9 +134,8 @@ export function IndexV2() {
     </div>;
   }
 
-  const hasDbPosts = dbPosts.length > 0;
-  const heroData = hasDbPosts ? dbPosts.slice(0, 10) : heroSlides;
-  const editorsChoice = featuredPosts.length > 0 ? featuredPosts : (hasDbPosts ? dbPosts.slice(0, 6) : heroSlides);
+  const heroData = dbPosts.slice(0, 10);
+  const editorsChoice = featuredPosts.length > 0 ? featuredPosts : dbPosts.slice(0, 6);
 
   return (
     <div className="min-h-screen bg-background selection:bg-primary selection:text-primary-foreground max-w-full overflow-x-hidden">
@@ -119,7 +145,17 @@ export function IndexV2() {
       <main className="bottom-nav-safe pb-16">
         {(() => {
           const DEFAULT_ORDER = "hero_slider,prayer_times,categories,editors_choice,feature_bar,recent_stories";
-          const sectionOrder = (settings.homepage_section_order || DEFAULT_ORDER).split(",").filter(Boolean);
+          const configuredOrder = (settings.homepage_section_order || DEFAULT_ORDER).split(",").filter(Boolean);
+
+          // On mobile: Jadwal sholat dipindah ke menu khusus,
+          // dan tepat di bawah hero slider langsung tampil artikel TERBARU
+          const sectionOrder = isMobile
+            ? [
+                "hero_slider",
+                "recent_stories",
+                ...configuredOrder.filter(s => s !== "hero_slider" && s !== "recent_stories" && s !== "prayer_times")
+              ]
+            : configuredOrder;
 
           const renderSection = (sectionId: string) => {
             switch (sectionId) {
@@ -136,7 +172,7 @@ export function IndexV2() {
 
               case "prayer_times":
                 return (
-                  <div key="prayer_times" className="mt-2 md:mt-0">
+                  <div key="prayer_times" className="hidden md:block mt-2 md:mt-0">
                     <PrayerTimesBar />
                   </div>
                 );
@@ -153,10 +189,12 @@ export function IndexV2() {
                   <div key="editors_choice" className="bg-muted/30 py-16">
                     <div className="container mx-auto px-4">
                        <div className="flex items-center justify-between mb-8">
-                         <div className="flex items-center gap-2">
-                           <div className="h-2 w-8 bg-primary rounded-full" />
-                           <h2 className="text-xl font-black uppercase tracking-widest flex items-center gap-2">
-                             <Sparkles className="h-5 w-5 text-primary" /> {settings.hero_title || "Editors Choice"}
+                         <div className="flex items-center gap-2.5">
+                           <div className="h-8 w-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-sm shrink-0">
+                             <Sparkles className="h-4 w-4" />
+                           </div>
+                           <h2 className="text-xl font-black uppercase tracking-widest">
+                             {settings.hero_title || "Editors Choice"}
                            </h2>
                          </div>
                          
@@ -274,31 +312,37 @@ export function IndexV2() {
 
               case "recent_stories":
                 return (
-                  <div key="recent_stories" className="container mx-auto px-4 py-16">
+                  <div key="recent_stories" className="container mx-auto px-4 py-8 md:py-16">
                      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
                        <div className="lg:col-span-8">
-                          <div className="flex items-center justify-between mb-8">
-                            <div className="flex items-center gap-2">
-                              <div className="h-2 w-8 bg-blue-500 rounded-full" />
+                          <div className="flex items-center justify-between mb-6 md:mb-8">
+                            <div className="flex items-center gap-2.5">
+                              <div className="h-8 w-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-sm shrink-0">
+                                <BookOpen className="h-4 w-4" />
+                              </div>
                               <h2 className="text-xl font-black uppercase tracking-widest">{settings.recent_title || "Recent Stories"}</h2>
                             </div>
 
+                             {/* Layout switcher buttons (card, grid2, list) - filter tetap ada */}
                              <div className="flex md:hidden bg-background/50 p-1 rounded-xl border border-border/50">
                                 <button 
                                   onClick={() => setRecentLayout('card')}
                                   className={`p-1.5 rounded-lg transition-all ${recentLayout === 'card' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground'}`}
+                                  title="Tampilan Card"
                                 >
                                   <LayoutGrid className="h-3.5 w-3.5" />
                                 </button>
                                 <button 
                                   onClick={() => setRecentLayout('grid2')}
                                   className={`p-1.5 rounded-lg transition-all ${recentLayout === 'grid2' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground'}`}
+                                  title="Tampilan 2 Kolom"
                                 >
                                   <Grid2X2 className="h-3.5 w-3.5" />
                                 </button>
                                 <button 
                                   onClick={() => setRecentLayout('list')}
                                   className={`p-1.5 rounded-lg transition-all ${recentLayout === 'list' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground'}`}
+                                  title="Tampilan List"
                                 >
                                   <LayoutList className="h-3.5 w-3.5" />
                                 </button>
@@ -356,7 +400,7 @@ export function IndexV2() {
                          )}
                        </div>
 
-                       <aside className="lg:col-span-4 mt-12 lg:mt-0">
+                       <aside className="hidden lg:block lg:col-span-4 mt-12 lg:mt-0">
                          <Sidebar placement="beranda" />
                        </aside>
                      </div>

@@ -1,5 +1,6 @@
 import { useParams, Link } from "react-router-dom";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { sanitizeHtml } from "@/lib/sanitize";
 import { ArrowLeft, Eye, Calendar, User, Share2, Bookmark, AArrowDown, AArrowUp, RotateCcw, Clock, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/Navbar";
@@ -11,7 +12,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { SEO } from "@/components/SEO";
 import { Footer } from "@/components/Footer";
 import { ArticleQuiz } from "@/components/ArticleQuiz";
-import { latestPosts, type Post } from "@/data/mockData";
+import type { Post } from "@/types/article";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
@@ -128,9 +129,9 @@ export default function ArticleDetail() {
       /^[0-9a-z]+$/.test(article.slug.slice(baseFromTitle.length + 1));
     const shareSlug = shouldShareBase ? baseFromTitle : (article?.slug || article?.id || "");
 
-    const url = `${window.location.origin}/${shareSlug}`;
-    const title = article?.title || "BlogUstad";
-    const text = article?.excerpt || `Baca artikel "${title}" di BlogUstad.`;
+    const url = `${window.location.origin}/artikel/${shareSlug}`;
+    const title = article?.title || "Buyaelvisyam.id";
+    const text = article?.excerpt || `Baca artikel "${title}" di Buyaelvisyam.id.`;
 
     if (navigator.share) {
       try {
@@ -533,7 +534,7 @@ export default function ArticleDetail() {
                   [&_hr]:border-border/50 [&_hr]:my-8
                   [&_strong]:font-bold [&_strong]:text-foreground
                   [&_em]:italic"
-                dangerouslySetInnerHTML={{ __html: articleContentWithHeadingIds }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(articleContentWithHeadingIds) }}
               />
 
               {/* YouTube Embed Section */}

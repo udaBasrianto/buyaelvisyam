@@ -1,5 +1,5 @@
 import { Eye, Clock, User, Share2, MessageCircle, Bookmark } from "lucide-react";
-import type { Post } from "@/data/mockData";
+import type { Post } from "@/types/article";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import api from "@/lib/api";
@@ -50,9 +50,9 @@ export function PostCardV2({ post }: PostCardV2Props) {
     e.preventDefault();
     e.stopPropagation();
 
-    const url = `${window.location.origin}/${post.slug || post.id}`;
+    const url = `${window.location.origin}/artikel/${post.slug || post.id}`;
     const title = post.title;
-    const text = `Baca artikel "${title}" di BlogUstad.`;
+    const text = `Baca artikel "${title}" di Buyaelvisyam.id.`;
 
     if (navigator.share) {
       navigator.share({ title, text, url }).catch(() => {

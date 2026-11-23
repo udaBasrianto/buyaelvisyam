@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Tasbih Digital - Buya Elvi Syam Official</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Cinzel:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #061510;
+      --bg-card: rgba(13, 37, 28, 0.7);
+      --border: rgba(52, 211, 153, 0.18);
+      --primary: #10b981;
+      --primary-light: #34d399;
+      --gold: #f59e0b;
+      --gold-light: #fde68a;
+      --text: #f0fdf4;
+      --text-muted: #94a3b8;
+      --ring-bg: rgba(16, 185, 129, 0.12);
+      --tap-glow: rgba(16, 185, 129, 0.35);
+    }
+
+    [data-theme="light"] {
+      --bg: #f4fbf7;
+      --bg-card: #ffffff;
+      --border: rgba(16, 185, 129, 0.2);
+      --primary: #059669;
+      --primary-light: #10b981;
+      --gold: #d97706;
+      --gold-light: #b45309;
+      --text: #062b1e;
+      --text-muted: #64748b;
+      --ring-bg: rgba(5, 150, 105, 0.08);
+      --tap-glow: rgba(5, 150, 105, 0.25);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: background 0.3s ease, color 0.3s ease;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Background islamic geometry subtle glow */
+    body::before {
+      content: "";
+      position: fixed;
+      top: -20%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, rgba(245, 158, 11, 0.05) 50%, transparent 70%);
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 480px;
+      padding: 16px 20px 32px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Top Bar */
+    .topbar {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0 16px;
+    }
+
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--primary-light);
+      text-decoration: none;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      padding: 6px 14px;
+      border-radius: 999px;
+      backdrop-filter: blur(10px);
+      transition: all 0.2s;
+    }
+
+    .back-btn:hover {
+      border-color: var(--primary);
+      transform: translateX(-2px);
+    }
+
+    .top-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .action-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+      transition: all 0.2s;
+    }
+
+    .action-btn:hover {
+      color: var(--text);
+      border-color: var(--primary-light);
+    }
+
+    .action-btn.active {
+      color: var(--primary-light);
+      border-color: var(--primary-light);
+      background: rgba(16, 185, 129, 0.15);
+    }
+
+    /* Header Title */
+    .header-info {
+      text-align: center;
+      margin-bottom: 12px;
+    }
+
+    .header-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--gold);
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.25);
+      padding: 4px 12px;
+      border-radius: 999px;
+      margin-bottom: 6px;
+    }
+
+    .header-title {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    /* Dzikir Card Selector */
+    .dzikir-selector-card {
+      width: 100%;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 16px 20px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      margin-bottom: 18px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      position: relative;
+    }
+
+    .dzikir-selector-card:hover {
+      border-color: var(--primary-light);
+      box-shadow: 0 12px 36px rgba(16, 185, 129, 0.15);
+    }
+
+    .dzikir-arabic {
+      font-family: 'Amiri', serif;
+      font-size: 32px;
+      line-height: 1.5;
+      color: var(--gold-light);
+      margin-bottom: 6px;
+      direction: rtl;
+    }
+
+    .dzikir-latin {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 2px;
+    }
+
+    .dzikir-meaning {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    .dzikir-change-hint {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--primary-light);
+      margin-top: 8px;
+    }
+
+    /* Target Selector Pill Buttons */
+    .target-tabs {
+      width: 100%;
+      display: flex;
+      gap: 6px;
+      background: rgba(0, 0, 0, 0.2);
+      padding: 4px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      margin-bottom: 22px;
+    }
+
+    .target-tab {
+      flex: 1;
+      padding: 8px 0;
+      font-size: 12px;
+      font-weight: 700;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+
+    .target-tab.active {
+      background: var(--primary);
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+    }
+
+    /* Main Big Circle Counter */
+    .counter-wrapper {
+      position: relative;
+      width: 270px;
+      height: 270px;
+      margin: 10px 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .counter-svg {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+
+    .circle-bg {
+      fill: none;
+      stroke: var(--ring-bg);
+      stroke-width: 10;
+    }
+
+    .circle-progress {
+      fill: none;
+      stroke: url(#emerald-grad);
+      stroke-width: 10;
+      stroke-linecap: round;
+      stroke-dasharray: 785; /* 2 * PI * 125 */
+      stroke-dashoffset: 785;
+      transition: stroke-dashoffset 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .counter-core-btn {
+      position: absolute;
+      width: 216px;
+      height: 216px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, rgba(16, 185, 129, 0.25) 0%, rgba(6, 30, 22, 0.95) 80%);
+      border: 2px solid rgba(52, 211, 153, 0.3);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45), inset 0 2px 6px rgba(255, 255, 255, 0.15);
+      transition: transform 0.08s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+      touch-action: manipulation;
+    }
+
+    .counter-core-btn:active {
+      transform: scale(0.95);
+      border-color: var(--primary-light);
+      box-shadow: 0 6px 20px var(--tap-glow), inset 0 2px 4px rgba(255, 255, 255, 0.1);
+    }
+
+    .count-number {
+      font-family: 'Cinzel', serif;
+      font-size: 64px;
+      font-weight: 700;
+      line-height: 1;
+      color: var(--text);
+      letter-spacing: -0.03em;
+      text-shadow: 0 4px 18px rgba(16, 185, 129, 0.4);
+      transition: transform 0.1s ease;
+    }
+
+    .count-target-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--gold-light);
+      margin-top: 6px;
+      letter-spacing: 0.05em;
+    }
+
+    .tap-instruction {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-top: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    /* Sub Controls: Reset, Undo, Custom */
+    .controls-row {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .tool-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 10px 18px;
+      border-radius: 14px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+      transition: all 0.2s;
+    }
+
+    .tool-btn:hover {
+      border-color: var(--primary-light);
+      background: rgba(16, 185, 129, 0.1);
+    }
+
+    .tool-btn.danger:hover {
+      border-color: #ef4444;
+      color: #ef4444;
+      background: rgba(239, 68, 68, 0.1);
+    }
+
+    /* Stats bar */
+    .stats-card {
+      width: 100%;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 18px;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      backdrop-filter: blur(10px);
+    }
+
+    .stat-item {
+      text-align: center;
+    }
+
+    .stat-val {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--primary-light);
+    }
+
+    .stat-lbl {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* Modal / Drawer for Dzikir Selection & Custom Target */
+    .sheet-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+      display: flex;
+      align-items: flex-end;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+
+    .sheet-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .sheet-content {
+      width: 100%;
+      max-width: 500px;
+      margin: 0 auto;
+      background: #092118;
+      border: 1px solid var(--border);
+      border-top-left-radius: 28px;
+      border-top-right-radius: 28px;
+      padding: 24px;
+      max-height: 80vh;
+      overflow-y: auto;
+      transform: translateY(100%);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    [data-theme="light"] .sheet-content {
+      background: #ffffff;
+    }
+
+    .sheet-overlay.open .sheet-content {
+      transform: translateY(0);
+    }
+
+    .sheet-handle {
+      width: 44px;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 999px;
+      margin: 0 auto 16px;
+    }
+
+    .sheet-title {
+      font-size: 18px;
+      font-weight: 800;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+
+    .dzikir-list-item {
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      margin-bottom: 10px;
+      background: rgba(13, 37, 28, 0.5);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .dzikir-list-item:hover, .dzikir-list-item.selected {
+      border-color: var(--primary-light);
+      background: rgba(16, 185, 129, 0.15);
+    }
+
+    .custom-input {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 18px;
+      font-weight: 700;
+      padding: 12px 16px;
+      border-radius: 12px;
+      margin-bottom: 14px;
+      outline: none;
+      text-align: center;
+    }
+
+    .custom-input:focus {
+      border-color: var(--primary);
+    }
+
+    /* Target Completed Celebration */
+    .target-completed-toast {
+      position: fixed;
+      top: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-100px);
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: #ffffff;
+      padding: 12px 24px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 10px 30px rgba(16, 185, 129, 0.5);
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 1000;
+    }
+
+    .target-completed-toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Zen Full Screen mode */
+    body.zen-mode .topbar,
+    body.zen-mode .header-info,
+    body.zen-mode .dzikir-selector-card,
+    body.zen-mode .target-tabs,
+    body.zen-mode .stats-card {
+      display: none;
+    }
+
+    body.zen-mode .container {
+      justify-content: center;
+    }
+
+    body.zen-mode .counter-wrapper {
+      width: 330px;
+      height: 330px;
+    }
+
+    body.zen-mode .counter-core-btn {
+      width: 270px;
+      height: 270px;
+    }
+
+    body.zen-mode .count-number {
+      font-size: 84px;
+    }
+
+    .zen-exit-btn {
+      display: none;
+      position: fixed;
+      bottom: 24px;
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 8px 16px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    body.zen-mode .zen-exit-btn {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="target-completed-toast" id="toastTarget">
+    <span>✨</span>
+    <span id="toastMsg">Target 33x Tercapai! Alhamdulillah</span>
+  </div>
+
+  <div class="container">
+    <!-- Topbar -->
+    <div class="topbar">
+      <a href="/haji-umroh" class="back-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        <span>Portal</span>
+      </a>
+      <div class="top-actions">
+        <button class="action-btn" id="btnHaptic" title="Getaran (Haptic)" aria-label="Getaran">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg>
+        </button>
+        <button class="action-btn" id="btnSound" title="Suara Klik" aria-label="Suara Klik">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+        </button>
+        <button class="action-btn" id="btnZen" title="Zen Focus (Layar Penuh)" aria-label="Layar Penuh">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+        </button>
+        <button class="action-btn" id="btnTheme" title="Ganti Tema" aria-label="Ganti Tema">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Header info -->
+    <div class="header-info">
+      <div class="header-badge">Buya Elvi Syam • Ibadah Harian</div>
+      <h1 class="header-title">Tasbih Digital Sunnah</h1>
+    </div>
+
+    <!-- Dzikir Selector Card -->
+    <div class="dzikir-selector-card" id="dzikirCard" title="Klik untuk mengganti bacaan dzikir">
+      <div class="dzikir-arabic" id="dzikirArabic">سُبْحَانَ اللَّهِ</div>
+      <div class="dzikir-latin" id="dzikirLatin">Subhanallah</div>
+      <div class="dzikir-meaning" id="dzikirMeaning">Maha Suci Allah</div>
+      <div class="dzikir-change-hint">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        <span>Ganti Bacaan Dzikir</span>
+      </div>
+    </div>
+
+    <!-- Target Selector Pills -->
+    <div class="target-tabs">
+      <button class="target-tab active" data-target="33">33×</button>
+      <button class="target-tab" data-target="100">100×</button>
+      <button class="target-tab" data-target="7">7× (Thawaf)</button>
+      <button class="target-tab" data-target="custom">Custom</button>
+      <button class="target-tab" data-target="0">∞</button>
+    </div>
+
+    <!-- Main Counter Circle Button -->
+    <div class="counter-wrapper">
+      <svg class="counter-svg" viewBox="0 0 270 270">
+        <defs>
+          <linearGradient id="emerald-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#34d399" />
+            <stop offset="100%" stop-color="#10b981" />
+          </linearGradient>
+        </defs>
+        <circle class="circle-bg" cx="135" cy="135" r="125" />
+        <circle class="circle-progress" id="progressRing" cx="135" cy="135" r="125" />
+      </svg>
+
+      <div class="counter-core-btn" id="btnCount" role="button" aria-label="Hitung Dzikir">
+        <div class="count-number" id="countDisplay">0</div>
+        <div class="count-target-label" id="targetLabel">Target: 33</div>
+        <div class="tap-instruction">Ketuk untuk Berdzikir</div>
+      </div>
+    </div>
+
+    <!-- Controls Row: Undo & Reset -->
+    <div class="controls-row">
+      <button class="tool-btn" id="btnUndo" title="Kurangi 1 hitungan">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+        <span>Undo (-1)</span>
+      </button>
+
+      <button class="tool-btn danger" id="btnReset" title="Reset hitungan ke nol">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        <span>Reset</span>
+      </button>
+    </div>
+
+    <!-- Stats Card -->
+    <div class="stats-card">
+      <div class="stat-item">
+        <div class="stat-val" id="statToday">0</div>
+        <div class="stat-lbl">Hari Ini</div>
+      </div>
+      <div class="stat-item" style="border-left: 1px solid var(--border); height: 26px;"></div>
+      <div class="stat-item">
+        <div class="stat-val" id="statRounds">0</div>
+        <div class="stat-lbl">Putaran Selesai</div>
+      </div>
+      <div class="stat-item" style="border-left: 1px solid var(--border); height: 26px;"></div>
+      <div class="stat-item">
+        <div class="stat-val" id="statTotal">0</div>
+        <div class="stat-lbl">Total Seluruhnya</div>
+      </div>
+    </div>
+
+    <button class="zen-exit-btn" id="btnExitZen">✕ Keluar Mode Zen</button>
+  </div>
+
+  <!-- Sheet Modal: Pilih Dzikir -->
+  <div class="sheet-overlay" id="sheetDzikir">
+    <div class="sheet-content">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">Pilih Bacaan Dzikir Shahih</div>
+      <div id="dzikirListContainer"></div>
+    </div>
+  </div>
+
+  <!-- Sheet Modal: Custom Target -->
+  <div class="sheet-overlay" id="sheetCustom">
+    <div class="sheet-content">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">Tentukan Target Hitungan</div>
+      <p style="font-size:12px; color:var(--text-muted); text-align:center; margin-bottom:14px;">Masukkan jumlah bilangan dzikir yang ingin Anda capai:</p>
+      <input type="number" id="inputCustomTarget" class="custom-input" placeholder="Misal: 70 atau 1000" min="1" max="999999" value="70" />
+      <button class="tool-btn" id="btnSaveCustom" style="width:100%; justify-content:center; background:var(--primary); color:#fff; border:none; padding:12px;">Simpan Target</button>
+    </div>
+  </div>
+
+  <script>
+    // Audio Context synthesized subtle click sound
+    let audioCtx = null;
+    function playClickSound() {
+      if (!soundEnabled) return;
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.04);
+        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.04);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.04);
+      } catch (e) {}
+    }
+
+    function triggerHaptic(duration = 20) {
+      if (!hapticEnabled) return;
+      if (navigator.vibrate) {
+        navigator.vibrate(duration);
+      }
+    }
+
+    // Dzikir Presets
+    const DZIKIR_DATA = [
+      {
+        arabic: "سُبْحَانَ اللَّهِ",
+        latin: "Subhanallah",
+        meaning: "Maha Suci Allah (33x Ba'da Shalat)",
+        defaultTarget: 33
+      },
+      {
+        arabic: "الْحَمْدُ لِلَّهِ",
+        latin: "Alhamdulillah",
+        meaning: "Segala puji bagi Allah (33x Ba'da Shalat)",
+        defaultTarget: 33
+      },
+      {
+        arabic: "اللَّهُ أَكْبَرُ",
+        latin: "Allahu Akbar",
+        meaning: "Allah Maha Besar (33x Ba'da Shalat)",
+        defaultTarget: 33
+      },
+      {
+        arabic: "أَسْتَغْفِرُ اللَّهَ وَأَتُوبُ إِلَيْهِ",
+        latin: "Astaghfirullah wa atuubu ilaih",
+        meaning: "Aku memohon ampun kepada Allah & bertaubat (100x sehari)",
+        defaultTarget: 100
+      },
+      {
+        arabic: "سُبْحَانَ اللَّهِ وَبِحَمْدِهِ ، سُبْحَانَ اللَّهِ الْعَظِيمِ",
+        latin: "Subhanallahi wa bihamdihi, Subhanallahil 'Azhim",
+        meaning: "Dua kalimat yang ringan di lisan, berat di timbangan",
+        defaultTarget: 100
+      },
+      {
+        arabic: "لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ",
+        latin: "Laa ilaha illallah wahdahu laa syarika lah...",
+        meaning: "Pahala memerdekakan 10 budak & pelindung dari setan",
+        defaultTarget: 100
+      },
+      {
+        arabic: "اللَّهُمَّ صَلِّ عَلَى مُحَمَّدٍ وَعَلَى آلِ مُحَمَّدٍ",
+        latin: "Allahumma shalli 'ala Muhammad wa 'ala aali Muhammad",
+        meaning: "Shalawat atas Nabi Muhammad ﷺ",
+        defaultTarget: 10
+      },
+      {
+        arabic: "رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الآخِرَةِ حَسَنَةً",
+        latin: "Rabbana aatina fid-dunya hasanah wa fil-akhirati hasanah",
+        meaning: "Doa Sapujagat di antara Rukun Yamani & Hajar Aswad",
+        defaultTarget: 7
+      },
+      {
+        arabic: "ذِكْرٌ مُطْلَقٌ",
+        latin: "Dzikir Bebas / Mandiri",
+        meaning: "Berdzikir dengan lafadz dan target pilihan pribadi",
+        defaultTarget: 0
+      }
+    ];
+
+    // State Variables
+    let currentDzikirIndex = 0;
+    let count = 0;
+    let target = 33;
+    let roundsCompleted = 0;
+    let totalCount = 0;
+    let todayCount = 0;
+    let hapticEnabled = true;
+    let soundEnabled = true;
+
+    // Load LocalStorage
+    const saved = localStorage.getItem("bes_tasbih_data");
+    if (saved) {
+      try {
+        const d = JSON.parse(saved);
+        count = d.count || 0;
+        target = d.target !== undefined ? d.target : 33;
+        roundsCompleted = d.roundsCompleted || 0;
+        totalCount = d.totalCount || 0;
+        todayCount = d.todayCount || 0;
+        currentDzikirIndex = d.currentDzikirIndex || 0;
+      } catch (e) {}
+    }
+
+    // Elements
+    const countDisplay = document.getElementById("countDisplay");
+    const targetLabel = document.getElementById("targetLabel");
+    const progressRing = document.getElementById("progressRing");
+    const dzikirArabic = document.getElementById("dzikirArabic");
+    const dzikirLatin = document.getElementById("dzikirLatin");
+    const dzikirMeaning = document.getElementById("dzikirMeaning");
+    const statToday = document.getElementById("statToday");
+    const statRounds = document.getElementById("statRounds");
+    const statTotal = document.getElementById("statTotal");
+    const btnCount = document.getElementById("btnCount");
+    const btnHaptic = document.getElementById("btnHaptic");
+    const btnSound = document.getElementById("btnSound");
+    const btnZen = document.getElementById("btnZen");
+    const btnExitZen = document.getElementById("btnExitZen");
+    const btnTheme = document.getElementById("btnTheme");
+    const dzikirCard = document.getElementById("dzikirCard");
+    const sheetDzikir = document.getElementById("sheetDzikir");
+    const sheetCustom = document.getElementById("sheetCustom");
+    const dzikirListContainer = document.getElementById("dzikirListContainer");
+    const inputCustomTarget = document.getElementById("inputCustomTarget");
+    const btnSaveCustom = document.getElementById("btnSaveCustom");
+    const toastTarget = document.getElementById("toastTarget");
+    const toastMsg = document.getElementById("toastMsg");
+
+    const CIRCUMFERENCE = 2 * Math.PI * 125; // r = 125
+
+    function updateUI() {
+      countDisplay.textContent = count;
+      targetLabel.textContent = target > 0 ? `Target: ${target}` : `Mode Bebas (∞)`;
+
+      // Progress Ring
+      if (target > 0) {
+        const progress = Math.min(count / target, 1);
+        const offset = CIRCUMFERENCE - (progress * CIRCUMFERENCE);
+        progressRing.style.strokeDashoffset = offset;
+      } else {
+        // Continuous looping subtle bar
+        progressRing.style.strokeDashoffset = CIRCUMFERENCE * 0.75;
+      }
+
+      // Active Dzikir Info
+      const active = DZIKIR_DATA[currentDzikirIndex] || DZIKIR_DATA[0];
+      dzikirArabic.textContent = active.arabic;
+      dzikirLatin.textContent = active.latin;
+      dzikirMeaning.textContent = active.meaning;
+
+      // Stats
+      statToday.textContent = todayCount;
+      statRounds.textContent = roundsCompleted;
+      statTotal.textContent = totalCount;
+
+      // Update Target Tab Buttons
+      document.querySelectorAll(".target-tab").forEach(tab => {
+        const val = tab.getAttribute("data-target");
+        if (val === "custom" && target !== 33 && target !== 100 && target !== 7 && target !== 0) {
+          tab.classList.add("active");
+          tab.textContent = `${target}×`;
+        } else if (Number(val) === target) {
+          tab.classList.add("active");
+        } else {
+          tab.classList.remove("active");
+        }
+      });
+
+      // Save state
+      localStorage.setItem("bes_tasbih_data", JSON.stringify({
+        count, target, roundsCompleted, totalCount, todayCount, currentDzikirIndex
+      }));
+    }
+
+    function showTargetToast(msg) {
+      toastMsg.textContent = msg;
+      toastTarget.classList.add("show");
+      setTimeout(() => {
+        toastTarget.classList.remove("show");
+      }, 2500);
+    }
+
+    function increment() {
+      playClickSound();
+      triggerHaptic(25);
+      count++;
+      todayCount++;
+      totalCount++;
+
+      if (target > 0 && count === target) {
+        roundsCompleted++;
+        triggerHaptic([60, 50, 100]); // Long vibration signature
+        showTargetToast(`Alhamdulillah! Target ${target}× Selesai.`);
+      }
+
+      updateUI();
+    }
+
+    function decrement() {
+      if (count > 0) {
+        triggerHaptic(15);
+        count--;
+        if (todayCount > 0) todayCount--;
+        if (totalCount > 0) totalCount--;
+        updateUI();
+      }
+    }
+
+    function resetCount() {
+      if (confirm("Reset hitungan saat ini ke nol?")) {
+        triggerHaptic(30);
+        count = 0;
+        updateUI();
+      }
+    }
+
+    // Build Dzikir List Items
+    function renderDzikirList() {
+      dzikirListContainer.innerHTML = "";
+      DZIKIR_DATA.forEach((item, idx) => {
+        const div = document.createElement("div");
+        div.className = `dzikir-list-item ${idx === currentDzikirIndex ? "selected" : ""}`;
+        div.innerHTML = `
+          <div style="font-family:'Amiri',serif; font-size:24px; color:var(--gold-light); direction:rtl; margin-bottom:4px;">${item.arabic}</div>
+          <div style="font-weight:700; font-size:14px; color:var(--text);">${item.latin}</div>
+          <div style="font-size:12px; color:var(--text-muted);">${item.meaning}</div>
+        `;
+        div.onclick = () => {
+          currentDzikirIndex = idx;
+          if (item.defaultTarget !== undefined) {
+            target = item.defaultTarget;
+          }
+          sheetDzikir.classList.remove("open");
+          updateUI();
+        };
+        dzikirListContainer.appendChild(div);
+      });
+    }
+
+    // Event Listeners
+    btnCount.addEventListener("click", increment);
+    document.getElementById("btnUndo").addEventListener("click", decrement);
+    document.getElementById("btnReset").addEventListener("click", resetCount);
+
+    // Target Tabs
+    document.querySelectorAll(".target-tab").forEach(tab => {
+      tab.addEventListener("click", () => {
+        const val = tab.getAttribute("data-target");
+        if (val === "custom") {
+          inputCustomTarget.value = target > 0 ? target : 70;
+          sheetCustom.classList.add("open");
+        } else {
+          target = Number(val);
+          updateUI();
+        }
+      });
+    });
+
+    btnSaveCustom.addEventListener("click", () => {
+      const val = parseInt(inputCustomTarget.value, 10);
+      if (val && val > 0) {
+        target = val;
+        sheetCustom.classList.remove("open");
+        updateUI();
+      }
+    });
+
+    // Modals
+    dzikirCard.addEventListener("click", () => {
+      renderDzikirList();
+      sheetDzikir.classList.add("open");
+    });
+
+    sheetDzikir.addEventListener("click", (e) => {
+      if (e.target === sheetDzikir) sheetDzikir.classList.remove("open");
+    });
+
+    sheetCustom.addEventListener("click", (e) => {
+      if (e.target === sheetCustom) sheetCustom.classList.remove("open");
+    });
+
+    // Top action buttons
+    btnHaptic.classList.toggle("active", hapticEnabled);
+    btnHaptic.addEventListener("click", () => {
+      hapticEnabled = !hapticEnabled;
+      btnHaptic.classList.toggle("active", hapticEnabled);
+      if (hapticEnabled) triggerHaptic(40);
+    });
+
+    btnSound.classList.toggle("active", soundEnabled);
+    btnSound.addEventListener("click", () => {
+      soundEnabled = !soundEnabled;
+      btnSound.classList.toggle("active", soundEnabled);
+      if (soundEnabled) playClickSound();
+    });
+
+    btnZen.addEventListener("click", () => {
+      document.body.classList.add("zen-mode");
+    });
+
+    btnExitZen.addEventListener("click", () => {
+      document.body.classList.remove("zen-mode");
+    });
+
+    btnTheme.addEventListener("click", () => {
+      const isLight = document.body.getAttribute("data-theme") === "light";
+      document.body.setAttribute("data-theme", isLight ? "dark" : "light");
+    });
+
+    // Key shortcut (Spacebar / Enter to count, Backspace to undo)
+    window.addEventListener("keydown", (e) => {
+      if (e.code === "Space" || e.code === "Enter") {
+        e.preventDefault();
+        increment();
+      } else if (e.code === "Backspace") {
+        decrement();
+      }
+    });
+
+    // Initial setup
+    updateUI();
+  </script>
+</body>
+</html>

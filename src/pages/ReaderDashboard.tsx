@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft, User, MessageCircle, Edit, Trash2, LayoutDashboard,
   CornerDownRight, CheckCircle2, Wallet, Plus, ArrowUpRight, History, Trophy, Award, Bookmark, Heart
@@ -79,6 +79,28 @@ export default function ReaderDashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const currentTab = searchParams.get("tab") || "overview";
+  const [activeTab, setActiveTab] = useState(currentTab);
+
+  useEffect(() => {
+    const tab = searchParams.get("tab") || "overview";
+    if (tab !== activeTab) {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (newTab: string) => {
+    setActiveTab(newTab);
+    const newParams = new URLSearchParams(searchParams);
+    if (newTab === "overview") {
+      newParams.delete("tab");
+    } else {
+      newParams.set("tab", newTab);
+    }
+    setSearchParams(newParams, { replace: true });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
   const [comments, setComments] = useState<Comment[]>([]);
   const [profile, setProfile] = useState<Profile>({ display_name: "", avatar_url: "" });
   const [loading, setLoading] = useState(true);
@@ -228,8 +250,8 @@ export default function ReaderDashboard() {
       <Navbar />
 
       <main className="container mx-auto px-4 py-6 pb-24 max-w-3xl bottom-nav-safe">
-        <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid grid-cols-6 w-full bg-muted/30 p-1 rounded-2xl border border-border/50">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
+          <TabsList className="hidden md:grid grid-cols-6 w-full bg-muted/30 p-1 rounded-2xl border border-border/50">
             <TabsTrigger value="overview" className="rounded-xl font-bold gap-2 text-[10px] sm:text-xs"><LayoutDashboard className="h-3 w-3" /> Overview</TabsTrigger>
             <TabsTrigger value="bookmarks" className="rounded-xl font-bold gap-2 text-[10px] sm:text-xs"><Bookmark className="h-3 w-3" /> Koleksi</TabsTrigger>
             <TabsTrigger value="komentar" className="rounded-xl font-bold gap-2 text-[10px] sm:text-xs"><MessageCircle className="h-3 w-3" /> Komentar</TabsTrigger>
@@ -477,7 +499,7 @@ export default function ReaderDashboard() {
            <DialogFooter><Button onClick={handleTopUp} disabled={uploading || !proofUrl} className="w-full h-12 rounded-xl font-black uppercase text-xs tracking-widest shadow-xl shadow-primary/10">{uploading ? "Sedang Mengunggah..." : "Kirim Permintaan"}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
-      <BottomNav />
+      <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
     </div>
   );
 }

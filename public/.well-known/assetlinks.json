@@ -1,0 +1,27 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "id.buyaelvisyam.app",
+      "sha256_cert_fingerprints": [
+        "22:0A:44:1F:CA:39:E8:AC:3E:B2:9B:F1:7B:16:00:3E:79:E1:0A:2A:7D:84:F3:33:33:55:BE:7D:61:B6:AE:77",
+        "D2:42:44:E9:05:F3:8C:EB:DE:E7:6C:F4:62:A2:98:53:29:80:3B:03:4E:91:4F:16:CB:AB:2B:2B:FE:F3:04:0D"
+      ]
+    }
+  },
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.id.buyaelvisyam.twa",
+      "sha256_cert_fingerprints": [
+        "58:D5:EB:52:7F:6A:B2:00:D2:3E:63:89:6E:F8:C8:93:4F:5E:11:8B:44:31:8A:55:B6:57:CA:C1:96:76:A0:25"
+      ]
+    }
+  }
+]

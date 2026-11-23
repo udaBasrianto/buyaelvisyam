@@ -17,6 +17,8 @@ type CheckoutMethod = "web" | "whatsapp";
 
 type OrderResponseItem = {
   id: string;
+  product_id: string;
+  product_type?: string;
   product_title: string;
   quantity: number;
   unit_price: number;
@@ -612,6 +614,16 @@ export function CheckoutSuccess() {
                     <div>
                       <div className="font-medium">{item.product_title}</div>
                       <div className="text-sm text-muted-foreground">{item.quantity} x {item.currency} {item.unit_price.toLocaleString("id-ID")}</div>
+                      {item.product_type === "digital" && order.payment_status === "paid" && order.status !== "cancelled" && (
+                        <a
+                          className="mt-1 inline-block text-sm font-medium text-emerald-600 hover:underline"
+                          href={`/api/products/${item.product_id}/download?order=${encodeURIComponent(order.public_token)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          Unduh file digital
+                        </a>
+                      )}
                     </div>
                     <div className="font-semibold">{item.currency} {item.line_total.toLocaleString("id-ID")}</div>
                   </div>

@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Eye, Clock, ArrowRight } from "lucide-react";
+import { Eye, Clock, ArrowRight, FolderOpen } from "lucide-react";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 const DEFAULT_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 450'%3E%3Crect width='800' height='450' fill='%23e5e7eb'/%3E%3C/svg%3E";
@@ -104,19 +104,18 @@ function GridLayout({ articles, defaultImage }: { articles: SectionArticle[]; de
               onError={(e) => { (e.target as HTMLImageElement).src = defaultImage; }}
             />
           </div>
-          <div className="p-4 flex flex-col flex-1">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-primary mb-1.5">
-              {article.category}
-            </span>
-            <h3 className="text-[14px] font-bold leading-snug line-clamp-2 text-foreground group-hover:text-primary transition-colors flex-1">
-              {article.title}
-            </h3>
-            <div className="flex items-center gap-2 mt-3 text-[11px] text-muted-foreground">
-              <span>{article.author}</span>
-              <span>•</span>
-              <span className="flex items-center gap-1"><Eye className="h-3 w-3" /> {article.views}</span>
-              <span>•</span>
-              <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {readingMins()} mnt</span>
+          <div className="p-4 flex flex-col justify-between flex-1">
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-primary mb-1.5">
+                {article.category}
+              </span>
+              <h4 className="text-[14px] font-bold leading-snug line-clamp-2 text-foreground group-hover:text-primary transition-colors">
+                {article.title}
+              </h4>
+            </div>
+            <div className="flex items-center justify-between text-muted-foreground text-[11px] mt-3 pt-2 border-t border-border/40">
+              <span className="truncate max-w-[120px]">{article.author}</span>
+              <span>{formatDate(article.published_at || article.created_at)}</span>
             </div>
           </div>
         </Link>
@@ -125,20 +124,20 @@ function GridLayout({ articles, defaultImage }: { articles: SectionArticle[]; de
   );
 }
 
-// ── Layout: List (horizontal cards, magazine sidebar style) ─────────────────
+// ── Layout: List (1 big left + vertical list right) ──────────────────────────
 function ListLayout({ articles, defaultImage }: { articles: SectionArticle[]; defaultImage: string }) {
   if (articles.length === 0) return null;
 
   const [featured, ...rest] = articles;
 
   return (
-    <div className="grid gap-4 grid-cols-1 lg:grid-cols-[2fr_1fr]">
-      {/* Big featured card */}
+    <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
+      {/* Big card left */}
       <Link
         to={`/artikel/${featured.slug || featured.id}`}
-        className="group relative rounded-2xl overflow-hidden"
+        className="group relative block rounded-2xl overflow-hidden"
       >
-        <div className="aspect-[16/9] overflow-hidden bg-muted">
+        <div className="aspect-[16/11] overflow-hidden bg-muted">
           <img
             src={featured.cover_image || defaultImage}
             alt={featured.title}
@@ -291,9 +290,11 @@ export function CategoryFeedSection({ section, articles }: CategoryFeedSectionPr
     <section className="container mx-auto px-4 py-8 md:py-12">
       {/* Section header */}
       <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="h-6 w-1.5 bg-primary rounded-full" />
-          <h2 className="text-[18px] font-black uppercase tracking-widest text-foreground">
+        <div className="flex items-center gap-2.5">
+          <div className="h-8 w-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-sm shrink-0">
+            <FolderOpen className="h-4 w-4" />
+          </div>
+          <h2 className="text-xl font-black uppercase tracking-widest text-foreground">
             {displayTitle}
           </h2>
           <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider">

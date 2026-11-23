@@ -68,6 +68,10 @@ func ConnectDB() {
 		&models.AdminAuditLog{},
 		&models.WhatsAppBroadcastLog{},
 		&models.HomepageCategorySection{},
+		&models.DownloadFile{},
+		&models.DownloadLog{},
+		&models.FAQItem{},
+		&models.PopupBanner{},
 	)
 
 	db.Exec(`UPDATE profiles SET whats_app_number = NULL WHERE whats_app_number = ''`)

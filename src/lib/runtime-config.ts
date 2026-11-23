@@ -12,16 +12,17 @@ export const getSiteOrigin = () => {
   if (siteUrl) return stripTrailingSlash(siteUrl);
 
   if (typeof window !== "undefined" && /^https?:$/.test(window.location.protocol)) {
-    const host = window.location.hostname;
-    if (host && host !== "localhost" && host !== "127.0.0.1") {
-      return window.location.origin;
-    }
+    return window.location.origin;
   }
 
   return DEFAULT_PRODUCTION_SITE_URL;
 };
 
 export const getBackendOrigin = () => {
+  if (typeof window !== "undefined" && /^https?:$/.test(window.location.protocol)) {
+    return window.location.origin;
+  }
+
   const apiUrl = getConfiguredApiUrl();
   if (apiUrl) {
     return apiUrl.endsWith("/api") ? apiUrl.slice(0, -4) : apiUrl;
@@ -35,6 +36,10 @@ export const getBackendOrigin = () => {
 };
 
 export const getApiBaseUrl = () => {
+  if (typeof window !== "undefined" && /^https?:$/.test(window.location.protocol)) {
+    return "/api";
+  }
+
   const apiUrl = getConfiguredApiUrl();
   if (apiUrl) return apiUrl;
   return `${getBackendOrigin()}/api`;

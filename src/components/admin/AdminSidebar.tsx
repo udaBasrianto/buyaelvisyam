@@ -19,7 +19,8 @@ import {
   Receipt,
   Download,
   HelpCircle,
-  Megaphone
+  Megaphone,
+  Image as ImageIcon
 } from "lucide-react";
 import {
   Sidebar,
@@ -82,6 +83,7 @@ export function AdminSidebar({ activeTab }: AdminSidebarProps) {
         { id: "articles", label: "Artikel", icon: FileText },
         { id: "pages", label: "Halaman", icon: FileCode },
         { id: "categories", label: "Kategori", icon: FolderOpen },
+        { id: "gallery", label: "Galeri Media", icon: ImageIcon },
         { id: "popups", label: "Popup Banner", icon: Megaphone },
         { id: "unduhan", label: "Unduhan", icon: Download },
         { id: "faq", label: "FAQ", icon: HelpCircle },

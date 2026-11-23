@@ -320,7 +320,7 @@ export default function PageView() {
   }, [slug]);
 
   useEffect(() => {
-    if (page) document.title = `${page.title} — ${settings.site_name || "BlogUstad"}`;
+    if (page) document.title = `${page.title} — ${settings.site_name || "Buyaelvisyam.id"}`;
   }, [page, settings.site_name]);
 
   if (notFound) return <Navigate to="/404" replace />;
@@ -330,7 +330,7 @@ export default function PageView() {
 
   return (
     <div className="min-h-screen bg-background">
-      <SEO title={`${page.title} — ${settings.site_name || "BlogUstad"}`} description={page.excerpt || ""} />
+      <SEO title={`${page.title} — ${settings.site_name || "Buyaelvisyam.id"}`} description={page.excerpt || ""} />
       <Navbar />
 
       <div className="bottom-nav-safe">

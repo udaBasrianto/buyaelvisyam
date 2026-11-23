@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
-import { Heart } from "lucide-react";
+import { Heart, Compass, Globe } from "lucide-react";
 import api from "@/lib/api";
 import { asNumber, asObject } from "@/lib/api-response";
 
@@ -138,11 +138,12 @@ export function Footer() {
                 {settings.site_name}
               </span>
             </div>
-            <p className="text-sm text-zinc-400 leading-relaxed max-w-sm">
-              {settings.tagline || settings.footer_text || "Berilmu Sebelum Beramal — Website Resmi Buya Elvisyam."}
+            
+            <p className="text-sm text-zinc-400 leading-relaxed font-normal">
+              {settings.footer_description || "Portal media Islam rujukan Ahlussunnah wal Jama'ah terdepan menyajikan artikel, risalah, fatwa, dan multimedia berbasis keilmuan yang sahih."}
             </p>
 
-            {/* Tombol Download Aplikasi Google Play Store */}
+            {/* Google Play Store Badge */}
             {(settings.play_store_url || "https://play.google.com/store/apps/details?id=id.buyaelvisyam.app&pcampaignid=web_share") && (
               <div className="pt-1">
                 <a
@@ -169,9 +170,14 @@ export function Footer() {
 
           {/* Kolom 2: Link Kebijakan & Navigasi */}
           <div className="flex flex-col">
-            <h3 className="font-bold text-white text-sm uppercase tracking-wider mb-4 border-l-2 border-primary pl-2.5">
-              Navigasi & Tautan
-            </h3>
+            <div className="flex items-center gap-2.5 mb-4">
+              <div className="h-7 w-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-sm shrink-0">
+                <Compass className="h-3.5 w-3.5" />
+              </div>
+              <h3 className="font-bold text-white text-sm uppercase tracking-wider">
+                Navigasi & Tautan
+              </h3>
+            </div>
             <ul className="grid grid-cols-2 gap-y-2.5 gap-x-4 text-sm font-medium">
               <li>
                 <Link to="/tentang" className="text-zinc-400 hover:text-primary transition-colors flex items-center gap-1.5 group">
@@ -214,10 +220,17 @@ export function Footer() {
 
           {/* Kolom 3: Widget Stats Negara (GA4 Style) */}
           <div className="flex flex-col">
-            <h3 className="font-bold text-white text-sm uppercase tracking-wider mb-4 border-l-2 border-primary pl-2.5 flex items-center justify-between">
-              <span>Asal Pengunjung</span>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="h-7 w-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-sm shrink-0">
+                  <Globe className="h-3.5 w-3.5" />
+                </div>
+                <h3 className="font-bold text-white text-sm uppercase tracking-wider">
+                  Asal Pengunjung
+                </h3>
+              </div>
               <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-semibold normal-case">GA4 Real-Time</span>
-            </h3>
+            </div>
             
             <div className="bg-zinc-900/40 backdrop-blur-md border border-zinc-800/80 rounded-xl p-4 space-y-3 shadow-lg relative overflow-hidden">
               {/* Flag counts grid */}

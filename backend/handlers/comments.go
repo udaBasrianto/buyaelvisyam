@@ -29,7 +29,7 @@ func GetComments(c *fiber.Ctx) error {
 		if token != nil && token.Valid {
 			if claims, ok := token.Claims.(jwt.MapClaims); ok {
 				role, _ := claims["role"].(string)
-				if strings.TrimSpace(role) == "admin" {
+				if r := strings.TrimSpace(role); r == "admin" || r == "superadmin" {
 					isAdmin = true
 				}
 			}
@@ -179,7 +179,7 @@ func CreateComment(c *fiber.Ctx) error {
 	comment.UserID = userID
 	comment.CreatedAt = time.Now()
 	comment.UpdatedAt = time.Now()
-	if role == "admin" || role == "kontributor" {
+	if role == "admin" || role == "superadmin" || role == "kontributor" {
 		comment.Status = "approved"
 	} else {
 		comment.Status = "pending"
@@ -242,7 +242,7 @@ func DeleteComment(c *fiber.Ctx) error {
 		return c.Status(404).JSON(fiber.Map{"error": "Comment not found"})
 	}
 
-	if role != "admin" && comment.UserID.String() != userIDStr {
+	if role != "admin" && role != "superadmin" && comment.UserID.String() != userIDStr {
 		return c.Status(403).JSON(fiber.Map{"error": "Forbidden"})
 	}
 
@@ -266,7 +266,7 @@ func UpdateComment(c *fiber.Ctx) error {
 	claims := user.Claims.(jwt.MapClaims)
 	userIDStr, _ := claims["user_id"].(string)
 	role, _ := claims["role"].(string)
-	if role != "admin" && comment.UserID.String() != userIDStr {
+	if role != "admin" && role != "superadmin" && comment.UserID.String() != userIDStr {
 		return c.Status(403).JSON(fiber.Map{"error": "Forbidden"})
 	}
 

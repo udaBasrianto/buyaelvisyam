@@ -186,14 +186,18 @@ export default function About() {
                       Jangan ragu untuk menghubungi kami untuk kerjasama dakwah, kritik, maupun saran demi kemajuan platform ini.
                     </p>
                     <div className="space-y-4">
-                       <div className="flex items-center gap-4">
-                          <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center"><Mail className="h-4 w-4" /></div>
-                          <span className="text-sm font-medium">{(settings as any).about_contact_email || "kontak@blogustad.com"}</span>
-                       </div>
-                       <div className="flex items-center gap-4">
-                          <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center"><Phone className="h-4 w-4" /></div>
-                          <span className="text-sm font-medium">{(settings as any).about_contact_phone || "+62 812-3456-7890"}</span>
-                       </div>
+                       {(settings as any).about_contact_email && (
+                         <div className="flex items-center gap-4">
+                           <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center"><Mail className="h-4 w-4" /></div>
+                           <span className="text-sm font-medium">{(settings as any).about_contact_email}</span>
+                         </div>
+                       )}
+                       {(settings as any).about_contact_phone && (
+                         <div className="flex items-center gap-4">
+                           <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center"><Phone className="h-4 w-4" /></div>
+                           <span className="text-sm font-medium">{(settings as any).about_contact_phone}</span>
+                         </div>
+                       )}
                     </div>
                  </div>
                  <div className="flex-1 w-full bg-muted rounded-3xl p-8 space-y-4 border border-border/50">

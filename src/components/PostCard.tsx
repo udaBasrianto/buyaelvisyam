@@ -1,6 +1,6 @@
 import React from "react";
 import { Eye, Clock, Share2 } from "lucide-react";
-import type { Post } from "@/data/mockData";
+import type { Post } from "@/types/article";
 import { useToast } from "@/hooks/use-toast";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 
@@ -20,9 +20,9 @@ export function PostCard({ post, featured = false }: PostCardProps) {
     e.preventDefault();
     e.stopPropagation();
 
-    const url = `${window.location.origin}/${post.slug || post.id}`;
+    const url = `${window.location.origin}/artikel/${post.slug || post.id}`;
     const title = post.title;
-    const text = `Baca artikel "${title}" di BlogUstad.`;
+    const text = `Baca artikel "${title}" di Buyaelvisyam.id.`;
 
     if (navigator.share) {
       navigator.share({ title, text, url }).catch(() => {

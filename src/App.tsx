@@ -35,14 +35,16 @@ import Checkout, { CheckoutSuccess } from "./pages/Checkout";
 import Arsip from "./pages/Arsip.tsx";
 import DownloadsPage from "./pages/DownloadsPage.tsx";
 import FAQ from "./pages/FAQ.tsx";
+import PrayerAirQualityPage from "./pages/PrayerAirQualityPage";
+import DzikirPage from "./pages/DzikirPage";
+import ManasikPage from "./pages/ManasikPage";
+import TasbihPage from "./pages/TasbihPage";
 import { ScrollToTop } from "./components/ScrollToTop";
 import { ThemeInitializer } from "./components/ThemeInitializer";
 import { GoogleAnalytics } from "./components/GoogleAnalytics";
 import { VisitorTracker } from "./components/VisitorTracker";
 import { InfoPopup } from "./components/InfoPopup";
 import { CapacitorAppBridge } from "./components/CapacitorAppBridge";
-
-
 
 const queryClient = new QueryClient();
 
@@ -139,6 +141,12 @@ const App = () => (
             <Route path="/lms/lesson/:slug" element={<LessonView />} />
             <Route path="/arsip" element={<Arsip />} />
             <Route path="/unduhan" element={<DownloadsPage />} />
+            <Route path="/jadwal-sholat" element={<PrayerAirQualityPage />} />
+            <Route path="/dzikir" element={<DzikirPage />} />
+            <Route path="/manasik" element={<ManasikPage />} />
+            <Route path="/haji-umroh" element={<ManasikPage />} />
+            <Route path="/tasbih" element={<TasbihPage />} />
+            <Route path="/jadwal" element={<Navigate to="/jadwal-sholat" replace />} />
             
             {/* Backward compatibility */}
             <Route path="/artikel/:id" element={<ArticleDetail />} />
@@ -166,7 +174,7 @@ function SecretRouteHandler() {
   useEffect(() => {
     if (!slug) return;
     // Don't check for known static/admin paths
-    const knownPaths = ["auth", "login", "admin", "wp-admin", "masuk", "yaakhi", "donasi"];
+    const knownPaths = ["auth", "login", "admin", "wp-admin", "masuk", "yaakhi", "donasi", "jadwal-sholat", "jadwal", "dzikir"];
     if (knownPaths.includes(slug)) { setArticleExists(false); return; }
     api.get(`/articles/${slug}`)
       .then(() => setArticleExists(true))
@@ -176,7 +184,7 @@ function SecretRouteHandler() {
   useEffect(() => {
     if (settingsLoading) return;
     if (settings.admin_slug && slug === settings.admin_slug) return;
-    const sensitivePaths = ["auth", "login", "admin", "wp-admin", "masuk", "yaakhi", "donasi"];
+    const sensitivePaths = ["auth", "login", "admin", "wp-admin", "masuk", "yaakhi", "donasi", "jadwal-sholat", "jadwal"];
     if (sensitivePaths.includes(slug || "")) {
       api.post("/log-attempt", { path: `/${slug}`, status: "blocked" });
       navigate("/", { replace: true });

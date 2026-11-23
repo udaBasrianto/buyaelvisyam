@@ -6,6 +6,7 @@ import { SEO } from "@/components/SEO";
 import { Play, Lock, BookOpen, Clock, ChevronRight, ArrowLeft, Star, Users, Wallet, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import api from "@/lib/api";
+import { getYouTubeEmbedUrl } from "@/lib/youtube";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -211,7 +212,16 @@ export default function CourseDetail() {
                 <h2 className="text-2xl font-black uppercase tracking-tighter flex items-center gap-3">
                    <BookOpen className="h-6 w-6 text-primary" /> Kurikulum Belajar
                 </h2>
-                <div className="space-y-4">
+                {modules.length === 0 ? (
+                  <div className="bg-card border-2 border-dashed border-border/70 rounded-3xl p-10 text-center space-y-3">
+                     <BookOpen className="h-10 w-10 text-muted-foreground/30 mx-auto" />
+                     <h4 className="font-bold text-base text-foreground">Materi Belum Tersedia</h4>
+                     <p className="text-xs text-muted-foreground max-w-md mx-auto leading-relaxed">
+                        Instruktur belum menambahkan modul atau video materi ke dalam kursus ini. Silakan tambahkan materi melalui menu Admin LMS dengan mengklik tombol <strong>Materi</strong> pada kursus ini.
+                     </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
                    {modules.map((m, i) => (
                      <div key={m.id} className="bg-card border border-border/50 rounded-[2rem] overflow-hidden shadow-sm">
                         <div className="bg-muted/50 px-8 py-5 border-b flex items-center justify-between">
@@ -254,6 +264,7 @@ export default function CourseDetail() {
                      </div>
                    ))}
                 </div>
+                )}
              </div>
           </div>
 
@@ -261,8 +272,23 @@ export default function CourseDetail() {
           <div className="space-y-6">
              <div className="sticky top-24 bg-card border-2 border-primary rounded-[2.5rem] p-8 shadow-2xl shadow-primary/10 overflow-hidden relative">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16" />
-                <div className="aspect-video rounded-2xl overflow-hidden mb-6 border shadow-inner">
-                   <img src={course.thumbnail} className="w-full h-full object-cover" />
+                <div className="aspect-video rounded-2xl overflow-hidden mb-6 border shadow-inner bg-muted relative">
+                   {getYouTubeEmbedUrl(course.thumbnail) ? (
+                     <iframe
+                       src={getYouTubeEmbedUrl(course.thumbnail)!}
+                       title={course.title}
+                       className="w-full h-full border-0"
+                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                       allowFullScreen
+                     />
+                   ) : course.thumbnail ? (
+                     <img src={course.thumbnail} className="w-full h-full object-cover" />
+                   ) : (
+                     <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground p-4 text-center bg-muted/40">
+                        <Play className="h-10 w-10 mb-2 opacity-30 text-primary" />
+                        <span className="text-xs font-bold text-muted-foreground">Video / Thumbnail Kursus</span>
+                     </div>
+                   )}
                 </div>
                 <div className="space-y-4 relative z-10">
                     <div className="flex items-center justify-between">
@@ -296,7 +322,15 @@ export default function CourseDetail() {
                             return;
                           }
                           const firstLesson = Object.values(lessons).flat()[0];
-                          if (firstLesson) navigate(`/lms/lesson/${firstLesson.slug}`);
+                          if (firstLesson) {
+                            navigate(`/lms/lesson/${firstLesson.slug}`);
+                          } else {
+                            toast({
+                              title: "Materi Belum Tersedia",
+                              description: "Belum ada materi atau video yang diunggah ke dalam kursus ini.",
+                              variant: "destructive"
+                            });
+                          }
                         }}
                         className="w-full h-14 rounded-2xl font-black uppercase tracking-widest text-base shadow-lg shadow-emerald-200 bg-emerald-500 hover:bg-emerald-600"
                       >

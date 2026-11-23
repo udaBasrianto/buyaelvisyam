@@ -218,8 +218,8 @@ export function Sidebar({ placement = "detail", articleContent }: SidebarProps) 
       {placement === "detail" && articleHeadings.length > 0 && (
         <div className="bg-card/80 backdrop-blur-sm border border-border/50 rounded-[24px] p-6 shadow-sm ring-1 ring-black/[0.02]">
           <div className="flex items-center gap-3 mb-6">
-            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-              <ChevronRight className="h-5 w-5 text-primary" />
+            <div className="h-9 w-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-sm shrink-0">
+              <ChevronRight className="h-4 w-4" />
             </div>
             <div>
               <h3 className="font-black text-sm text-foreground uppercase tracking-wider">Navigasi Artikel</h3>
@@ -247,8 +247,8 @@ export function Sidebar({ placement = "detail", articleContent }: SidebarProps) 
       {/* Latest Articles Widget */}
       <div className="bg-card/80 backdrop-blur-sm border border-border/50 rounded-[24px] p-6 shadow-sm ring-1 ring-black/[0.02]">
         <div className="flex items-center gap-3 mb-6">
-          <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-            <TrendingUp className="h-5 w-5 text-primary" />
+          <div className="h-9 w-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-sm shrink-0">
+            <TrendingUp className="h-4 w-4" />
           </div>
           <div>
             <h3 className="font-black text-sm text-foreground uppercase tracking-wider">Artikel Terbaru</h3>
@@ -297,8 +297,8 @@ export function Sidebar({ placement = "detail", articleContent }: SidebarProps) 
       {/* Categories Widget */}
       <div className="bg-card/80 backdrop-blur-sm border border-border/50 rounded-[24px] p-6 shadow-sm ring-1 ring-black/[0.02]">
         <div className="flex items-center gap-3 mb-6">
-          <div className="h-10 w-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-            <Tag className="h-5 w-5 text-emerald-600" />
+          <div className="h-9 w-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-sm shrink-0">
+            <Tag className="h-4 w-4" />
           </div>
           <div>
             <h3 className="font-black text-sm text-foreground uppercase tracking-wider">Kategori</h3>
@@ -351,8 +351,8 @@ export function Sidebar({ placement = "detail", articleContent }: SidebarProps) 
           return (
             <div key={w.id} className="bg-card/80 backdrop-blur-sm border border-border/50 rounded-[24px] p-6 shadow-sm ring-1 ring-black/[0.02] hover:shadow-md transition-shadow">
               <div className="flex items-center gap-3 mb-4">
-                <div className="h-10 w-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
-                  <Info className="h-5 w-5 text-amber-600" />
+                <div className="h-9 w-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-sm shrink-0">
+                  <Info className="h-4 w-4" />
                 </div>
                 <div>
                   <h3 className="font-black text-sm text-foreground uppercase tracking-wider">{w.title}</h3>
@@ -369,8 +369,8 @@ export function Sidebar({ placement = "detail", articleContent }: SidebarProps) 
             <div key={w.id} className="bg-card/80 backdrop-blur-sm border border-border/50 rounded-[24px] p-6 shadow-sm ring-1 ring-black/[0.02] hover:shadow-md transition-shadow">
               {w.title && (
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
-                    <MessageSquare className="h-5 w-5 text-blue-600" />
+                  <div className="h-9 w-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-sm shrink-0">
+                    <MessageSquare className="h-4 w-4" />
                   </div>
                   <div>
                     <h3 className="font-black text-sm text-foreground uppercase tracking-wider">{w.title}</h3>

@@ -127,7 +127,7 @@ func RequestWhatsAppToken(c *fiber.Ctx) error {
 
 	// Send token via WhatsApp (mock for now)
 	// In production, integrate actual WhatsApp client to send message
-	// Message: "Kode verifikasi BlogUstad Anda: 123456. Berlaku 10 menit."
+	// Message: "Kode verifikasi Buyaelvisyam.id Anda: 123456. Berlaku 10 menit."
 	err := SendWhatsAppMessage(input.PhoneNumber, token)
 	if err != nil {
 		// Delete token if message failed to send
@@ -149,7 +149,7 @@ func SendWhatsAppMessage(phoneNumber string, token string) error {
 	
 	// Get site name from settings for dynamic message
 	var settings models.SiteSettings
-	siteName := "BlogUstad"
+	siteName := "Buyaelvisyam.id"
 	if err := database.DB.First(&settings).Error; err == nil && settings.SiteName != "" {
 		siteName = settings.SiteName
 	}
@@ -257,7 +257,7 @@ func NotifyWhatsAppNewArticle(article models.Article) {
 	url := baseURL + "/" + strings.TrimSpace(article.Slug)
 	siteName := strings.TrimSpace(settings.SiteName)
 	if siteName == "" {
-		siteName = "BlogUstad"
+		siteName = "Buyaelvisyam.id"
 	}
 
 	tpl := strings.TrimSpace(settings.WhatsAppTemplateNewArticle)
@@ -295,7 +295,7 @@ func NotifyWhatsAppNewCourse(course models.Course) {
 	url := baseURL + "/lms/course/" + strings.TrimSpace(course.Slug)
 	siteName := strings.TrimSpace(settings.SiteName)
 	if siteName == "" {
-		siteName = "BlogUstad"
+		siteName = "Buyaelvisyam.id"
 	}
 
 	tpl := strings.TrimSpace(settings.WhatsAppTemplateNewCourse)

@@ -56,6 +56,18 @@ func GetArticles(c *fiber.Ctx) error {
 	
 	status := c.Query("status", "all")
 	limit := c.QueryInt("limit", 100)
+	if limit <= 0 {
+		limit = 100
+	}
+	if limit > 1000 {
+		limit = 1000
+	}
+
+	// Only staff (admin/superadmin/kontributor) may list unpublished articles.
+	_, viewerRole := requestIdentity(c)
+	if !isStaffRole(viewerRole) {
+		status = "published"
+	}
 
 	query := db.Order("published_at desc").Limit(limit)
 	if status != "all" {
@@ -64,6 +76,10 @@ func GetArticles(c *fiber.Ctx) error {
 
 	if c.Query("featured") == "true" {
 		query = query.Where("is_featured = ?", true)
+	}
+
+	if c.Query("include_content") != "true" {
+		query = query.Omit("content")
 	}
 	
 	if err := query.Find(&articles).Error; err != nil {
@@ -347,6 +363,13 @@ func GetArticle(c *fiber.Ctx) error {
 		}
 	}
 	
+	if article.Status != "published" {
+		_, viewerRole := requestIdentity(c)
+		if !isStaffRole(viewerRole) {
+			return c.Status(404).JSON(fiber.Map{"error": "Article not found"})
+		}
+	}
+
 	var p models.Profile
 	db.Model(&models.Profile{}).Select("display_name").Where("user_id = ?", article.AuthorID).Limit(1).Find(&p)
 	if p.DisplayName != "" {
@@ -590,7 +613,7 @@ func CreateArticle(c *fiber.Ctx) error {
 		article.Categories = []string{"Umum"}
 	}
 
-	if role != "admin" {
+	if role != "admin" && role != "superadmin" {
 		article.Status = "draft"
 		article.ScheduledPublishAt = nil
 	} else {
@@ -663,7 +686,7 @@ func UpdateArticle(c *fiber.Ctx) error {
 		desiredStatus = "draft"
 	}
 
-	if role != "admin" && desiredStatus == "published" {
+	if role != "admin" && role != "superadmin" && desiredStatus == "published" {
 		return c.Status(403).JSON(fiber.Map{"error": "Hanya admin yang boleh mempublikasikan artikel"})
 	}
 
@@ -682,15 +705,15 @@ func UpdateArticle(c *fiber.Ctx) error {
 		}
 	}
 
-	if role != "admin" {
+	if role != "admin" && role != "superadmin" {
 		nextScheduledAt = nil
 	}
 
-	if role == "admin" && desiredStatus == "published" && nextScheduledAt != nil && nextScheduledAt.After(time.Now().Add(10*time.Second)) {
+	if (role == "admin" || role == "superadmin") && desiredStatus == "published" && nextScheduledAt != nil && nextScheduledAt.After(time.Now().Add(10*time.Second)) {
 		desiredStatus = "review"
 	}
 
-	if role != "admin" && article.AuthorID != userID {
+	if role != "admin" && role != "superadmin" && article.AuthorID != userID {
 		return c.Status(403).JSON(fiber.Map{"error": "Forbidden"})
 	}
 
@@ -826,7 +849,7 @@ func RestoreArticleRevision(c *fiber.Ctx) error {
 	if err := db.Where("id = ?", aid).First(&article).Error; err != nil {
 		return c.Status(404).JSON(fiber.Map{"error": "Article not found"})
 	}
-	if role != "admin" && article.AuthorID != userID {
+	if role != "admin" && role != "superadmin" && article.AuthorID != userID {
 		return c.Status(403).JSON(fiber.Map{"error": "Forbidden"})
 	}
 
@@ -897,6 +920,12 @@ func DeleteArticle(c *fiber.Ctx) error {
 		return c.Status(404).JSON(fiber.Map{"error": "Article not found"})
 	}
 
+	// Kontributor may only delete their own articles.
+	viewerID, viewerRole := requestIdentity(c)
+	if !isAdminRole(viewerRole) && article.AuthorID.String() != viewerID {
+		return c.Status(403).JSON(fiber.Map{"error": "Anda hanya dapat menghapus artikel milik sendiri"})
+	}
+
 	if err := db.Delete(&article).Error; err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": "Could not delete article"})
 	}
@@ -923,6 +952,11 @@ func BulkDeleteArticles(c *fiber.Ctx) error {
 
 	if endDate != "" {
 		query = query.Where("created_at <= ?", endDate)
+	}
+
+	// Refuse an unfiltered bulk delete (would wipe every article).
+	if (category == "" || category == "all") && startDate == "" && endDate == "" && c.Query("confirm_all") != "true" {
+		return c.Status(400).JSON(fiber.Map{"error": "Pilih kategori atau rentang tanggal sebelum menghapus massal"})
 	}
 
 	if err := query.Delete(&models.Article{}).Error; err != nil {

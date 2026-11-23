@@ -5,7 +5,7 @@ import { asArray } from "@/lib/api-response";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { 
   ArrowRight, Box, Hash, ShieldCheck, Book, History, 
-  Scroll, Library, Users, Moon, Heart, Sparkles 
+  Scroll, Library, Users, Moon, Heart, Sparkles, LayoutGrid 
 } from "lucide-react";
 
 const CATEGORY_STYLES: Record<string, { icon: any, color: string }> = {
@@ -49,7 +49,7 @@ function getCategoryStyle(name: string, index: number) {
   };
 }
 
-  interface Category {
+interface Category {
   name: string;
   slug: string;
   postCount: number;
@@ -135,17 +135,22 @@ export function CategorySectionV2() {
 
   return (
     <section className="py-12">
-      <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
-        <div>
-          <h2 className="text-2xl font-black text-foreground uppercase tracking-tight">
-            {settings.categories_title || "Kategori Terpopuler"}
-          </h2>
-          <p className="text-sm text-muted-foreground mt-1 text-center md:text-left">
-            {settings.categories_subtitle || "Temukan topik kajian favorit Anda dengan mudah"}
-          </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
+        <div className="flex items-center gap-2.5">
+          <div className="h-8 w-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-sm shrink-0">
+            <LayoutGrid className="h-4 w-4" />
+          </div>
+          <div>
+            <h2 className="text-xl font-black text-foreground uppercase tracking-widest">
+              {settings.categories_title || "Kategori Terpopuler"}
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {settings.categories_subtitle || "Temukan topik kajian favorit Anda dengan mudah"}
+            </p>
+          </div>
         </div>
-        <Link to="/categories" className="text-xs font-bold text-primary flex items-center gap-1 hover:underline">
-          LIHAT SEMUA <ArrowRight className="h-3 w-3" />
+        <Link to="/categories" className="text-xs font-bold text-primary flex items-center gap-1.5 hover:underline shrink-0">
+          LIHAT SEMUA <ArrowRight className="h-3.5 w-3.5" />
         </Link>
       </div>
 

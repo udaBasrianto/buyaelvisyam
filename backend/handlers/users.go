@@ -45,6 +45,32 @@ func GetUsers(c *fiber.Ctx) error {
 	return c.JSON(response)
 }
 
+// guardUserManagement enforces that only a superadmin can grant the superadmin
+// role or modify/delete an existing superadmin account.
+func guardUserManagement(c *fiber.Ctx, targetUserID *uuid.UUID, newRole string) error {
+	_, callerRole := requestIdentity(c)
+	if callerRole == "superadmin" {
+		return nil
+	}
+	if strings.TrimSpace(strings.ToLower(newRole)) == "superadmin" {
+		return fiber.NewError(fiber.StatusForbidden, "Hanya superadmin yang dapat memberikan role superadmin")
+	}
+	if targetUserID != nil {
+		var current models.UserRole
+		if err := database.DB.Where("user_id = ?", *targetUserID).First(&current).Error; err == nil && current.Role == "superadmin" {
+			return fiber.NewError(fiber.StatusForbidden, "Hanya superadmin yang dapat mengubah akun superadmin")
+		}
+	}
+	return nil
+}
+
+func guardErr(c *fiber.Ctx, err error) error {
+	if ferr, ok := err.(*fiber.Error); ok {
+		return c.Status(ferr.Code).JSON(fiber.Map{"error": ferr.Message})
+	}
+	return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "Forbidden"})
+}
+
 func CreateUser(c *fiber.Ctx) error {
 	type CreateInput struct {
 		Email          string `json:"email"`
@@ -81,8 +107,11 @@ func CreateUser(c *fiber.Ctx) error {
 	if input.Role == "" {
 		input.Role = "pembaca"
 	}
-	if input.Role != "admin" && input.Role != "kontributor" && input.Role != "pembaca" {
+	if input.Role != "superadmin" && input.Role != "admin" && input.Role != "kontributor" && input.Role != "pembaca" {
 		return c.Status(400).JSON(fiber.Map{"error": "Role tidak valid"})
+	}
+	if err := guardUserManagement(c, nil, input.Role); err != nil {
+		return guardErr(c, err)
 	}
 
 	var whatsapp *string
@@ -165,13 +194,16 @@ func UpdateUserRole(c *fiber.Ctx) error {
 	}
 
 	role := strings.TrimSpace(strings.ToLower(input.Role))
-	if role != "admin" && role != "kontributor" && role != "pembaca" {
+	if role != "superadmin" && role != "admin" && role != "kontributor" && role != "pembaca" {
 		return c.Status(400).JSON(fiber.Map{"error": "Role tidak valid"})
 	}
 
 	userID, err := uuid.Parse(strings.TrimSpace(id))
 	if err != nil {
 		return c.Status(400).JSON(fiber.Map{"error": "User ID tidak valid"})
+	}
+	if err := guardUserManagement(c, &userID, role); err != nil {
+		return guardErr(c, err)
 	}
 
 	db := database.DB
@@ -206,6 +238,13 @@ func UpdateUser(c *fiber.Ctx) error {
 	var input UpdateInput
 	if err := c.BodyParser(&input); err != nil {
 		return c.Status(400).JSON(fiber.Map{"error": "Invalid body"})
+	}
+	newRole := ""
+	if input.Role != nil {
+		newRole = *input.Role
+	}
+	if err := guardUserManagement(c, &userID, newRole); err != nil {
+		return guardErr(c, err)
 	}
 
 	db := database.DB
@@ -273,7 +312,7 @@ func UpdateUser(c *fiber.Ctx) error {
 
 		if input.Role != nil {
 			role := strings.TrimSpace(strings.ToLower(*input.Role))
-			if role != "admin" && role != "kontributor" && role != "pembaca" {
+			if role != "superadmin" && role != "admin" && role != "kontributor" && role != "pembaca" {
 				return fiber.NewError(400, "Role tidak valid")
 			}
 			updatedRole = role
@@ -342,6 +381,14 @@ func UpdateUser(c *fiber.Ctx) error {
 func DeleteUser(c *fiber.Ctx) error {
 	id := c.Params("id")
 	db := database.DB
+
+	targetID, err := uuid.Parse(strings.TrimSpace(id))
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "User ID tidak valid"})
+	}
+	if err := guardUserManagement(c, &targetID, ""); err != nil {
+		return guardErr(c, err)
+	}
 
 	// Delete role and profile
 	db.Where("user_id = ?", id).Delete(&models.UserRole{})

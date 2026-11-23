@@ -48,3 +48,10 @@ backend/uploads/
 scratch/
 backend/debug_env.go
 backend/buya-backend
+
+# Build artifacts & local backups
+*.apk
+*.bak
+backend/buya-backend.bak
+backend/whatsapp_session/
+backend/downloads_files/

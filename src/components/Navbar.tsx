@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Menu, X, LogIn, LogOut, ShieldCheck, Edit, LayoutDashboard, User, ChevronDown, ChevronRight, ArrowRight, Shield, PenTool, ShoppingCart, Search, LayoutGrid } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useCart } from "@/contexts/CartContext";
 import { useNavPages } from "@/hooks/useNavPages";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
@@ -30,6 +30,8 @@ const getFallbackIconName = (label: string): string => {
   if (l.includes("kategori")) return "LayoutGrid";
   if (l.includes("unduhan") || l.includes("download")) return "Download";
   if (l.includes("faq") || l.includes("bantuan") || l.includes("help")) return "HelpCircle";
+  if (l.includes("dzikir") || l.includes("doa")) return "BookOpen";
+  if (l.includes("sholat") || l.includes("jadwal")) return "Clock";
   return "";
 };
 
@@ -44,12 +46,6 @@ const getExternalLinkProps = (href: string, isExternal?: boolean) => {
   };
 };
 
-// Menu items dari database - fallback default menu jika belum ada konfigurasi yang tersimpan
-const baseNavItems = [
-  { id: "produk", label: "__PRODUCTS__", href: "/produk", isExternal: false, parent_id: null },
-  { id: "unduhan", label: "Unduhan", href: "/unduhan", isExternal: false, parent_id: null },
-  { id: "faq", label: "FAQ", href: "/faq", isExternal: false, parent_id: null },
-];
 
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -60,6 +56,8 @@ export function Navbar() {
   const [logoLoadError, setLogoLoadError] = useState(false);
   const { user, role, signOut } = useAuth();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const isAccountPage = pathname.startsWith("/dashboard") || pathname.startsWith("/profile");
   const { settings, loading: settingsLoading } = useSiteSettings();
   const { totalCount } = useCart();
   const [searchOpen, setSearchOpen] = useState(false);
@@ -102,11 +100,10 @@ export function Navbar() {
   }, []);
 
   // Navigation Manager is the single source of truth for menu items
-  const lmsLabel = (settings as any).lms_menu_label || "Akademi";
   const productsLabel = (settings as any).products_menu_label || "Produk";
-  const rawNavItems = dbNavItems.length > 0 
-    ? dbNavItems.filter(i => i.is_active).map(i => ({ id: i.id, label: i.label === "Produk" ? productsLabel : i.label, href: i.url, isExternal: i.is_external, parent_id: i.parent_id, icon: i.icon }))
-    : baseNavItems.map(i => ({ ...i, id: i.id, label: i.label === "__PRODUCTS__" ? productsLabel : i.label === "__LMS__" ? lmsLabel : i.label, isExternal: false, parent_id: null, icon: "" }));
+  const rawNavItems = dbNavItems
+    .filter(i => i.is_active)
+    .map(i => ({ id: i.id, label: i.label === "Produk" ? productsLabel : i.label, href: i.url, isExternal: i.is_external, parent_id: i.parent_id, icon: i.icon }));
 
   // Nest children under parents
   const navItems = rawNavItems.filter(item => !item.parent_id).map(parent => ({
@@ -409,9 +406,11 @@ export function Navbar() {
                 <LogIn className="h-5 w-5" />
               </Button>
             )}
-            <Button variant="ghost" size="icon" className="md:hidden text-foreground/70" onClick={() => setMobileOpen(!mobileOpen)}>
-              {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </Button>
+            {!isAccountPage && (
+              <Button variant="ghost" size="icon" className="hidden text-foreground/70" onClick={() => setMobileOpen(!mobileOpen)}>
+                {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </Button>
+            )}
           </div>
         </div>
 

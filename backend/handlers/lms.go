@@ -230,6 +230,16 @@ func GetLessons(c *fiber.Ctx) error {
 	moduleID := c.Params("moduleId")
 	var lessons []models.Lesson
 	database.DB.Where("module_id = ?", moduleID).Order("sort_order asc").Find(&lessons)
+	// Lesson content is served via GetLessonBySlug (enrollment-checked);
+	// only admins and free lessons expose it in the listing.
+	_, role := requestIdentity(c)
+	if !isAdminRole(role) {
+		for i := range lessons {
+			if !lessons[i].IsFree {
+				lessons[i].Content = ""
+			}
+		}
+	}
 	return c.JSON(lessons)
 }
 

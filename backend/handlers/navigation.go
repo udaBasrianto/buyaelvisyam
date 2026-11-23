@@ -9,57 +9,8 @@ import (
 )
 
 func GetNavItems(c *fiber.Ctx) error {
-	db := database.DB
-
-	var existingCount int64
-	db.Model(&models.NavItem{}).
-		Where("lower(url) = ?", "/donasi").
-		Or("lower(label) = ?", "donasi").
-		Count(&existingCount)
-	if existingCount == 0 {
-		var maxSort int
-		db.Model(&models.NavItem{}).Select("COALESCE(MAX(sort_order), 0)").Scan(&maxSort)
-
-		now := time.Now()
-		db.Create(&models.NavItem{
-			ID:         uuid.New(),
-			Label:      "Donasi",
-			URL:        "/donasi",
-			SortOrder:  maxSort + 1,
-			IsActive:   true,
-			IsExternal: false,
-			ParentID:   nil,
-			CreatedAt:  now,
-			UpdatedAt:  now,
-		})
-	}
-
-	var lmsCount int64
-	db.Model(&models.NavItem{}).
-		Where("lower(url) = ?", "/lms").
-		Or("lower(label) = ?", "akademi").
-		Or("lower(label) = ?", "lms").
-		Count(&lmsCount)
-	if lmsCount == 0 {
-		var maxSort int
-		db.Model(&models.NavItem{}).Select("COALESCE(MAX(sort_order), 0)").Scan(&maxSort)
-
-		now := time.Now()
-		db.Create(&models.NavItem{
-			ID:         uuid.New(),
-			Label:      "Akademi",
-			URL:        "/lms",
-			SortOrder:  maxSort + 1,
-			IsActive:   true,
-			IsExternal: false,
-			ParentID:   nil,
-			CreatedAt:  now,
-			UpdatedAt:  now,
-		})
-	}
-
 	var items []models.NavItem
-	db.Order("sort_order asc").Find(&items)
+	database.DB.Order("sort_order asc").Find(&items)
 	return c.JSON(items)
 }
 

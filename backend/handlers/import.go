@@ -99,6 +99,10 @@ func ImportWordPress(c *fiber.Ctx) error {
 
 	db := database.DB
 
+	// Site settings (used as the local default cover for posts without featured images)
+	var siteSettings models.SiteSettings
+	db.First(&siteSettings)
+
 	if req.Action == "categories" {
 		var allCategories []WPCategory
 		page := 1
@@ -243,16 +247,22 @@ func ImportWordPress(c *fiber.Ctx) error {
 					}
 				}
 
-				coverImage := "https://images.unsplash.com/photo-1473580044384-7ba9967e16a0?q=80&w=2070&auto=format&fit=crop"
+				// Posts without a featured image get the site's default article image (a local
+				// /uploads file) instead of an external stock photo, so covers always work for
+				// the frontend and share previews.
+				coverImage := strings.TrimSpace(siteSettings.DefaultArticleImage)
 				if wpPost.FeaturedMedia > 0 {
 					mediaUrl := fmt.Sprintf("%s/wp-json/wp/v2/media/%d", wpUrl, wpPost.FeaturedMedia)
 					if mResp, err := fetchWP(mediaUrl); err == nil {
 						var media WPMedia
-						if err := json.NewDecoder(mResp.Body).Decode(&media); err == nil && media.SourceUrl != "" {
-							coverImage = media.SourceUrl
+						if err := json.NewDecoder(mResp.Body).Decode(&media); err == nil && strings.TrimSpace(media.SourceUrl) != "" {
+							coverImage = strings.TrimSpace(media.SourceUrl)
 						}
 						mResp.Body.Close()
 					}
+				}
+				if !isValidShareImage(coverImage) {
+					coverImage = ""
 				}
 
 				createdAt, _ := time.Parse("2006-01-02T15:04:05", wpPost.Date)
@@ -261,7 +271,7 @@ func ImportWordPress(c *fiber.Ctx) error {
 					Title:      html.UnescapeString(wpPost.Title.Rendered),
 					Slug:       wpPost.Slug,
 					Content:    html.UnescapeString(wpPost.Content.Rendered),
-					Excerpt:    html.UnescapeString(wpPost.Excerpt.Rendered),
+					Excerpt:    cleanExcerpt(wpPost.Excerpt.Rendered),
 					Category:   currentArtCategory,
 					CoverImage: coverImage,
 					Status:     "published",
@@ -447,6 +457,12 @@ func ImportExportV1(c *fiber.Ctx) error {
 	process := func(slug, title, content, excerpt, coverImage string, categories, tags []string, isFeatured bool, locationName string, lat, lng float64, youtubeURL string, createdAt time.Time) {
 		slug = strings.TrimSpace(slug)
 		title = strings.TrimSpace(title)
+		excerpt = cleanExcerpt(excerpt)
+		coverImage = strings.TrimSpace(coverImage)
+		if !isValidShareImage(coverImage) {
+			// Host-less / unusable cover URLs (e.g. old imports) fall back to the site default.
+			coverImage = ""
+		}
 		if slug == "" || title == "" {
 			failed++
 			return

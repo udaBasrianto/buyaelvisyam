@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Eye, User, Calendar } from "lucide-react";
-import { heroSlides as defaultSlides } from "@/data/mockData";
-import type { Post } from "@/data/mockData";
+import type { Post } from "@/types/article";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 
@@ -17,7 +16,7 @@ interface HeroSliderProps {
 export function HeroSlider({ slides }: HeroSliderProps) {
   const { settings } = useSiteSettings();
   const defaultImage = settings?.default_article_image || DEFAULT_POST_IMAGE;
-  const data = slides && slides.length > 0 ? slides : defaultSlides;
+  const data = slides ?? [];
   const [current, setCurrent] = useState(0);
   const [direction, setDirection] = useState(0);
 
@@ -32,9 +31,10 @@ export function HeroSlider({ slides }: HeroSliderProps) {
   }, [data.length]);
 
   useEffect(() => {
+    if (data.length <= 1) return;
     const timer = setInterval(next, 5000);
     return () => clearInterval(timer);
-  }, [next]);
+  }, [next, data.length]);
 
   const slide = data[current];
   const [progress, setProgress] = useState(0);

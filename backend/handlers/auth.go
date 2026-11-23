@@ -55,7 +55,7 @@ func CheckPasswordHash(password, hash string) bool {
 }
 
 func HashPassword(password string) (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 12)
 	return string(bytes), err
 }
 
@@ -134,13 +134,13 @@ func Login(c *fiber.Ctx) error {
 	if err := db.Where("email = ?", input.Email).First(&profile).Error; err != nil {
 		allowBootstrap := strings.EqualFold(strings.TrimSpace(os.Getenv("ALLOW_DEFAULT_ADMIN")), "true")
 		if !allowBootstrap {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "User not found"})
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Email atau password salah"})
 		}
 
 		var cnt int64
 		db.Model(&models.Profile{}).Count(&cnt)
 		if cnt != 0 {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "User not found"})
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Email atau password salah"})
 		}
 
 		defaultEmail := strings.TrimSpace(strings.ToLower(os.Getenv("DEFAULT_ADMIN_EMAIL")))
@@ -149,7 +149,7 @@ func Login(c *fiber.Ctx) error {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Bootstrap admin belum dikonfigurasi"})
 		}
 		if input.Email != defaultEmail || input.Password != defaultPassword {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "User not found"})
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Email atau password salah"})
 		}
 
 		hashedPassword, err := HashPassword(defaultPassword)
@@ -169,7 +169,7 @@ func Login(c *fiber.Ctx) error {
 	}
 
 	if !CheckPasswordHash(input.Password, profile.Password) {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid password"})
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Email atau password salah"})
 	}
 
 	// Get role
@@ -267,11 +267,12 @@ func GoogleLogin(c *fiber.Ctx) error {
 			displayName = email
 		}
 		profile = models.Profile{
-			UserID:      userID,
-			Email:       email,
-			Password:    "",
-			DisplayName: displayName,
-			AvatarURL:   strings.TrimSpace(ti.Picture),
+			UserID:        userID,
+			Email:         email,
+			Password:      "",
+			DisplayName:   displayName,
+			AvatarURL:     strings.TrimSpace(ti.Picture),
+			EmailVerified: true,
 		}
 		if err := db.Create(&profile).Error; err != nil {
 			if strings.Contains(strings.ToLower(err.Error()), "duplicate") || strings.Contains(strings.ToLower(err.Error()), "unique") {
@@ -287,6 +288,18 @@ func GoogleLogin(c *fiber.Ctx) error {
 		}
 		if strings.TrimSpace(profile.AvatarURL) == "" && strings.TrimSpace(ti.Picture) != "" {
 			updates["avatar_url"] = strings.TrimSpace(ti.Picture)
+		}
+		// Google has just proven ownership of this email. If the account was
+		// created with an unverified email + password (possibly by someone else
+		// pre-registering the victim's address), drop that password so only the
+		// real owner keeps access. Staff accounts are left untouched.
+		if !profile.EmailVerified {
+			var existingRole models.UserRole
+			db.Where("user_id = ?", profile.UserID).First(&existingRole)
+			if profile.Password != "" && !isStaffRole(strings.TrimSpace(existingRole.Role)) {
+				updates["password"] = ""
+			}
+			updates["email_verified"] = true
 		}
 		if len(updates) > 0 {
 			db.Model(&profile).Updates(updates)
@@ -386,11 +399,11 @@ func Me(c *fiber.Ctx) error {
 	database.DB.Where("user_id = ?", profile.UserID).First(&userRole)
 
 	return c.JSON(fiber.Map{
-		"id":           profile.UserID,
-		"email":        profile.Email,
-		"display_name": profile.DisplayName,
-		"role":         userRole.Role,
-		"avatar_url":   profile.AvatarURL,
+		"id":                profile.UserID,
+		"email":             profile.Email,
+		"display_name":      profile.DisplayName,
+		"role":              userRole.Role,
+		"avatar_url":        profile.AvatarURL,
 		"whatsapp":          profile.WhatsAppNumber,
 		"whatsapp_number":   profile.WhatsAppNumber,
 		"whatsapp_verified": profile.WhatsAppVerified,
@@ -403,11 +416,12 @@ func UpdateProfile(c *fiber.Ctx) error {
 	userIDStr := claims["user_id"].(string)
 
 	type UpdateInput struct {
-		DisplayName    string `json:"display_name"`
-		Email          string `json:"email"`
-		AvatarURL      string `json:"avatar_url"`
-		Password       string `json:"password"`
-		WhatsAppNumber string `json:"whatsapp_number"`
+		DisplayName     string `json:"display_name"`
+		Email           string `json:"email"`
+		AvatarURL       string `json:"avatar_url"`
+		Password        string `json:"password"`
+		CurrentPassword string `json:"current_password"`
+		WhatsAppNumber  string `json:"whatsapp_number"`
 	}
 
 	var input UpdateInput
@@ -421,11 +435,28 @@ func UpdateProfile(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Profile not found"})
 	}
 
+	// Changing password or email requires the current password (when the
+	// account has one; Google/WhatsApp-only accounts may set it the first time).
+	newEmail := strings.TrimSpace(strings.ToLower(input.Email))
+	emailChanged := newEmail != "" && newEmail != strings.ToLower(profile.Email)
+	if (input.Password != "" || emailChanged) && profile.Password != "" {
+		if !CheckPasswordHash(strings.TrimSpace(input.CurrentPassword), profile.Password) {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "Password saat ini salah atau belum diisi"})
+		}
+	}
+	if input.Password != "" && len(strings.TrimSpace(input.Password)) < 8 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Password minimal 8 karakter"})
+	}
+	if emailChanged && !strings.Contains(newEmail, "@") {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Email tidak valid"})
+	}
+
 	if input.DisplayName != "" {
 		profile.DisplayName = input.DisplayName
 	}
-	if input.Email != "" {
-		profile.Email = input.Email
+	if emailChanged {
+		profile.Email = newEmail
+		profile.EmailVerified = false
 	}
 	if input.AvatarURL != "" {
 		profile.AvatarURL = input.AvatarURL
@@ -444,7 +475,7 @@ func UpdateProfile(c *fiber.Ctx) error {
 		}
 	}
 	if input.Password != "" {
-		hashedPassword, err := HashPassword(input.Password)
+		hashedPassword, err := HashPassword(strings.TrimSpace(input.Password))
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Gagal memproses password"})
 		}

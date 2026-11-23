@@ -1,5 +1,6 @@
 package id.buyaelvisyam.app
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -49,7 +50,7 @@ sealed class Screen {
 fun AppNavigation() {
     // Use LocalContext.current instead of passing Activity context — safe across recompositions
     val context = LocalContext.current
-    val sharedPreferences = remember { context.getSharedPreferences("buya_prefs", context.MODE_PRIVATE) }
+    val sharedPreferences = remember { context.getSharedPreferences("buya_prefs", Context.MODE_PRIVATE) }
 
     var currentScreen by remember { mutableStateOf<Screen>(Screen.Home) }
     var selectedArticle by remember { mutableStateOf<Article?>(null) }

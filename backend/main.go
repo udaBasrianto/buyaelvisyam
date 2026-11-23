@@ -126,8 +126,12 @@ func main() {
 	}()
 
 	app := fiber.New(fiber.Config{
-		ProxyHeader: "X-Forwarded-For",
-		BodyLimit:   10 * 1024 * 1024,
+		// Nginx sets X-Real-IP to the real client address; only trust it from localhost
+		// so clients cannot spoof their IP to bypass rate limits.
+		ProxyHeader:             "X-Real-IP",
+		EnableTrustedProxyCheck: true,
+		TrustedProxies:          []string{"127.0.0.1", "::1"},
+		BodyLimit:   100 * 1024 * 1024, // allow larger download files (pdf/zip/docx)
 	})
 
 	// Recover middleware — prevents panics from killing the server
@@ -159,7 +163,7 @@ func main() {
 								userID = &uid
 							}
 						}
-						if roleVal, ok := claims["role"].(string); ok && roleVal == "admin" {
+						if roleVal, ok := claims["role"].(string); ok && (roleVal == "admin" || roleVal == "superadmin") {
 							isAdmin = true
 						}
 					}
@@ -167,10 +171,10 @@ func main() {
 			}
 
 			// Do not track if user is admin, or accessing admin/auth paths
-			isAuthOrAdminPath := strings.HasPrefix(path, "/admin") || 
-				strings.HasPrefix(path, "/yaakhi") || 
-				strings.HasPrefix(path, "/wp-admin") || 
-				strings.HasPrefix(path, "/auth") || 
+			isAuthOrAdminPath := strings.HasPrefix(path, "/admin") ||
+				strings.HasPrefix(path, "/yaakhi") ||
+				strings.HasPrefix(path, "/wp-admin") ||
+				strings.HasPrefix(path, "/auth") ||
 				strings.HasPrefix(path, "/login")
 
 			if !isAdmin && !isAuthOrAdminPath {
@@ -218,8 +222,9 @@ func main() {
 
 	// Auth
 	auth := api.Group("/auth")
-	auth.Post("/register", handlers.Register)
 	authLimiter := limiter.New(limiter.Config{Max: 25, Expiration: 15 * time.Minute})
+	registerLimiter := limiter.New(limiter.Config{Max: 5, Expiration: 15 * time.Minute})
+	auth.Post("/register", registerLimiter, handlers.Register)
 	otpLimiter := limiter.New(limiter.Config{Max: 15, Expiration: 15 * time.Minute})
 	auth.Post("/login", authLimiter, handlers.Login)
 	auth.Post("/google", authLimiter, handlers.GoogleLogin)
@@ -239,8 +244,8 @@ func main() {
 	api.Post("/admin/whatsapp/broadcast", middleware.Protected(), middleware.RequireAnyRole("admin"), adminWhatsAppLimiter, middleware.AuditAdminActions(), handlers.AdminBroadcastWhatsApp)
 
 	// Articles - Bulk Operations (Registered first to avoid param conflicts)
-	api.Post("/articles/bulk-image-update", middleware.Protected(), middleware.RequireAnyRole("admin", "kontributor"), middleware.AuditAdminActions(), handlers.BulkUpdateArticleImage)
-	api.Post("/articles/bulk-delete", middleware.Protected(), middleware.RequireAnyRole("admin", "kontributor"), middleware.AuditAdminActions(), handlers.BulkDeleteArticles)
+	api.Post("/articles/bulk-image-update", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.BulkUpdateArticleImage)
+	api.Post("/articles/bulk-delete", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.BulkDeleteArticles)
 
 	api.Get("/articles", handlers.GetArticles)
 	api.Get("/articles/:id/related", handlers.GetRelatedArticles)
@@ -265,6 +270,7 @@ func main() {
 
 	api.Get("/products", handlers.GetProducts)
 	api.Get("/products/:slug", handlers.GetProduct)
+	api.Get("/products/:id/download", handlers.DownloadProductFile)
 	orderLimiter := limiter.New(limiter.Config{Max: 10, Expiration: 15 * time.Minute})
 	api.Post("/orders", orderLimiter, handlers.CreateOrder)
 	api.Get("/orders/public/:token", handlers.GetPublicOrderByToken)
@@ -272,6 +278,7 @@ func main() {
 	api.Post("/admin/products", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.CreateProduct)
 	api.Put("/admin/products/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.UpdateProduct)
 	api.Delete("/admin/products/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.DeleteProduct)
+	api.Post("/admin/products/upload-digital", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.UploadProductDigitalFile)
 	api.Get("/admin/orders", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.AdminGetOrders)
 	api.Put("/admin/orders/:id/status", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.AdminUpdateOrderStatus)
 
@@ -325,6 +332,22 @@ func main() {
 	api.Put("/homepage-sections/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.UpdateHomepageCategorySection)
 	api.Delete("/homepage-sections/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.DeleteHomepageCategorySection)
 
+	// Downloads (file unduhan untuk user login)
+	api.Get("/downloads", handlers.GetPublicDownloads)
+	api.Get("/downloads/:id/file", middleware.Protected(), handlers.DownloadFileContent)
+	api.Get("/admin/downloads", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.AdminGetDownloads)
+	api.Get("/admin/downloads/:id/logs", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.AdminGetDownloadLogs)
+	api.Post("/admin/downloads", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.AdminCreateDownload)
+	api.Put("/admin/downloads/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.AdminUpdateDownload)
+	api.Delete("/admin/downloads/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.AdminDeleteDownload)
+
+	// FAQ (halaman pertanyaan yang sering diajukan)
+	api.Get("/faqs", handlers.GetPublicFAQs)
+	api.Get("/admin/faqs", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.AdminGetFAQs)
+	api.Post("/admin/faqs", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.AdminCreateFAQ)
+	api.Put("/admin/faqs/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.AdminUpdateFAQ)
+	api.Delete("/admin/faqs/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.AdminDeleteFAQ)
+
 	// Comments
 	api.Get("/comments", handlers.GetComments)
 	commentLimiter := limiter.New(limiter.Config{Max: 8, Expiration: 1 * time.Minute})
@@ -336,6 +359,13 @@ func main() {
 	// Utils
 	api.Post("/upload", middleware.Protected(), handlers.UploadImage)
 	api.Get("/admin/assets", middleware.Protected(), middleware.RequireAnyRole("admin", "kontributor"), handlers.AdminListUploadAssets)
+	api.Delete("/admin/assets/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.AdminDeleteUploadAsset)
+	// Galeri Media & Auto Compression
+	api.Get("/admin/gallery", middleware.Protected(), middleware.RequireAnyRole("admin", "kontributor"), handlers.GetGallery)
+	api.Post("/admin/gallery/compress-all", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.CompressAllGallery)
+	api.Post("/admin/gallery/compress/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.CompressSingleGalleryAsset)
+	api.Delete("/admin/gallery/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.DeleteGalleryAsset)
+	api.Post("/admin/gallery/bulk-delete", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.BulkDeleteGalleryAssets)
 	api.Post("/import-wordpress", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.ImportWordPress)
 	api.Post("/import-export", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.ImportExportV1)
 	api.Post("/analytics/track", handlers.TrackVisit)
@@ -353,6 +383,14 @@ func main() {
 	api.Post("/admin/donation-campaigns", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.AdminCreateDonationCampaign)
 	api.Put("/admin/donation-campaigns/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.AdminUpdateDonationCampaign)
 	api.Delete("/admin/donation-campaigns/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.AdminDeleteDonationCampaign)
+
+	// Popups / Pengumuman Dinamis
+	api.Get("/popups/active", handlers.GetActivePopup)
+	api.Get("/popups", middleware.Protected(), middleware.RequireAnyRole("admin"), handlers.GetPopups)
+	api.Post("/popups", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.CreatePopup)
+	api.Put("/popups/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.UpdatePopup)
+	api.Delete("/popups/:id", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.DeletePopup)
+	api.Patch("/popups/:id/toggle", middleware.Protected(), middleware.RequireAnyRole("admin"), middleware.AuditAdminActions(), handlers.TogglePopupActive)
 
 	// Widgets
 	api.Get("/widgets", handlers.GetWidgets)
@@ -419,13 +457,17 @@ func main() {
 
 	// AI Chatbot Route
 	log.Println("Registering AI Chat route...")
-	api.Post("/ai/chat", handlers.AIChat)
+	aiLimiter := limiter.New(limiter.Config{Max: 20, Expiration: 10 * time.Minute})
+	api.Post("/ai/chat", aiLimiter, handlers.AIChat)
 
 	// Serve homepage dynamically for SEO tags injection
 	app.Get("/", handlers.ServeDynamicSEO)
 
-	// Serve sitemap dynamically to automatically detect host domain
+	// Serve sitemap and RSS feeds dynamically
 	app.Get("/sitemap.xml", handlers.GetSitemap)
+	app.Get("/feed", handlers.GetRSSFeed)
+	app.Get("/rss.xml", handlers.GetRSSFeed)
+	app.Get("/feed.xml", handlers.GetRSSFeed)
 
 	// Serve frontend static assets in production (Vite built files)
 	app.Static("/", "../dist")

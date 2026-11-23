@@ -5,6 +5,8 @@ import { BottomNav } from "@/components/BottomNav";
 import { SEO } from "@/components/SEO";
 import { ArrowLeft, PlayCircle, BookOpen, ChevronRight, FileText, LayoutList, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { getYouTubeEmbedUrl } from "@/lib/youtube";
+import { sanitizeHtml } from "@/lib/sanitize";
 import api from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
@@ -92,22 +94,24 @@ export default function LessonView() {
            {/* Video Player */}
            {lesson.content_type === "video" ? (
              <div className="aspect-video w-full rounded-[2.5rem] overflow-hidden bg-black shadow-2xl border-4 border-card">
-                {lesson.content.includes("youtube.com") || lesson.content.includes("youtu.be") ? (
+                {getYouTubeEmbedUrl(lesson.content) ? (
                   <iframe 
-                    src={lesson.content.includes("embed") ? lesson.content : `https://www.youtube.com/embed/${lesson.content.split('v=')[1] || lesson.content.split('/').pop()}`}
-                    className="w-full h-full"
+                    src={getYouTubeEmbedUrl(lesson.content)!}
+                    title={lesson.title}
+                    className="w-full h-full border-0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     allowFullScreen
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-white flex-col gap-4">
                      <PlayCircle className="h-16 w-16 opacity-20" />
-                     <p className="text-sm font-bold opacity-50 uppercase tracking-widest">Memutar Video...</p>
+                     <p className="text-sm font-bold opacity-50 uppercase tracking-widest">Video Belum Tersedia atau URL Tidak Valid</p>
                   </div>
                 )}
              </div>
            ) : (
              <div className="bg-card border border-border/50 rounded-[2.5rem] p-12 shadow-sm font-serif text-xl leading-relaxed text-foreground/90">
-                <div dangerouslySetInnerHTML={{ __html: lesson.content }} />
+                <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(lesson.content) }} />
              </div>
            )}
 

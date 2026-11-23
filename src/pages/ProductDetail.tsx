@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { SEO } from "@/components/SEO";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { useToast } from "@/hooks/use-toast";
 import { useCart } from "@/contexts/CartContext";
-import { X, ChevronLeft, ChevronRight } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Download } from "lucide-react";
 
 interface ProductDetailItem {
   id: string;
@@ -23,6 +23,9 @@ interface ProductDetailItem {
   sku?: string;
   stock: number;
   digital_file_url?: string;
+  has_digital_file?: boolean;
+  is_free_download?: boolean;
+  download_count?: number;
   image_url?: string;
   is_active: boolean;
   discount_price?: number;
@@ -116,6 +119,16 @@ export default function ProductDetail() {
     toast({
       title: "Keranjang Belanja",
       description: `${product.title} ditambahkan ke keranjang.`,
+    });
+  };
+
+    const handleDownloadDigital = () => {
+    if (!product?.is_free_download) return;
+    window.open(`/api/products/${product.id}/download`, "_blank");
+    setProduct((prev) => prev ? { ...prev, download_count: (prev.download_count || 0) + 1 } : null);
+    toast({
+      title: "Memulai Unduhan",
+      description: `File digital "${product.title}" sedang diunduh.`,
     });
   };
 
@@ -246,7 +259,15 @@ export default function ProductDetail() {
             ) : (
               <div>
                 <p className="text-sm text-muted-foreground">File digital</p>
-                <p className="text-lg font-semibold">{product.digital_file_url ? "Tersedia" : "Tidak tersedia"}</p>
+                <p className="text-lg font-semibold">{product.has_digital_file ? "Tersedia" : "Tidak tersedia"}</p>
+              </div>
+            )}
+            {product.product_type === "digital" && (
+              <div>
+                <p className="text-sm text-muted-foreground">Total Diunduh</p>
+                <p className="text-lg font-semibold text-primary flex items-center gap-1.5">
+                  <Download className="h-4 w-4" /> {(product.download_count || 0).toLocaleString("id-ID")} kali
+                </p>
               </div>
             )}
             <div>
@@ -260,6 +281,11 @@ export default function ProductDetail() {
               </div>
             )}
             <div className="space-y-3 pt-4 border-t">
+              {product.product_type === "digital" && product.is_free_download && (
+                <Button className="w-full justify-center bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 gap-2 shadow-sm" onClick={handleDownloadDigital}>
+                  <Download className="h-4 w-4" /> Unduh File Digital ({(product.download_count || 0).toLocaleString("id-ID")}x)
+                </Button>
+              )}
               <Button className="w-full justify-center" onClick={handleAddToCart} variant="outline">
                 Tambah ke Keranjang
               </Button>

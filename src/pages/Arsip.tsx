@@ -5,7 +5,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { Footer } from "@/components/Footer";
 import { PostCard } from "@/components/PostCard";
 import api from "@/lib/api";
-import type { Post } from "@/data/mockData";
+import type { Post } from "@/types/article";
 import { ArrowLeft, BookOpen, Search, Filter, LayoutGrid, ChevronDown, ArrowUpDown } from "lucide-react";
 
 const COL_OPTIONS = [3, 4, 5, 6] as const;

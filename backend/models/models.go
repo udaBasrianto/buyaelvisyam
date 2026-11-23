@@ -172,6 +172,7 @@ type Profile struct {
 	AvatarURL        string    `json:"avatar_url"`
 	WhatsAppNumber   *string   `gorm:"uniqueIndex" json:"whatsapp_number"`
 	WhatsAppVerified bool      `gorm:"default:false" json:"whatsapp_verified"`
+	EmailVerified    bool      `gorm:"default:false" json:"email_verified"`
 	CreatedAt        time.Time `json:"created_at"`
 	UpdatedAt        time.Time `json:"updated_at"`
 	Balance          float64   `gorm:"default:0" json:"balance"`
@@ -260,7 +261,7 @@ type Page struct {
 
 type SiteSettings struct {
 	ID                           uuid.UUID `gorm:"type:uuid;primaryKey" json:"id"`
-	SiteName                     string    `gorm:"default:'BlogUstad'" json:"site_name"`
+	SiteName                     string    `gorm:"default:'Buyaelvisyam.id'" json:"site_name"`
 	Tagline                      string    `json:"tagline"`
 	SiteDescription              string    `json:"site_description"`
 	LogoURL                      string    `json:"logo_url"`
@@ -507,6 +508,9 @@ type Product struct {
 	SKU            string         `json:"sku"`
 	Stock          int            `gorm:"default:0" json:"stock"`
 	DigitalFileURL string         `json:"digital_file_url"`
+	DownloadCount  int            `gorm:"default:0" json:"download_count"`
+	HasDigitalFile bool           `gorm:"-" json:"has_digital_file"`
+	IsFreeDownload bool           `gorm:"-" json:"is_free_download"`
 	ImageURL       string         `json:"image_url"`
 	Images         pq.StringArray `gorm:"type:text[]" json:"images"`
 	IsActive       bool           `gorm:"default:true" json:"is_active"`

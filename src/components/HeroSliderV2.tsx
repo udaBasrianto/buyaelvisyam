@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Eye, Calendar, User, ChevronRight, ChevronLeft, Pause, Play } from "lucide-react";
-import { heroSlides as defaultSlides } from "@/data/mockData";
-import type { Post } from "@/data/mockData";
+import type { Post } from "@/types/article";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 
@@ -16,7 +15,7 @@ interface HeroSliderV2Props {
 export function HeroSliderV2({ slides }: HeroSliderV2Props) {
   const { settings } = useSiteSettings();
   const defaultImage = settings?.default_article_image || DEFAULT_POST_IMAGE;
-  const data = slides && slides.length > 0 ? (slides.length > 5 ? slides.slice(0, 5) : slides) : defaultSlides.slice(0, 5);
+  const data = (slides ?? []).slice(0, 5);
   const [current, setCurrent] = useState(0);
   const [direction, setDirection] = useState(0);
   const [isPaused, setIsPaused] = useState(false);

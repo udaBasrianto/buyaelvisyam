@@ -32,9 +32,19 @@ android {
         buildConfigField("String", "DEV_BASE_URL", "\"$devUrl\"")
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("buyaelvisyam-release-key.jks")
+            storePassword = "BuyaElvisyam2026!"
+            keyAlias = "buyaelvisyam"
+            keyPassword = "BuyaElvisyam2026!"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -65,7 +75,8 @@ android {
 dependencies {
     // Core Android & Lifecycle
     implementation("androidx.core:core-ktx:1.12.0")
-    implementation("androidx.appcompat:appcompat:1.6.1")   // required for Theme.AppCompat in manifest
+    implementation("androidx.appcompat:appcompat:1.6.1")
+    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")   // required for Theme.AppCompat in manifest
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
     implementation("androidx.activity:activity-compose:1.8.2")
 

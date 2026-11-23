@@ -6,7 +6,7 @@ import { Footer } from "@/components/Footer";
 import { PostCard } from "@/components/PostCard";
 import { SEO } from "@/components/SEO";
 import api from "@/lib/api";
-import type { Post } from "@/data/mockData";
+import type { Post } from "@/types/article";
 import { ArrowLeft } from "lucide-react";
 
 const CategoryPage = () => {

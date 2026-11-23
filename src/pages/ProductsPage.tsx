@@ -10,7 +10,7 @@ import { Navbar } from "@/components/Navbar";
 import { BottomNav } from "@/components/BottomNav";
 import { Footer } from "@/components/Footer";
 import { SEO } from "@/components/SEO";
-import { Eye } from "lucide-react";
+import { Eye, Download } from "lucide-react";
 
 interface ProductCard {
   id: string;
@@ -23,6 +23,7 @@ interface ProductCard {
   image_url?: string;
   views?: number;
   sold?: number;
+  download_count?: number;
   discount_price?: number;
   is_flash_sale?: boolean;
   flash_sale_start?: string;
@@ -90,68 +91,117 @@ export default function ProductsPage() {
       </div>
 
       {loading ? (
-        <div className="text-center py-12">Memuat produk...</div>
+        <div className="text-center py-12 text-sm text-muted-foreground font-medium">Memuat produk...</div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
           {products.map((product) => {
             const isFlash = isFlashSaleActive(product);
-            const hasDiscount = product.discount_price && product.discount_price > 0 && product.discount_price < product.price && (!product.is_flash_sale || isFlash);
+            const hasDiscount =
+              product.discount_price &&
+              product.discount_price > 0 &&
+              product.discount_price < product.price &&
+              (!product.is_flash_sale || isFlash);
             const activePrice = hasDiscount ? product.discount_price! : product.price;
 
             return (
-              <div key={product.id} className="relative rounded-3xl border border-border bg-card p-5 shadow-sm hover:border-primary/50 transition flex flex-col justify-between">
-                {isFlash && (
-                  <div className="absolute top-4 left-4 z-10 bg-red-600 text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full shadow animate-pulse">
-                    Flash Sale
-                  </div>
-                )}
-                {!isFlash && product.discount_price && product.discount_price > 0 && product.discount_price < product.price && (
-                  <div className="absolute top-4 left-4 z-10 bg-emerald-600 text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full shadow">
-                    Diskon
-                  </div>
-                )}
-                <div>
-                  {product.image_url && <img src={product.image_url} alt={product.title} className="h-48 w-full rounded-2xl object-cover mb-4" />}
-                  <div className="flex items-start justify-between gap-3 mb-3">
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.2em] text-primary">{product.product_type === "digital" ? "Digital" : "Fisika"}</p>
-                      <h2 className="text-xl font-bold">{product.title}</h2>
+              <div
+                key={product.id}
+                onClick={() => navigate(`/produk/${product.slug}`)}
+                className="group relative rounded-2xl sm:rounded-3xl border border-border/70 bg-card p-2.5 sm:p-4 shadow-xs hover:shadow-md hover:border-primary/50 transition flex flex-col justify-between cursor-pointer"
+              >
+                {/* Product Image Container */}
+                <div className="relative aspect-square w-full rounded-xl sm:rounded-2xl overflow-hidden bg-muted/40 mb-2 sm:mb-3">
+                  {/* Badges */}
+                  {isFlash && (
+                    <div className="absolute top-2 left-2 z-10 bg-red-600 text-white text-[8px] sm:text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full shadow-sm animate-pulse">
+                      Flash Sale
                     </div>
-                    <div className="text-right">
-                      {hasDiscount ? (
-                        <div className="flex flex-col items-end">
-                          <span className="text-xs text-muted-foreground line-through">
-                            {product.currency} {product.price.toLocaleString("id-ID")}
-                          </span>
-                          <span className="text-sm font-bold text-red-600 dark:text-red-400">
-                            {product.currency} {activePrice.toLocaleString("id-ID")}
-                          </span>
+                  )}
+                  {!isFlash && hasDiscount && (
+                    <div className="absolute top-2 left-2 z-10 bg-emerald-600 text-white text-[8px] sm:text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full shadow-sm">
+                      Diskon
+                    </div>
+                  )}
+
+                  {/* Type Badge */}
+                  <div className="absolute bottom-2 left-2 z-10 bg-black/60 backdrop-blur-md text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider">
+                    {product.product_type === "digital" ? "Digital" : "Fisik"}
+                  </div>
+
+                  {product.image_url ? (
+                    <img
+                      src={product.image_url}
+                      alt={product.title}
+                      loading="lazy"
+                      className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  ) : (
+                    <div className="h-full w-full flex items-center justify-center text-muted-foreground/50 text-xs font-bold">
+                      No Image
+                    </div>
+                  )}
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 flex flex-col justify-between">
+                  <div>
+                    <h2
+                      className="text-xs sm:text-sm md:text-base font-bold text-foreground line-clamp-2 leading-snug group-hover:text-primary transition-colors mb-1.5"
+                      title={product.title}
+                    >
+                      {product.title}
+                    </h2>
+
+                    {/* Price Block */}
+                    <div className="flex flex-col mb-2">
+                      {hasDiscount && (
+                        <span className="text-[10px] sm:text-xs text-muted-foreground line-through">
+                          {product.currency} {product.price.toLocaleString("id-ID")}
+                        </span>
+                      )}
+                      <span className={`text-xs sm:text-sm md:text-base font-black ${hasDiscount ? "text-red-600 dark:text-red-400" : "text-primary"}`}>
+                        {product.currency} {activePrice.toLocaleString("id-ID")}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Stats & Button */}
+                  <div className="pt-2 border-t border-border/50">
+                    <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-2">
+                      <div className="flex items-center gap-1">
+                        <Eye className="h-3 w-3 text-muted-foreground/70" />
+                        <span>{product.views || 0}</span>
+                      </div>
+                      {product.product_type === "digital" ? (
+                        <div className="font-semibold text-primary flex items-center gap-0.5">
+                          <Download className="h-2.5 w-2.5" /> {product.download_count || 0}
                         </div>
                       ) : (
-                        <span className="text-sm font-semibold">{product.currency} {product.price.toLocaleString("id-ID")}</span>
+                        <div className="font-semibold text-emerald-600 dark:text-emerald-400">
+                          {product.sold || 0} terjual
+                        </div>
                       )}
                     </div>
+
+                    <Button
+                      size="sm"
+                      className="w-full h-7 sm:h-8 text-[11px] sm:text-xs font-bold rounded-xl shadow-xs"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/produk/${product.slug}`);
+                      }}
+                    >
+                      Lihat Detail
+                    </Button>
                   </div>
-                  <p className="text-sm text-muted-foreground mb-5 line-clamp-3">{product.description}</p>
                 </div>
-              <div className="flex items-center justify-between mt-auto">
-                <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                  <div className="flex items-center gap-1.5">
-                    <Eye className="h-4 w-4 text-muted-foreground/70" />
-                    <span>{product.views || 0}</span>
-                  </div>
-                  <div className="h-3 w-px bg-border/60" />
-                  <div className="font-semibold text-emerald-600 dark:text-emerald-400">
-                    {product.sold || 0} terjual
-                  </div>
-                </div>
-                <Button onClick={() => navigate(`/produk/${product.slug}`)}>Lihat Detail</Button>
               </div>
-            </div>
             );
           })}
           {products.length === 0 && !loading && (
-            <div className="col-span-full rounded-3xl border border-border bg-card p-8 text-center text-muted-foreground">Belum ada produk untuk ditampilkan.</div>
+            <div className="col-span-full rounded-3xl border border-border bg-card p-8 text-center text-muted-foreground">
+              Belum ada produk untuk ditampilkan.
+            </div>
           )}
         </div>
       )}

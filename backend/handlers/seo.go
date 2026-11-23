@@ -26,6 +26,47 @@ func truncateRunes(s string, maxRunes int) string {
 	return string(runes[:maxRunes-3]) + "..."
 }
 
+// isValidShareImage reports whether a stored image path is usable for og:image:
+// a full http(s) URL, or a local file under /uploads/. Anything else (e.g. remote
+// URLs that lost their host during import) is treated as invalid so callers fall
+// back to a default image instead of emitting a broken share preview.
+func isValidShareImage(p string) bool {
+	if p == "" {
+		return false
+	}
+	if strings.HasPrefix(p, "http://") || strings.HasPrefix(p, "https://") {
+		return true
+	}
+	return strings.HasPrefix(p, "/uploads/")
+}
+
+// resolveShareImage converts a stored cover path into an absolute, valid share
+// image URL. Invalid or empty covers fall back through the site's default article
+// image → logo → /og-image.jpg.
+func resolveShareImage(raw string, settings models.SiteSettings, baseURL string) string {
+	img := raw
+	if !isValidShareImage(img) {
+		img = ""
+	}
+	if img == "" {
+		img = settings.DefaultArticleImage
+	}
+	if img == "" {
+		img = settings.LogoURL
+	}
+	if img == "" {
+		img = "/og-image.jpg"
+	}
+	if !strings.HasPrefix(img, "http") {
+		if strings.HasPrefix(img, "/") {
+			img = baseURL + img
+		} else {
+			img = baseURL + "/" + img
+		}
+	}
+	return img
+}
+
 // ServeDynamicSEO serves index.html with dynamically injected Open Graph SEO tags for articles, products, and categories
 func ServeDynamicSEO(c *fiber.Ctx) error {
 	slug := c.Params("slug")
@@ -146,9 +187,9 @@ func ServeDynamicSEO(c *fiber.Ctx) error {
 				articleFound = true
 				dynamicTitle = fmt.Sprintf("%s | %s", article.Title, siteName)
 
-				excerpt := article.Excerpt
+				excerpt := cleanExcerpt(article.Excerpt)
 				if excerpt == "" {
-					excerpt = stripHTML(article.Content)
+					excerpt = truncateRunes(cleanExcerpt(article.Content), 160)
 				}
 				dynamicDesc = truncateRunes(excerpt, 160)
 				shareImage = article.CoverImage
@@ -187,11 +228,11 @@ func ServeDynamicSEO(c *fiber.Ctx) error {
 	}
 
 	// Replace the hardcoded placeholders in index.html shell
-	htmlContent = strings.ReplaceAll(htmlContent, "<title>Buya Muhammad Elvisyam</title>", fmt.Sprintf("<title>%s</title>", dynamicTitle))
-	htmlContent = strings.ReplaceAll(htmlContent, "<meta name=\"description\" content=\"Akhimedia Generated Project\">", fmt.Sprintf("<meta name=\"description\" content=\"%s\">", dynamicDesc))
-	htmlContent = strings.ReplaceAll(htmlContent, "<meta name=\"description\" content=\"Portal Resmi Kajian Islam & Artikel Pilihan\">", fmt.Sprintf("<meta name=\"description\" content=\"%s\">", dynamicDesc))
-	htmlContent = strings.ReplaceAll(htmlContent, "<meta name=\"author\" content=\"Buya Muhammad Elvisyam\" />", fmt.Sprintf("<meta name=\"author\" content=\"%s\" />", siteName))
-	htmlContent = strings.ReplaceAll(htmlContent, "<meta name=\"author\" content=\"Akhimedia\" />", fmt.Sprintf("<meta name=\"author\" content=\"%s\" />", siteName))
+	htmlContent = strings.ReplaceAll(htmlContent, "<title>Buya Muhammad Elvisyam</title>", fmt.Sprintf("<title>%s</title>", html.EscapeString(dynamicTitle)))
+	htmlContent = strings.ReplaceAll(htmlContent, "<meta name=\"description\" content=\"Akhimedia Generated Project\">", fmt.Sprintf("<meta name=\"description\" content=\"%s\">", html.EscapeString(dynamicDesc)))
+	htmlContent = strings.ReplaceAll(htmlContent, "<meta name=\"description\" content=\"Portal Resmi Kajian Islam & Artikel Pilihan\">", fmt.Sprintf("<meta name=\"description\" content=\"%s\">", html.EscapeString(dynamicDesc)))
+	htmlContent = strings.ReplaceAll(htmlContent, "<meta name=\"author\" content=\"Buya Muhammad Elvisyam\" />", fmt.Sprintf("<meta name=\"author\" content=\"%s\" />", html.EscapeString(siteName)))
+	htmlContent = strings.ReplaceAll(htmlContent, "<meta name=\"author\" content=\"Akhimedia\" />", fmt.Sprintf("<meta name=\"author\" content=\"%s\" />", html.EscapeString(siteName)))
 
 	// Dynamically replace Google Analytics ID
 	if settings.GoogleAnalyticsID != "" {
@@ -213,24 +254,9 @@ func ServeDynamicSEO(c *fiber.Ctx) error {
 	safeSection   := html.EscapeString(articleSection)
 
 	if articleFound {
-		coverImage := shareImage
-		if coverImage == "" {
-			// Fallback chain: site default article image → logo → static file
-			coverImage = settings.DefaultArticleImage
-		}
-		if coverImage == "" {
-			coverImage = settings.LogoURL
-		}
-		if coverImage == "" {
-			coverImage = "/og-image.jpg"
-		}
-		if !strings.HasPrefix(coverImage, "http") {
-			if strings.HasPrefix(coverImage, "/") {
-				coverImage = baseURL + coverImage
-			} else {
-				coverImage = baseURL + "/" + coverImage
-			}
-		}
+		// Pick a valid absolute image, falling back to site defaults when the stored
+		// cover is empty or unusable (e.g. host-less URLs from old imports).
+		coverImage := resolveShareImage(shareImage, settings, baseURL)
 
 		// ── Core OG ──
 		ogInjection.WriteString(fmt.Sprintf("\n  <meta property=\"og:type\" content=\"%s\" />", ogType))
@@ -367,17 +393,9 @@ func ServeDynamicSEO(c *fiber.Ctx) error {
 			},
 		}
 
-		// Add image if available
-		if shareImage != "" {
-			coverAbs := shareImage
-			if !strings.HasPrefix(coverAbs, "http") {
-				if strings.HasPrefix(coverAbs, "/") {
-					coverAbs = baseURL + coverAbs
-				} else {
-					coverAbs = baseURL + "/" + coverAbs
-				}
-			}
-			jsonLd["image"] = []string{coverAbs}
+		// Add image if available (using the same fallback logic as og:image)
+		if ogImage := resolveShareImage(shareImage, settings, baseURL); ogImage != "" {
+			jsonLd["image"] = []string{ogImage}
 		}
 
 		// Add keywords if tags present
@@ -401,7 +419,10 @@ func ServeDynamicSEO(c *fiber.Ctx) error {
 		}
 	}
 
-	c.Set("Content-Type", "text/html")
+	c.Set("Content-Type", "text/html; charset=utf-8")
+	c.Set("Cache-Control", "no-cache, no-store, must-revalidate")
+	c.Set("Pragma", "no-cache")
+	c.Set("Expires", "0")
 	return c.SendString(htmlContent)
 }
 
@@ -419,6 +440,18 @@ func stripHTML(html string) string {
 		}
 	}
 	return strings.TrimSpace(plainText.String())
+}
+
+// cleanExcerpt turns a raw (possibly HTML) excerpt into clean single-line plain
+// text: strips tags, drops WordPress read-more link labels, decodes HTML entities
+// and collapses whitespace. Safe to render as visible text and in meta descriptions.
+func cleanExcerpt(raw string) string {
+	s := stripHTML(raw)
+	s = strings.ReplaceAll(s, "Baca Selengkapnya", "")
+	s = strings.ReplaceAll(s, "Selengkapnya", "")
+	s = html.UnescapeString(s)
+	s = strings.Join(strings.Fields(s), " ")
+	return strings.TrimSpace(s)
 }
 
 func GenerateSitemapFile() {
@@ -476,6 +509,13 @@ func GenerateSitemapFile() {
     <loc>%s/lms</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
+  </url>`, baseURL))
+
+	b.WriteString(fmt.Sprintf(`
+  <url>
+    <loc>%s/faq</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
   </url>`, baseURL))
 
 	// Articles
@@ -610,6 +650,13 @@ func GetSitemap(c *fiber.Ctx) error {
     <loc>%s/lms</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
+  </url>`, baseURL))
+
+	b.WriteString(fmt.Sprintf(`
+  <url>
+    <loc>%s/faq</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
   </url>`, baseURL))
 
 	// Articles

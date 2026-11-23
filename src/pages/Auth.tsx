@@ -113,7 +113,7 @@ export default function Auth() {
               </div>
             )}
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">{settings?.site_name || "BlogUstad"}</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">{settings?.site_name || "Buyaelvisyam.id"}</h1>
           <p className="text-gray-500 italic">{settings?.site_description || settings?.tagline || "Platform Literasi & Edukasi Islami"}</p>
         </div>
 
@@ -188,7 +188,7 @@ export default function Auth() {
           <Link to="/privacy-policy" className="font-semibold text-blue-600 hover:text-blue-700">
             Kebijakan Privasi
           </Link>{" "}
-          {settings?.site_name || "BlogUstad"}.
+          {settings?.site_name || "Buyaelvisyam.id"}.
         </p>
       </div>
     </div>

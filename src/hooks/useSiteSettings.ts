@@ -53,23 +53,63 @@ const DEFAULTS: SiteSettings = {
   font_family: "poppins",
 };
 
+// Global in-memory cache to prevent multiple duplicate network requests across components
+let cachedSettings: SiteSettings | null = null;
+let inflightPromise: Promise<SiteSettings> | null = null;
+const listeners = new Set<(s: SiteSettings) => void>();
+
+export function getCachedSiteSettings(): SiteSettings {
+  return cachedSettings || DEFAULTS;
+}
+
+export function refreshSiteSettings(): Promise<SiteSettings> {
+  if (inflightPromise) return inflightPromise;
+  inflightPromise = api
+    .get("/settings")
+    .then(({ data }) => {
+      const parsed = asObject(data, DEFAULTS);
+      cachedSettings = parsed;
+      listeners.forEach((cb) => cb(parsed));
+      return parsed;
+    })
+    .catch(() => {
+      return cachedSettings || DEFAULTS;
+    })
+    .finally(() => {
+      inflightPromise = null;
+    });
+  return inflightPromise;
+}
+
 export function useSiteSettings() {
-  const [settings, setSettings] = useState<SiteSettings>(DEFAULTS);
-  const [loading, setLoading] = useState(true);
+  const [settings, setSettings] = useState<SiteSettings>(cachedSettings || DEFAULTS);
+  const [loading, setLoading] = useState(!cachedSettings);
 
   useEffect(() => {
-    const fetch = async () => {
-      try {
-        const { data } = await api.get("/settings");
-        setSettings(asObject(data, DEFAULTS));
-      } catch (err) {
-        return;
-      } finally {
+    let mounted = true;
+
+    const handleUpdate = (s: SiteSettings) => {
+      if (mounted) {
+        setSettings(s);
         setLoading(false);
       }
     };
-    fetch();
+    listeners.add(handleUpdate);
+
+    if (cachedSettings) {
+      setSettings(cachedSettings);
+      setLoading(false);
+    } else {
+      if (!inflightPromise) {
+        refreshSiteSettings();
+      }
+    }
+
+    return () => {
+      mounted = false;
+      listeners.delete(handleUpdate);
+    };
   }, []);
 
-  return { settings, loading };
+  return { settings, loading, refresh: refreshSiteSettings };
 }

@@ -65,18 +65,40 @@ func AIChat(c *fiber.Ctx) error {
 		systemContext.WriteString("Gunakan daftar artikel di atas untuk menjawab jika pengguna menanyakan artikel terbaru, cara belajar, atau topik kajian yang relevan. Selalu sertakan link artikel (/artikel/slug) agar pengguna bisa mengkliknya untuk membaca lengkap!\n")
 	}
 
-	// Prepend system context to messages array
-	if msgs, ok := reqBody["messages"].([]interface{}); ok {
-		systemMsg := map[string]interface{}{
-			"role":    "system",
-			"content": systemContext.String(),
+	// Only keep user/assistant turns from the client (no injected system prompts),
+	// cap history length and message size, and drop every other client field.
+	const maxHistory = 12
+	const maxChars = 2000
+	clientMsgs, _ := reqBody["messages"].([]interface{})
+	if len(clientMsgs) > maxHistory {
+		clientMsgs = clientMsgs[len(clientMsgs)-maxHistory:]
+	}
+	newMsgs := make([]interface{}, 0, len(clientMsgs)+1)
+	newMsgs = append(newMsgs, map[string]interface{}{
+		"role":    "system",
+		"content": systemContext.String(),
+	})
+	for _, m := range clientMsgs {
+		mm, ok := m.(map[string]interface{})
+		if !ok {
+			continue
 		}
-		
-		// New messages list
-		newMsgs := make([]interface{}, 0, len(msgs)+1)
-		newMsgs = append(newMsgs, systemMsg)
-		newMsgs = append(newMsgs, msgs...)
-		reqBody["messages"] = newMsgs
+		role, _ := mm["role"].(string)
+		content, _ := mm["content"].(string)
+		if (role != "user" && role != "assistant") || strings.TrimSpace(content) == "" {
+			continue
+		}
+		if r := []rune(content); len(r) > maxChars {
+			content = string(r[:maxChars])
+		}
+		newMsgs = append(newMsgs, map[string]interface{}{"role": role, "content": content})
+	}
+	if len(newMsgs) < 2 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Pesan tidak boleh kosong."})
+	}
+	reqBody = map[string]interface{}{
+		"messages":   newMsgs,
+		"max_tokens": 1024,
 	}
 
 	// Forward request directly to Groq endpoint!

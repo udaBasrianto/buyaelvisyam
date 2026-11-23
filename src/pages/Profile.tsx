@@ -26,7 +26,8 @@ export default function Profile({ embedded = false }: { embedded?: boolean }) {
     whatsapp_number: "",
     whatsapp_verified: false,
     password: "",
-    confirm_password: ""
+    confirm_password: "",
+    current_password: ""
   });
 
   useEffect(() => {
@@ -89,12 +90,13 @@ export default function Profile({ embedded = false }: { embedded?: boolean }) {
         email: formData.email,
         avatar_url: formData.avatar_url,
         whatsapp_number: formData.whatsapp_number,
-        ...(formData.password ? { password: formData.password } : {})
+        ...(formData.password ? { password: formData.password } : {}),
+        ...(formData.current_password ? { current_password: formData.current_password } : {})
       };
 
       await api.post("/auth/profile", payload);
       toast({ title: "Profil berhasil diperbarui!" });
-      setFormData(prev => ({ ...prev, password: "", confirm_password: "" }));
+      setFormData(prev => ({ ...prev, password: "", confirm_password: "", current_password: "" }));
     } catch (err: any) {
       toast({ 
         title: "Gagal memperbarui profil", 
@@ -203,7 +205,20 @@ export default function Profile({ embedded = false }: { embedded?: boolean }) {
               <h3 className="text-sm font-black uppercase tracking-widest">Keamanan</h3>
             </div>
             
-            <p className="text-[10px] text-muted-foreground italic bg-muted/50 p-3 rounded-xl">Biarkan kosong jika tidak ingin mengganti password.</p>
+            <p className="text-[10px] text-muted-foreground italic bg-muted/50 p-3 rounded-xl">Biarkan kosong jika tidak ingin mengganti password. Password saat ini wajib diisi untuk mengganti password atau email.</p>
+
+            <div className="space-y-2">
+              <Label htmlFor="current_pass" className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">Password Saat Ini</Label>
+              <Input
+                id="current_pass"
+                type="password"
+                autoComplete="current-password"
+                value={formData.current_password}
+                onChange={(e) => setFormData({ ...formData, current_password: e.target.value })}
+                className="rounded-xl h-12 bg-muted/20 border-border/50"
+                placeholder="••••••••"
+              />
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -349,7 +364,20 @@ export default function Profile({ embedded = false }: { embedded?: boolean }) {
                   <h3 className="text-sm font-black uppercase tracking-widest">Keamanan</h3>
                 </div>
                 
-                <p className="text-[10px] text-muted-foreground italic bg-muted/50 p-3 rounded-xl">Biarkan kosong jika tidak ingin mengganti password.</p>
+                <p className="text-[10px] text-muted-foreground italic bg-muted/50 p-3 rounded-xl">Biarkan kosong jika tidak ingin mengganti password. Password saat ini wajib diisi untuk mengganti password atau email.</p>
+
+                <div className="space-y-2">
+                  <Label htmlFor="current_pass" className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">Password Saat Ini</Label>
+                  <Input
+                    id="current_pass"
+                    type="password"
+                    autoComplete="current-password"
+                    value={formData.current_password}
+                    onChange={(e) => setFormData({ ...formData, current_password: e.target.value })}
+                    className="rounded-xl h-12 bg-muted/20 border-border/50"
+                    placeholder="••••••••"
+                  />
+                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">

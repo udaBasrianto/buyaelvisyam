@@ -1,13 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Edit, Trash2, ImagePlus, ArrowLeft } from "lucide-react";
+import { Plus, Edit, Trash2, ImagePlus, ArrowLeft, Upload, FileArchive, Download, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
 import { asArray } from "@/lib/api-response";
@@ -23,6 +22,7 @@ interface ProductItem {
   sku?: string;
   stock: number;
   digital_file_url?: string;
+  download_count?: number;
   image_url?: string;
   is_active: boolean;
   sort_order: number;
@@ -34,7 +34,7 @@ interface ProductItem {
 }
 
 const PRODUCT_TYPES = [
-  { id: "physical", label: "Fisika" },
+  { id: "physical", label: "Fisik" },
   { id: "digital", label: "Digital" },
 ];
 
@@ -53,6 +53,8 @@ export function ProductsManager() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingDigital, setUploadingDigital] = useState(false);
+  const [uploadedFileName, setUploadedFileName] = useState("");
   const [editing, setEditing] = useState<ProductItem | null>(null);
   const [form, setForm] = useState({
     title: "",
@@ -64,6 +66,7 @@ export function ProductsManager() {
     sku: "",
     stock: 0,
     digital_file_url: "",
+    download_count: 0,
     image_url: "",
     is_active: true,
     sort_order: 0,
@@ -73,7 +76,9 @@ export function ProductsManager() {
     flash_sale_end: "",
     images: [] as string[],
   });
+
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const digitalFileInputRef = useRef<HTMLInputElement | null>(null);
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -94,6 +99,7 @@ export function ProductsManager() {
   const openDialog = (product?: ProductItem) => {
     if (product) {
       setEditing(product);
+      setUploadedFileName(product.digital_file_url ? product.digital_file_url.split("/").pop() || "" : "");
       setForm({
         title: product.title,
         slug: product.slug,
@@ -104,6 +110,7 @@ export function ProductsManager() {
         sku: product.sku || "",
         stock: product.stock,
         digital_file_url: product.digital_file_url || "",
+        download_count: product.download_count ?? 0,
         image_url: product.image_url || "",
         is_active: product.is_active,
         sort_order: product.sort_order,
@@ -115,6 +122,7 @@ export function ProductsManager() {
       });
     } else {
       setEditing(null);
+      setUploadedFileName("");
       setForm({
         title: "",
         slug: "",
@@ -125,6 +133,7 @@ export function ProductsManager() {
         sku: "",
         stock: 0,
         digital_file_url: "",
+        download_count: 0,
         image_url: "",
         is_active: true,
         sort_order: products.length,
@@ -182,6 +191,40 @@ export function ProductsManager() {
     }
 
     setUploadingImage(false);
+  };
+
+  const handleDigitalFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingDigital(true);
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const { data } = await api.post("/admin/products/upload-digital", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setForm((prev) => ({
+        ...prev,
+        digital_file_url: data.url,
+        product_type: "digital",
+      }));
+      setUploadedFileName(data.filename || file.name);
+      toast({
+        title: "File digital berhasil diunggah",
+        description: `${file.name} (${(file.size / (1024 * 1024)).toFixed(2)} MB)`,
+      });
+    } catch (err: any) {
+      toast({
+        title: "Gagal mengunggah file digital",
+        description: err?.response?.data?.error || err.message,
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingDigital(false);
+      if (digitalFileInputRef.current) digitalFileInputRef.current.value = "";
+    }
   };
 
   const handleSave = async () => {
@@ -243,6 +286,7 @@ export function ProductsManager() {
                 <Input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} placeholder="otomatis dibuat dari judul" />
               </div>
             </div>
+
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label>Jenis Produk</Label>
@@ -258,10 +302,11 @@ export function ProductsManager() {
                 </Select>
               </div>
               <div className="grid gap-2">
-                <Label>Harga</Label>
+                <Label>Harga (IDR / 0 jika gratis)</Label>
                 <Input type="number" value={form.price} onChange={(e) => setForm({ ...form, price: Number(e.target.value) })} />
               </div>
             </div>
+
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label>Mata Uang</Label>
@@ -272,16 +317,122 @@ export function ProductsManager() {
                 <Input value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} />
               </div>
             </div>
-            <div className="grid gap-4 md:grid-cols-2">
+
+            {form.product_type === "physical" ? (
               <div className="space-y-2">
-                <Label>Stok</Label>
-                <Input type="number" value={form.stock} onChange={(e) => setForm({ ...form, stock: Number(e.target.value) })} disabled={form.product_type === "digital"} />
+                <Label>Stok Produk Fisik</Label>
+                <Input type="number" value={form.stock} onChange={(e) => setForm({ ...form, stock: Number(e.target.value) })} />
               </div>
-              <div className="space-y-2">
-                <Label>URL File Digital</Label>
-                <Input value={form.digital_file_url} onChange={(e) => setForm({ ...form, digital_file_url: e.target.value })} disabled={form.product_type === "physical"} />
+            ) : (
+              <div className="space-y-4 rounded-2xl border border-primary/20 bg-primary/5 p-5">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div>
+                    <Label className="text-base font-semibold text-primary flex items-center gap-2">
+                      <FileArchive className="h-5 w-5" /> File Produk Digital (.zip, .pdf, dll.)
+                    </Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Pengunjung dapat langsung mengunduh file ini dari website.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => digitalFileInputRef.current?.click()}
+                      disabled={uploadingDigital}
+                      className="bg-background shadow-xs hover:border-primary"
+                    >
+                      {uploadingDigital ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin text-primary" /> Mengunggah...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="h-4 w-4 mr-2 text-primary" /> Upload File (.zip, .pdf, dll)
+                        </>
+                      )}
+                    </Button>
+                    <input
+                      ref={digitalFileInputRef}
+                      type="file"
+                      accept=".zip,.rar,.7z,.tar,.gz,.pdf,.epub,.mobi,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.mp3,.m4a,.wav,.mp4,.apk,.txt"
+                      className="hidden"
+                      onChange={handleDigitalFileUpload}
+                      disabled={uploadingDigital}
+                    />
+                  </div>
+                </div>
+
+                {form.digital_file_url ? (
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-background rounded-xl border border-border">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                        <FileArchive className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">
+                          {uploadedFileName || form.digital_file_url.split("/").pop()}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate font-mono">
+                          {form.digital_file_url}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => window.open(form.digital_file_url, "_blank")}
+                        className="h-8 text-xs"
+                      >
+                        <Download className="h-3.5 w-3.5 mr-1" /> Tes Unduh
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setForm({ ...form, digital_file_url: "" })}
+                        className="h-8 text-xs text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="border border-dashed border-border rounded-xl p-4 text-center text-xs text-muted-foreground bg-background/50">
+                    Belum ada file terunggah. Klik <strong>Upload File</strong> di atas atau masukkan URL langsung di bawah. Format didukung: <strong>ZIP, RAR, 7Z, PDF, EPUB, DOCX, MP3, APK, dll. (Maks. 250MB)</strong>.
+                  </div>
+                )}
+
+                <div className="grid gap-4 md:grid-cols-2 pt-2 border-t border-border/50">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">URL File Digital (Manual atau Hasil Upload)</Label>
+                    <Input
+                      value={form.digital_file_url}
+                      onChange={(e) => setForm({ ...form, digital_file_url: e.target.value })}
+                      placeholder="https://... atau /uploads/digital/..."
+                      className="h-9 text-xs font-mono"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+                      <Download className="h-3.5 w-3.5 text-primary" /> Jumlah Download (Tersinkron Database)
+                    </Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={form.download_count}
+                      onChange={(e) => setForm({ ...form, download_count: Number(e.target.value) || 0 })}
+                      className="h-9 text-xs"
+                    />
+                    <p className="text-[11px] text-muted-foreground">Bertambah otomatis setiap kali pengguna mengunduh dari web.</p>
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
+
             <div className="space-y-2 border-t pt-4">
               <Label>Galeri Gambar Produk</Label>
               <div className="flex flex-col gap-3">
@@ -423,6 +574,7 @@ export function ProductsManager() {
                 <TableHead>Jenis</TableHead>
                 <TableHead>Harga</TableHead>
                 <TableHead>Stok</TableHead>
+                <TableHead>Diunduh</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Aksi</TableHead>
               </TableRow>
@@ -430,12 +582,49 @@ export function ProductsManager() {
             <TableBody>
               {products.map((product) => (
                 <TableRow key={product.id}>
-                  <TableCell className="font-medium">{product.title}</TableCell>
-                  <TableCell className="capitalize">{product.product_type}</TableCell>
+                  <TableCell className="font-medium">
+                    <div className="flex flex-col">
+                      <span>{product.title}</span>
+                      {product.digital_file_url && (
+                        <span className="text-[11px] text-muted-foreground truncate max-w-[200px]">
+                          {product.digital_file_url.split("/").pop()}
+                        </span>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="capitalize">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${product.product_type === 'digital' ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                      {product.product_type === "digital" ? "Digital" : "Fisik"}
+                    </span>
+                  </TableCell>
                   <TableCell>{product.currency} {product.price.toLocaleString("id-ID")}</TableCell>
-                  <TableCell>{product.product_type === "digital" ? "N/A" : product.stock}</TableCell>
-                  <TableCell>{product.is_active ? "Aktif" : "Nonaktif"}</TableCell>
-                  <TableCell className="space-x-2">
+                  <TableCell>{product.product_type === "digital" ? "Digital" : product.stock}</TableCell>
+                  <TableCell>
+                    {product.product_type === "digital" ? (
+                      <span className="inline-flex items-center gap-1 font-semibold text-primary text-xs">
+                        <Download className="h-3.5 w-3.5" /> {(product.download_count || 0).toLocaleString("id-ID")}x
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground text-xs">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${product.is_active ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-muted text-muted-foreground'}`}>
+                      {product.is_active ? "Aktif" : "Nonaktif"}
+                    </span>
+                  </TableCell>
+                  <TableCell className="space-x-1">
+                    {product.digital_file_url && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        title="Unduh file produk digital"
+                        className="text-primary hover:bg-primary/10"
+                        onClick={() => window.open(`/api/products/${product.id}/download`, "_blank")}
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
                     <Button variant="outline" size="sm" onClick={() => openDialog(product)}>
                       <Edit className="h-3.5 w-3.5" />
                     </Button>

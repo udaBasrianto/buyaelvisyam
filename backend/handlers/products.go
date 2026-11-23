@@ -3,6 +3,8 @@ package handlers
 import (
 	"fmt"
 	"strings"
+	"os"
+	"path/filepath"
 	"time"
 
 	"backend/database"
@@ -24,6 +26,7 @@ type productRequest struct {
 	SKU            string   `json:"sku"`
 	Stock          *int     `json:"stock"`
 	DigitalFileURL *string  `json:"digital_file_url"`
+	DownloadCount  *int     `json:"download_count"`
 	ImageURL       *string  `json:"image_url"`
 	IsActive       *bool    `json:"is_active"`
 	SortOrder      *int     `json:"sort_order"`
@@ -95,6 +98,16 @@ func ensureUniqueProductSlug(db *gorm.DB, baseSlug string) (string, error) {
 	return "", fmt.Errorf("gagal membuat slug unik")
 }
 
+// sanitizeProductForViewer hides the raw digital file location from non-admins so
+// paid files cannot be fetched directly.
+func sanitizeProductForViewer(p *models.Product, isAdmin bool) {
+	p.HasDigitalFile = strings.TrimSpace(p.DigitalFileURL) != ""
+	p.IsFreeDownload = p.HasDigitalFile && p.GetActivePrice() <= 0
+	if !isAdmin {
+		p.DigitalFileURL = ""
+	}
+}
+
 func GetProducts(c *fiber.Ctx) error {
 	db := database.DB
 	var products []models.Product
@@ -124,6 +137,11 @@ func GetProducts(c *fiber.Ctx) error {
 		products[i].Sold = int(sold)
 	}
 
+	_, role := requestIdentity(c)
+	for i := range products {
+		sanitizeProductForViewer(&products[i], isAdminRole(role))
+	}
+
 	return c.JSON(products)
 }
 
@@ -146,6 +164,9 @@ func GetProduct(c *fiber.Ctx) error {
 		Select("COALESCE(SUM(product_order_items.quantity), 0)").
 		Row().Scan(&sold)
 	product.Sold = int(sold)
+
+	_, role := requestIdentity(c)
+	sanitizeProductForViewer(&product, isAdminRole(role))
 
 	return c.JSON(product)
 }
@@ -181,6 +202,11 @@ func CreateProduct(c *fiber.Ctx) error {
 	stock := 0
 	if body.Stock != nil {
 		stock = *body.Stock
+	}
+
+	downloadCount := 0
+	if body.DownloadCount != nil {
+		downloadCount = *body.DownloadCount
 	}
 
 	digitalFileURL := ""
@@ -222,6 +248,7 @@ func CreateProduct(c *fiber.Ctx) error {
 		SKU:            body.SKU,
 		Stock:          stock,
 		DigitalFileURL: digitalFileURL,
+		DownloadCount:  downloadCount,
 		ImageURL:       imageURL,
 		Images:         images,
 		IsActive:       true,
@@ -295,6 +322,9 @@ func UpdateProduct(c *fiber.Ctx) error {
 	if body.DigitalFileURL != nil {
 		updateMap["digital_file_url"] = *body.DigitalFileURL
 	}
+	if body.DownloadCount != nil {
+		updateMap["download_count"] = *body.DownloadCount
+	}
 	if body.ImageURL != nil {
 		updateMap["image_url"] = *body.ImageURL
 	}
@@ -360,4 +390,131 @@ func DeleteProduct(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{"message": "Produk dihapus"})
+}
+
+// UploadProductDigitalFile handles uploading zip, pdf, and other digital product files
+func UploadProductDigitalFile(c *fiber.Ctx) error {
+	file, err := c.FormFile("file")
+	if err != nil {
+		file, err = c.FormFile("digital_file")
+	}
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "Pilih file digital terlebih dahulu"})
+	}
+
+	const maxBytes = 250 * 1024 * 1024 // 250MB
+	if file.Size <= 0 || file.Size > maxBytes {
+		return c.Status(400).JSON(fiber.Map{"error": "Ukuran file terlalu besar (maksimal 250MB)"})
+	}
+
+	ext := strings.ToLower(filepath.Ext(file.Filename))
+	allowedExts := map[string]bool{
+		".zip": true, ".rar": true, ".7z": true, ".tar": true, ".gz": true,
+		".pdf": true, ".epub": true, ".mobi": true,
+		".doc": true, ".docx": true, ".xls": true, ".xlsx": true, ".ppt": true, ".pptx": true,
+		".mp3": true, ".m4a": true, ".wav": true,
+		".mp4": true, ".mkv": true,
+		".apk": true, ".txt": true,
+	}
+	if !allowedExts[ext] {
+		return c.Status(400).JSON(fiber.Map{"error": fmt.Sprintf("Format file '%s' tidak didukung. Gunakan ZIP, RAR, 7Z, PDF, EPUB, dll.", ext)})
+	}
+
+	dir := "./uploads/digital"
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Gagal menyiapkan direktori penyimpanan"})
+	}
+
+	cleanBase := strings.ToLower(filepath.Base(file.Filename))
+	cleanBase = strings.ReplaceAll(cleanBase, " ", "-")
+	cleanBase = strings.ReplaceAll(cleanBase, "_", "-")
+	baseWithoutExt := strings.TrimSuffix(cleanBase, ext)
+	if len(baseWithoutExt) > 50 {
+		baseWithoutExt = baseWithoutExt[:50]
+	}
+	filename := fmt.Sprintf("%s-%s%s", baseWithoutExt, uuid.New().String()[:8], ext)
+	savePath := filepath.Join(dir, filename)
+
+	if err := c.SaveFile(file, savePath); err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Gagal menyimpan file digital"})
+	}
+
+	publicURL := fmt.Sprintf("/uploads/digital/%s", filename)
+
+	return c.JSON(fiber.Map{
+		"url":       publicURL,
+		"filename":  file.Filename,
+		"size":      file.Size,
+		"extension": strings.TrimPrefix(ext, "."),
+	})
+}
+
+// DownloadProductFile handles downloading a digital product file and atomically increments the download count
+func DownloadProductFile(c *fiber.Ctx) error {
+	idOrSlug := strings.TrimSpace(c.Params("id"))
+	if idOrSlug == "" {
+		return c.Status(400).JSON(fiber.Map{"error": "ID atau slug produk wajib diisi"})
+	}
+
+	db := database.DB
+	var product models.Product
+
+	query := db.Where("is_active = ?", true)
+	if _, err := uuid.Parse(idOrSlug); err == nil {
+		query = query.Where("id = ?", idOrSlug)
+	} else {
+		query = query.Where("slug = ?", idOrSlug)
+	}
+
+	if err := query.First(&product).Error; err != nil {
+		return c.Status(404).JSON(fiber.Map{"error": "Produk digital tidak ditemukan"})
+	}
+
+	if strings.TrimSpace(product.DigitalFileURL) == "" {
+		return c.Status(400).JSON(fiber.Map{"error": "Produk ini belum memiliki file digital untuk diunduh"})
+	}
+
+	// Paid products: only admins, or holders of a paid order containing this product.
+	if product.GetActivePrice() > 0 {
+		_, role := requestIdentity(c)
+		if !isAdminRole(role) {
+			orderToken := strings.TrimSpace(c.Query("order"))
+			if orderToken == "" {
+				return c.Status(403).JSON(fiber.Map{"error": "Produk berbayar. Silakan selesaikan pembelian untuk mengunduh."})
+			}
+			var paidCount int64
+			db.Model(&models.ProductOrderItem{}).
+				Joins("JOIN product_orders ON product_orders.id = product_order_items.order_id").
+				Where("product_orders.public_token = ? AND product_orders.payment_status = ? AND product_orders.status <> ? AND product_order_items.product_id = ?",
+					orderToken, "paid", "cancelled", product.ID).
+				Count(&paidCount)
+			if paidCount == 0 {
+				return c.Status(403).JSON(fiber.Map{"error": "Pesanan belum lunas atau tidak berisi produk ini."})
+			}
+		}
+	}
+
+	// Atomically increment download_count
+	_ = db.Model(&models.Product{}).Where("id = ?", product.ID).
+		UpdateColumn("download_count", gorm.Expr("download_count + ?", 1)).Error
+
+	fileURL := strings.TrimSpace(product.DigitalFileURL)
+
+	// Check if local file (/uploads/...)
+	if strings.HasPrefix(fileURL, "/uploads/") || strings.HasPrefix(fileURL, "uploads/") {
+		relPath := strings.TrimPrefix(fileURL, "/")
+		cleanPath := filepath.Clean(relPath)
+		if strings.HasPrefix(cleanPath, "..") {
+			return c.Status(400).JSON(fiber.Map{"error": "Path file tidak valid"})
+		}
+		if _, err := os.Stat(cleanPath); err != nil {
+			return c.Status(404).JSON(fiber.Map{"error": "Berkas file fisik tidak ditemukan di server"})
+		}
+
+		downloadName := filepath.Base(cleanPath)
+		return c.Download(cleanPath, downloadName)
+	}
+
+	// External URL (e.g. Google Drive, Cloudflare R2, CDN)
+	return c.Redirect(fileURL, 302)
 }

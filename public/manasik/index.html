@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Simulasi Manasik Umrah &amp; Haji — Masjidil Haram 3D</title>
+<meta name="description" content="Simulasi manasik umrah dan haji interaktif 3D: ihram, tawaf, sa'i, wukuf Arafah, mabit Muzdalifah, dan melontar jumrah sesuai sunnah." />
+<meta name="theme-color" content="#0b1220" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='5' y='7' width='14' height='13' rx='1' fill='%231e2423'/%3E%3Crect x='5' y='11' width='14' height='2.2' fill='%23e5b842'/%3E%3Cpath d='M12 2 3.5 7.5h17z' fill='%23f6bd60'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="./styles.css" />
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+
+<!-- ============================ 3D ============================ -->
+<div id="viewport" aria-hidden="true"></div>
+<div id="labels" aria-hidden="true"></div>
+
+<!-- ============================ APP ============================ -->
+<div id="app" class="app" hidden>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M4 21V11.2c0-1.1.5-2.1 1.4-2.7L12 3l6.6 5.5c.9.6 1.4 1.6 1.4 2.7V21" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          <path d="M9.5 21v-6.2c0-1.4 1.1-2.6 2.5-2.6s2.5 1.2 2.5 2.6V21M3 21h18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <span class="brand-title">Manasik <b>Live</b></span>
+        <span class="brand-sub" id="brand-sub">Simulasi Umrah &amp; Haji</span>
+      </div>
+    </div>
+
+    <div class="clock" id="clock" aria-live="polite">
+      <span class="clock-dot"></span>
+      <span id="clock-label">8 Dzulhijjah 1447 H</span>
+      <span class="clock-sep">•</span>
+      <span id="clock-time" class="mono">05:12</span>
+    </div>
+
+    <div class="topbar-actions"><a href="/" class="icon-btn" title="Kembali ke Portal Buya" aria-label="Kembali ke Beranda" style="text-decoration:none; display:flex; align-items:center; gap:6px; padding:0 10px; width:auto; border-radius:12px; font-weight:700; font-size:12px; color:inherit;"><svg viewBox="0 0 24 24" width="16" height="16" fill="none"><path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Portal</span></a>
+      <button class="icon-btn" id="btn-cam" title="Ganti kamera (Drone Orbit / Mata Jamaah)" aria-label="Ganti sudut pandang kamera">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14v-4z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><rect x="3" y="6" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/></svg>
+      </button>
+      <button class="icon-btn" id="btn-font-size" title="Ukuran teks doa (Normal / Besar)" aria-label="Perbesar ukuran teks doa">
+        <span style="font-weight:800;font-size:12px;letter-spacing:-0.05em">A+</span>
+      </button>
+      <button class="icon-btn" id="btn-avatar" title="Desain & Kustomisasi Avatar Jamaah" aria-label="Desain & Kustomisasi Avatar Jamaah">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 12a4 4 0 100-8 4 4 0 000 8zM5 20v-1a7 7 0 0114 0v1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>
+      <button class="icon-btn" id="btn-ref" title="Panduan fikih" aria-label="Panduan fikih">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15.5H6.5A2.5 2.5 0 0 0 4 21V5.5Z" stroke="currentColor" stroke-width="1.6"/><path d="M8 7.5h8M8 11h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>
+      <button class="icon-btn" id="btn-labels" title="Nama tempat" aria-label="Tampilkan nama tempat" aria-pressed="true">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M4 6h10M4 12h7M4 18h5M17 7v10m0 0 3-3m-3 3-3-3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="icon-btn" id="btn-sound" title="Suara & Lantunan Doa" aria-label="Suara & Lantunan Doa" aria-pressed="true">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M4 10v4h3l4 3V7L7 10H4Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M15 9.5a4 4 0 0 1 0 5M17.5 7a7 7 0 0 1 0 10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>
+      <button class="icon-btn" id="btn-help" title="Cara pakai" aria-label="Cara pakai">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.3c-.7.3-1 .8-1 1.5v.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="16.7" r=".9" fill="currentColor"/></svg>
+      </button>
+      <button class="text-btn" id="btn-exit">Keluar</button>
+    </div>
+  </header>
+
+  <!-- Panel langkah -->
+  <aside class="panel step-panel" id="step-panel" aria-live="polite">
+    <div class="step-head">
+      <span class="phase-badge" id="step-phase">Ihram</span>
+      <span class="step-counter" id="step-counter">1 / 11</span>
+    </div>
+    <h1 class="step-title" id="step-title">Berihram di Miqat</h1>
+    <p class="step-sub" id="step-sub">Niat, talbiyah, dan niat meninggalkan larangan</p>
+
+    <div class="step-scroll" id="step-scroll">
+      <div class="step-body" id="step-body"></div>
+      <div id="step-dalil"></div>
+      <div id="step-tip"></div>
+      <div id="step-quiz"></div>
+      <div id="step-action"></div>
+    </div>
+
+    <div class="step-foot">
+      <button class="btn-primary" id="next-btn" disabled>
+        <span id="next-label">Lanjut</span>
+        <svg viewBox="0 0 24 24" fill="none" width="16" height="16"><path d="M5 12h14m0 0-6-6m6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Panel rangkaian -->
+  <aside class="panel side-panel" id="side-panel">
+    <div class="side-head">
+      <span>Rangkaian Ibadah</span>
+      <span class="side-progress" id="side-progress">0%</span>
+    </div>
+    <ol class="step-list" id="step-list"></ol>
+    <div class="side-refs">
+      <button class="ref-btn" data-ref="jenis">Jenis Haji</button>
+      <button class="ref-btn" data-ref="rukun">Rukun &amp; Wajib</button>
+      <button class="ref-btn" data-ref="larangan">Larangan Ihram</button>
+      <button class="ref-btn" data-ref="doa">Doa &amp; Talbiyah</button>
+      <button class="ref-btn" data-ref="miqat">Miqat &amp; Dam</button>
+      <button class="ref-btn" data-ref="istilah">Istilah</button>
+    </div>
+  </aside>
+
+  <!-- Floating Live Doa Ticker (Tawaf & Sa'i) -->
+  <div class="tawaf-doa-hud" id="tawaf-doa-hud" hidden>
+    <div class="doa-ticker-head">
+      <div class="doa-zone-tag">
+        <span class="doa-dot"></span>
+        <span id="tawaf-zone-badge">Sudut Hajar Aswad</span>
+      </div>
+      <button class="doa-audio-pill" id="btn-tawaf-doa-audio" title="Dengarkan pelafalan doa">
+        <span class="speaker-icon">🔊</span>
+        <span id="doa-audio-text">Dengar</span>
+        <span class="wave-anim" id="doa-wave-anim"><i></i><i></i><i></i></span>
+      </button>
+    </div>
+    <div class="doa-ticker-arabic" id="tawaf-doa-arabic">بِسْمِ اللهِ وَاللهُ أَكْبَرُ</div>
+    <div class="doa-ticker-latin" id="tawaf-doa-latin">Bismillāhi wallāhu akbar.</div>
+    <div class="doa-ticker-meaning" id="tawaf-doa-meaning">“Dengan nama Allah, dan Allah Maha Besar.”</div>
+  </div>
+
+  <!-- HUD aksi -->
+  <div class="action-hud" id="action-hud" hidden>
+    <div class="hud-counter">
+      <span id="hud-count">0</span><small id="hud-total">/ 7</small>
+    </div>
+    <div class="hud-meta">
+      <div class="hud-title" id="hud-title">Putaran tawaf</div>
+      <div class="hud-sub" id="hud-sub">Ka'bah selalu di sisi kiri Anda</div>
+      <div class="hud-bar"><i id="hud-bar-fill"></i></div>
+    </div>
+    <div class="hud-controls">
+      <button class="chip" id="hud-cam-btn" title="Ganti kamera: Drone / Mata Jamaah">🎥 Mata</button>
+      <button class="chip" id="hud-speed" title="Percepat animasi">2.0×</button>
+      <button class="chip" id="hud-stop">Jeda</button>
+    </div>
+  </div>
+
+  <!-- Panel Tur Virtual Bebas -->
+  <div class="tour-panel" id="tour-panel" hidden>
+    <div class="tour-chips" id="tour-chips"></div>
+    <div class="tour-card" id="tour-card">
+      <div class="tour-head">
+        <div>
+          <span class="phase-badge" id="tour-badge">Kiblat Umat Islam</span>
+          <h2 class="tour-title" id="tour-title">Ka'bah &amp; Kiswah Suci</h2>
+        </div>
+        <button class="icon-btn" id="btn-close-tour" title="Tutup kartu" aria-label="Tutup kartu">
+          <svg viewBox="0 0 24 24" fill="none"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <p class="tour-desc" id="tour-desc"></p>
+      <div class="tour-doa" id="tour-doa"></div>
+    </div>
+  </div>
+
+  <div class="zone-chip" id="zone-chip">
+    <span class="zone-dot"></span>
+    <span id="zone-name">Masjidil Haram</span>
+  </div>
+
+  <div class="hint-bar" id="hint-bar">
+    Drag: putar • Scroll: zoom • Klik tombol 🎥 Mata untuk sudut pandang orang pertama
+  </div>
+</div>
+
+<!-- ============================ INTRO ============================ -->
+<div class="overlay intro" id="intro">
+  <div class="intro-scrim"></div>
+  <div class="intro-inner">
+    <div class="intro-top">
+      <span class="pill">
+        <span class="pill-dot"></span>
+        Berbasis 3D Masjidil Haram
+      </span>
+      <span class="pill pill-ghost">Sesuai Sunnah</span>
+      <span class="pill pill-gold">Visual &amp; Audio Upgrade</span>
+    </div>
+
+    <h1 class="intro-title">
+      Simulasi Manasik
+      <span>Umrah &amp; Haji 3D</span>
+    </h1>
+    <p class="intro-lead">
+      Jalani setiap rangkaian di tempatnya: ihram di miqat, tawaf mengelilingi Ka'bah,
+      sa'i di Masa'a, wukuf di Arafah, mabit di Muzdalifah, hingga melontar jumrah.
+      Kini dilengkapi sudut pandang orang pertama (FPV), lantunan audio doa asli, dan mode jelajah 3D bebas.
+    </p>
+
+    <div class="mode-grid" id="mode-grid">
+      <button class="mode-card selected" data-mode="umrah">
+        <span class="mode-icon">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 3v18M5 9.5 12 5l7 4.5M5 9.5V17l7 4 7-4V9.5" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+        </span>
+        <span class="mode-name">Umrah</span>
+        <span class="mode-desc">Ihram → Tawaf 7× → Sa'i 7× → Tahallul</span>
+        <span class="mode-meta">11 tahap • ± 10 menit</span>
+        <span class="mode-check">
+          <svg viewBox="0 0 24 24" fill="none"><path d="m5 12.5 4.5 4.5L19 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+      </button>
+
+      <button class="mode-card" data-mode="hajj">
+        <span class="mode-icon">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 3 4 20h16L12 3Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M12 9.5V14M12 16.5v.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </span>
+        <span class="mode-name">Haji</span>
+        <span class="mode-desc">Tamattu' • Qiran • Ifrad — Mina → Arafah → Jamarat</span>
+        <span class="mode-meta">3 jenis manasik • 15–19 tahap</span>
+        <span class="mode-check">
+          <svg viewBox="0 0 24 24" fill="none"><path d="m5 12.5 4.5 4.5L19 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+      </button>
+
+      <button class="mode-card" data-mode="tour">
+        <span class="mode-icon">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M12 3v18M3 12h18" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>
+        </span>
+        <span class="mode-name">Jelajah 3D</span>
+        <span class="mode-desc">Tur Bebas: Ka'bah, Maqam, Safa-Marwah, Jamarat, Arafah</span>
+        <span class="mode-meta">10 titik suci • Belajar mandiri</span>
+        <span class="mode-check">
+          <svg viewBox="0 0 24 24" fill="none"><path d="m5 12.5 4.5 4.5L19 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+      </button>
+    </div>
+
+    <div class="intro-options" id="hajj-type-row" hidden>
+      <div class="opt-group">
+        <span class="opt-label">Jenis manasik haji</span>
+        <div class="segmented" id="hajj-type-toggle" role="group" aria-label="Pilih jenis manasik haji">
+          <button class="seg active" data-hajj="tamattu">Tamattu'</button>
+          <button class="seg" data-hajj="qiran">Qiran</button>
+          <button class="seg" data-hajj="ifrad">Ifrad</button>
+        </div>
+      </div>
+      <p class="opt-hint" id="hajj-type-hint">Wajib hadyu. Paling utama menurut jumhur ulama.</p>
+    </div>
+
+    <div class="intro-options">
+      <div class="opt-group">
+        <span class="opt-label">Pakaian ihram</span>
+        <div class="segmented" id="gender-toggle" role="group" aria-label="Pilih pakaian ihram">
+          <button class="seg active" data-gender="male">Laki-laki</button>
+          <button class="seg" data-gender="female">Perempuan</button>
+        </div>
+      </div>
+      <p class="opt-hint">Menentukan sunnah idtiba'/raml dan cara tahallul.</p>
+    </div>
+
+    <button class="btn-start" id="start-btn">
+      Mulai simulasi
+      <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M5 12h14m0 0-6-6m6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+
+    <p class="intro-note">
+      Panduan mengikuti madzhab Syafi'i (mayoritas jamaah Indonesia). Perbedaan pendapat
+      dijelaskan sebagai catatan. Untuk ibadah sesungguhnya, tetap ikuti bimbingan pembimbing manasik.
+    </p>
+  </div>
+</div>
+
+<!-- ============================ DRAWER REFERENSI ============================ -->
+<div class="drawer" id="drawer" hidden aria-hidden="true">
+  <div class="drawer-scrim" data-close="drawer"></div>
+  <section class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
+    <div class="drawer-head">
+      <h2 id="drawer-title">Panduan Manasik</h2>
+      <button class="icon-btn" data-close="drawer" aria-label="Tutup">
+        <svg viewBox="0 0 24 24" fill="none"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="drawer-tabs" id="drawer-tabs"></div>
+    <div class="drawer-body" id="drawer-body"></div>
+  </section>
+</div>
+
+<!-- ============================ MODAL ============================ -->
+<div class="modal" id="modal" hidden>
+  <div class="modal-scrim" data-close="modal"></div>
+  <div class="modal-card" id="modal-card" role="dialog" aria-modal="true"></div>
+</div>
+
+<!-- ============================ TOAST ============================ -->
+<div class="toast" id="toast"></div>
+
+<script type="module" src="./js/app.js"></script>
+</body>
+</html>
