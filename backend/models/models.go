@@ -480,7 +480,7 @@ type Visit struct {
 	IP        string     `json:"ip"`
 	Path      string     `json:"path"`
 	UserAgent string     `json:"user_agent"`
-	CreatedAt time.Time  `json:"created_at"`
+	CreatedAt time.Time  `gorm:"index" json:"created_at"`
 }
 
 type Widget struct {

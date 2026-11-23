@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate, useParams, useNavigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -10,41 +10,63 @@ import { useSiteSettings } from "@/hooks/useSiteSettings";
 import api from "@/lib/api";
 import Index from "./pages/Index.tsx";
 import ArticleDetail from "./pages/ArticleDetail.tsx";
-import AdminDashboard from "./pages/AdminDashboard.tsx";
-import ArticleEditor from "./pages/ArticleEditor.tsx";
-import ContributorDashboard from "./pages/ContributorDashboard.tsx";
-import ReaderDashboard from "./pages/ReaderDashboard.tsx";
-import Auth from "./pages/Auth.tsx";
-import CategoryPage from "./pages/CategoryPage.tsx";
-import PageView from "./pages/PageView.tsx";
-import NotFound from "./pages/NotFound.tsx";
-import About from "./pages/About.tsx";
-import SearchPage from "./pages/SearchPage.tsx";
-import CategoriesPage from "./pages/CategoriesPage.tsx";
-import Courses from "./pages/Courses.tsx";
-import CourseDetail from "./pages/CourseDetail.tsx";
-import LessonView from "./pages/LessonView.tsx";
-import Profile from "./pages/Profile.tsx";
-import Donation from "./pages/Donation.tsx";
-import DonationHistory from "./pages/DonationHistory.tsx";
-import PrivacyPolicy from "./pages/PrivacyPolicy.tsx";
-import AccountDeletion from "./pages/AccountDeletion.tsx";
-import ProductsPage from "./pages/ProductsPage.tsx";
-import ProductDetail from "./pages/ProductDetail.tsx";
-import Checkout, { CheckoutSuccess } from "./pages/Checkout";
-import Arsip from "./pages/Arsip.tsx";
-import DownloadsPage from "./pages/DownloadsPage.tsx";
-import FAQ from "./pages/FAQ.tsx";
-import PrayerAirQualityPage from "./pages/PrayerAirQualityPage";
-import DzikirPage from "./pages/DzikirPage";
-import ManasikPage from "./pages/ManasikPage";
-import TasbihPage from "./pages/TasbihPage";
 import { ScrollToTop } from "./components/ScrollToTop";
 import { ThemeInitializer } from "./components/ThemeInitializer";
 import { GoogleAnalytics } from "./components/GoogleAnalytics";
 import { VisitorTracker } from "./components/VisitorTracker";
 import { InfoPopup } from "./components/InfoPopup";
 import { CapacitorAppBridge } from "./components/CapacitorAppBridge";
+
+// Pages other than the homepage/article are loaded on demand to keep the
+// initial JavaScript bundle small.
+// After a new deploy, an open tab may request a chunk that no longer exists;
+// reload once to pick up the fresh build instead of showing a blank page.
+function lazyPage<T extends React.ComponentType<any>>(factory: () => Promise<{ default: T }>) {
+  return lazy(() =>
+    factory()
+      .then((mod) => {
+        sessionStorage.removeItem("chunk-reload");
+        return mod;
+      })
+      .catch((err) => {
+        if (!sessionStorage.getItem("chunk-reload")) {
+          sessionStorage.setItem("chunk-reload", "1");
+          window.location.reload();
+        }
+        throw err;
+      })
+  );
+}
+const AdminDashboard = lazyPage(() => import("./pages/AdminDashboard.tsx"));
+const ArticleEditor = lazyPage(() => import("./pages/ArticleEditor.tsx"));
+const ContributorDashboard = lazyPage(() => import("./pages/ContributorDashboard.tsx"));
+const ReaderDashboard = lazyPage(() => import("./pages/ReaderDashboard.tsx"));
+const Auth = lazyPage(() => import("./pages/Auth.tsx"));
+const CategoryPage = lazyPage(() => import("./pages/CategoryPage.tsx"));
+const PageView = lazyPage(() => import("./pages/PageView.tsx"));
+const NotFound = lazyPage(() => import("./pages/NotFound.tsx"));
+const About = lazyPage(() => import("./pages/About.tsx"));
+const SearchPage = lazyPage(() => import("./pages/SearchPage.tsx"));
+const CategoriesPage = lazyPage(() => import("./pages/CategoriesPage.tsx"));
+const Courses = lazyPage(() => import("./pages/Courses.tsx"));
+const CourseDetail = lazyPage(() => import("./pages/CourseDetail.tsx"));
+const LessonView = lazyPage(() => import("./pages/LessonView.tsx"));
+const Profile = lazyPage(() => import("./pages/Profile.tsx"));
+const Donation = lazyPage(() => import("./pages/Donation.tsx"));
+const DonationHistory = lazyPage(() => import("./pages/DonationHistory.tsx"));
+const PrivacyPolicy = lazyPage(() => import("./pages/PrivacyPolicy.tsx"));
+const AccountDeletion = lazyPage(() => import("./pages/AccountDeletion.tsx"));
+const ProductsPage = lazyPage(() => import("./pages/ProductsPage.tsx"));
+const ProductDetail = lazyPage(() => import("./pages/ProductDetail.tsx"));
+const Checkout = lazyPage(() => import("./pages/Checkout"));
+const CheckoutSuccess = lazyPage(() => import("./pages/Checkout").then((m) => ({ default: m.CheckoutSuccess })));
+const Arsip = lazyPage(() => import("./pages/Arsip.tsx"));
+const DownloadsPage = lazyPage(() => import("./pages/DownloadsPage.tsx"));
+const FAQ = lazyPage(() => import("./pages/FAQ.tsx"));
+const PrayerAirQualityPage = lazyPage(() => import("./pages/PrayerAirQualityPage"));
+const DzikirPage = lazyPage(() => import("./pages/DzikirPage"));
+const ManasikPage = lazyPage(() => import("./pages/ManasikPage"));
+const TasbihPage = lazyPage(() => import("./pages/TasbihPage"));
 
 const queryClient = new QueryClient();
 
@@ -78,6 +100,7 @@ const App = () => (
           <VisitorTracker />
           <InfoPopup />
 
+          <Suspense fallback={<LoadingScreen />}>
           <Routes>
             <Route path="/" element={<Index />} />
             
@@ -156,6 +179,7 @@ const App = () => (
             
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </Suspense>
         </AuthProvider>
         </CartProvider>
       </BrowserRouter>

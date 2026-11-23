@@ -125,6 +125,24 @@ func main() {
 		}
 	}()
 
+	// Visit analytics retention: keep 180 days, purge older rows once a day.
+	go func() {
+		purge := func() {
+			defer func() { recover() }()
+			cutoff := time.Now().AddDate(0, 0, -180)
+			res := database.DB.Where("created_at < ?", cutoff).Delete(&models.Visit{})
+			if res.Error == nil && res.RowsAffected > 0 {
+				log.Printf("[Visits] purged %d rows older than %s", res.RowsAffected, cutoff.Format("2006-01-02"))
+			}
+		}
+		purge()
+		t := time.NewTicker(24 * time.Hour)
+		defer t.Stop()
+		for range t.C {
+			purge()
+		}
+	}()
+
 	app := fiber.New(fiber.Config{
 		// Nginx sets X-Real-IP to the real client address; only trust it from localhost
 		// so clients cannot spoof their IP to bypass rate limits.
